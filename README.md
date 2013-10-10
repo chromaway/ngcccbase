@@ -1,4 +1,27 @@
-ngcccbase
+Next-gen colored coin client base
 =========
 
-next-gen colored coin client base
+A flexible and modular base for colored coin software.
+
+Includes a basic wallet with command-line interface.
+
+coloredcoinlib handles 'coloring' (color kernels, colorvalues, things like that), while ngcccbase implements wallet model.
+
+Dependencies
+------------
+
+(included) [pycoin](https://github.com/richardkiss/pycoin)  is used to work with transactions. (Particularly, sign them.)
+
+(not included) [python-bitcoinrpc](https://github.com/jgarzik/python-bitcoinrpc) is used to connect to local bitcoind.
+
+Contributors
+------------
+
+ * Alex "killerstorm" Mizrahi
+ * Plazmotech
+ * Victor Knyazhin (coloredcoinlib)
+
+License
+-------
+
+MIT (see LICENSE file)
