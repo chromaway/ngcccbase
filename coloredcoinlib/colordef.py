@@ -18,8 +18,8 @@ class ColorDefinition(object):
         return out_colorstates
 
     @staticmethod
-    def register_color_def_class(code, class):
-        ColorDefinition.cd_classes[code] = class
+    def register_color_def_class(code, clAss):
+        ColorDefinition.cd_classes[code] = clAss
 
     @classmethod
     def from_color_desc(cdc, color_id, color_desc):
@@ -30,7 +30,6 @@ class ColorDefinition(object):
 
 class OBColorDefinition(ColorDefinition):
     class_code = 'obc'
-    ColorDefinition.register_color_def_class(class_code, OBColorDefinition)
 
     def __init__(self, color_id, genesis):
         super(OBColorDefinition, self).__init__(color_id)
@@ -79,4 +78,5 @@ class OBColorDefinition(ColorDefinition):
                    'height': int(height),
                    'outindex': int(outindex)}
         return cdc(colorid, genesis)
-        
+
+ColorDefinition.register_color_def_class(OBColorDefinition.class_code, OBColorDefinition)
