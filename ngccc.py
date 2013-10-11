@@ -1,4 +1,4 @@
-
+from wallet_controller import WalletController
 
 def create_wallet_model():
     from wallet_model import WalletModel
@@ -20,8 +20,9 @@ def main():
         command = args[0]
 
         wm = create_wallet_model()
-
-        print command
+        ctrl = WalletController(wm)
+        if command=='balance':
+            print ctrl.get_balance(None)
 
 if __name__ == "__main__":
         main()
