@@ -1,5 +1,8 @@
 import sqlite3
 
+from UserDict import DictMixin
+import cPickle as pickle
+
 class DataStoreConnection(object):
     def __init__(self, path):
         self.path = path
@@ -56,6 +59,38 @@ class ColorDataStore(DataStore):
     def get_all(self, color_id):
         return self.execute(self.queries['get_all'], (color_id,)).fetchall()
 
+class PersistentDictStore(DictMixin, DataStore):
+    def __init__(self, conn, dictname):
+        super(PersistentDictStore, self).__init__(conn)
+        conn.text_factory = str
+        self.tablename = dictname + "_dict"
+        if not self.table_exists(self.tablename):
+            self.execute("CREATE TABLE {0} (key NOT NULL PRIMARY KEY UNIQUE, value BLOB)".format(self.tablename))
+    def deserialize(self, svalue):
+        return pickle.loads(svalue)
+    def serialize(self, value):
+        return pickle.dumps(value)
+    def __getitem__(self, key):
+        svalue = self.execute("SELECT value FROM {0} WHERE key = ?".format(self.tablename), (key,)).fetchone()
+        if svalue:
+            return self.deserialize(unwrap1(svalue))
+        else:
+            raise KeyError()
+    def __setitem__(self, key, value):
+        self.execute("INSERT OR REPLACE INTO {0} VALUES (?, ?)".format(self.tablename),
+                     (key, self.serialize(value)))
+    def __contains__(self, key):
+        svalue = self.execute("SELECT value FROM {0} WHERE key = ?".format(self.tablename), (key,)).fetchone()
+        return svalue != None
+    def __delitem__(self, key):
+        if self.__contains__(key):
+            self.execute("DELETE FROM {0} WHERE key = ?".format(self.tablename), (key,))
+        else:
+            raise KeyError()
+    def keys(self):
+        return map(unwrap1, self.execute("SELECT key FROM {0}".format(self.tablename).fetchall()))
+            
+                   
 class ColorMetaStore(DataStore):
     def __init__(self, conn):
         super(ColorMetaStore, self).__init__(conn)
@@ -75,8 +110,11 @@ class ColorMetaStore(DataStore):
         if res == None:
             self.execute("INSERT INTO color_map(color_id, color_desc) VALUES (NULL, ?)", (color_desc,))
             res = self.execute(q, (color_desc, )).fetchone()
-        return res
+        return unwrap1(res)
     def find_color_desc(self, color_id):
         q = "SELECT color_desc FROM color_map WHERE color_id = ?"
-        return self.execute(q, (color_id,)).fetchone()
-                                
+        return unwrap1(self.execute(q, (color_id,)).fetchone())
+    def get_persistent_dict(self, dictname):
+        return PersistentDictStore(self.conn, dictname)
+                       
+                  
