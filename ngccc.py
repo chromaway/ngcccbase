@@ -22,7 +22,8 @@ def main():
         wm = create_wallet_model()
         ctrl = WalletController(wm)
         if command=='balance':
-            print ctrl.get_balance(None)
+            assdef = wm.get_asset_definition_manager().get_asset_by_moniker("bitcoin")
+            print ctrl.get_balance(assdef)
 
 if __name__ == "__main__":
         main()
