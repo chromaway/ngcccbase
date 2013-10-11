@@ -1,6 +1,7 @@
 import ecdsa
 import hashlib
 import json
+import util
 
 sha256 = lambda h: hashlib.sha256(h).digest()
 ripemd160 = lambda h: hashlib.new("ripemd160", h).digest()

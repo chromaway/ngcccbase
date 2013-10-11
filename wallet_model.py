@@ -53,13 +53,15 @@ class AddressWrapper(object):
     def __init__(self, model, params):
         import meat
 
-        self.color_set = ColorSet(params.get('color_set'))
+        self.color_set = ColorSet(model, params.get('color_set'))
         self.meat = meat.Address.fromObj(params.get('address_data'))
     def get_color_set(self):
         return self.color_set
     def getData(self):
         return {"color_set": self.color_set.getData(),
-                "address_data": self.meat.getData()}
+                "address_data": self.meat.getJSONData()}
+    def get_address(self):
+        return self.meat.pubkey
     @classmethod
     def new(cls, model, color_set):
         import meat
@@ -70,11 +72,18 @@ class AddressWrapper(object):
 class WalletAddressManager(object):
     def __init__(self, model, config):
         self.config = config
+        self.model = model
         self.addresses = []
         for addr_params in config.get('addresses', []):
             address = AddressWrapper(model, addr_params)
             self.addresses.append(address)
-        
+
+    def get_new_address(self, color_set):
+        na = AddressWrapper.new(self.model, color_set)
+        self.addresses.append(na)
+        self.update_config()
+        return na
+
     def get_addresses_for_color_set(self, color_set):
         return [addr for addr in self.addresses 
                 if color_set.intersects(address.get_color_set())]
