@@ -86,7 +86,7 @@ class WalletAddressManager(object):
 
     def get_addresses_for_color_set(self, color_set):
         return [addr for addr in self.addresses 
-                if color_set.intersects(address.get_color_set())]
+                if color_set.intersects(addr.get_color_set())]
 
     def update_config(self):
         self.config['addresses'] = [addr.getData() for addr in self.addresses]
