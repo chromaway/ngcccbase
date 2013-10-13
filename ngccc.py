@@ -23,6 +23,11 @@ def main():
             assdef = wm.get_asset_definition_manager().get_asset_by_moniker("bitcoin")
             addr = ctrl.get_new_address(assdef) 
             print addr.get_address()
+        elif command=='addasset':
+            moniker = args[1]
+            color_desc = args[2]
+            ctrl.add_asset_definition({"moniker": moniker,
+                                       "color_set": [color_desc]})
 
 if __name__ == "__main__":
         main()

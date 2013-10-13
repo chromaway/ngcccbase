@@ -14,7 +14,7 @@ class ColorSet(object):
         colormap = model.get_color_map()
         for color_desc in color_desc_list:
             self.color_id_set.add(colormap.resolve_color_desc(color_desc))
-    def getData(self):
+    def get_data(self):
         return self.color_desc_list
     def has_color_id(self, color_id):
         return (color_id in self.color_id_set)
@@ -29,27 +29,40 @@ class AssetDefinition(object):
         return self.moniker
     def get_color_set(self):
         return self.color_set
-    def get_utxo_value(self):
-        pass
+    def get_utxo_value(self, utxo):
+        return utxo.value
+    def get_data(self):
+        return {"moniker": self.moniker,
+                "color_set": self.color_set.get_data()}
 
 class AssetDefinitionManager(object):
     """manages asset definitions"""
     def __init__(self, model, config):
+        self.config = config
+        self.model = model
         self.asset_definitions = []
         self.assdef_by_moniker = {}
         btcdef = AssetDefinition(model, {"moniker": "bitcoin",
                                          "color_set": [""]})
         self.assdef_by_moniker["bitcoin"] = btcdef        
         for ad_params in config.get('asset_definitions', []):
-            assdef = AssetDefinition(model, ad_params)
-            asset_definitions.append(assdef)
-            moniker = assdef.get_moniker()
-            if moniker:
-                if moniker in assdef_by_moniker:
-                    raise Exception('more than one asset definition have same moniker')
-                self.assdef_by_moniker[moniker] = assdef
+            self.register_asset_definition(AssetDefinition(model, ad_params))
+    def register_asset_definition(self, assdef):
+        self.asset_definitions.append(assdef)
+        moniker = assdef.get_moniker()
+        if moniker:
+            if moniker in self.assdef_by_moniker:
+                raise Exception('more than one asset definition have same moniker')
+            self.assdef_by_moniker[moniker] = assdef
+    def add_asset_definition(self, params):
+        assdef = AssetDefinition(self.model, params)
+        self.register_asset_definition(assdef)
+        self.update_config()
     def get_asset_by_moniker(self, moniker):
         return self.assdef_by_moniker.get(moniker)
+    def update_config(self):
+        self.config['asset_definitions'] = [assdef.get_data() for assdef in self.asset_definitions]
+        
 
 class AddressWrapper(object):
     def __init__(self, model, params):
@@ -58,8 +71,8 @@ class AddressWrapper(object):
         self.meat = meat.Address.fromObj(params.get('address_data'))
     def get_color_set(self):
         return self.color_set
-    def getData(self):
-        return {"color_set": self.color_set.getData(),
+    def get_data(self):
+        return {"color_set": self.color_set.get_data(),
                 "address_data": self.meat.getJSONData()}
     def getUTXOs(self, color_set):
         all_utxos = self.model.txdata.unspent.get_for_address(self.get_address())
@@ -79,7 +92,7 @@ class AddressWrapper(object):
     @classmethod
     def new(cls, model, color_set):
         newaddr = meat.Address.new()
-        return cls(model, {"color_set": color_set.getData(),
+        return cls(model, {"color_set": color_set.get_data(),
                            "address_data": newaddr.getJSONData()})
 
 class WalletAddressManager(object):
@@ -102,7 +115,7 @@ class WalletAddressManager(object):
                 if color_set.intersects(addr.get_color_set())]
 
     def update_config(self):
-        self.config['addresses'] = [addr.getData() for addr in self.addresses]
+        self.config['addresses'] = [addr.get_data() for addr in self.addresses]
 
 class ColoredCoinContext(object):
     def __init__(self, config):

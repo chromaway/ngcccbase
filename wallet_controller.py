@@ -8,6 +8,9 @@ class WalletController(object):
         wam = self.model.get_address_manager()
         return wam.get_new_address(asset.get_color_set())
 
+    def add_asset_definition(self, params):
+        self.model.get_asset_definition_manager().add_asset_definition(params)
+
     def get_balance(self, asset):
         cq = self.model.make_coin_query({"asset": asset})
         utxo_list = cq.get_result()
