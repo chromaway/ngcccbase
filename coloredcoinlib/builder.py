@@ -3,13 +3,29 @@ from logger import log
 class ColorDataBuilder(object):
     pass
 
-class CompositeColorDataBuilder(ColorDataBuilder):
+class ColorDataBuilderManager(object):
     """manages multiple color data builders, one per color"""
-    def __init__(self):
-        self.builders = []
-    def update(self):
-        for b in self.builders:
-            b.update()
+    def __init__(self, colormap, blockchain_state, cdstore, metastore):
+        self.colormap = colormap
+        self.metastore = metastore
+        self.blockchain_state = blockchain_state
+        self.cdstore = cdstore
+        self.builders = {}
+    def get_builder(self, color_id):
+        if color_id in self.builders:
+            return self.builders[color_id]
+        colordef = self.colormap.get_color_def(color_id)
+        builder = FullScanColorDataBuilder(self.cdstore, 
+                                           self.blockchain_state,
+                                           colordef,
+                                           self.metastore)
+        self.builders[color_id] = builder
+        return builder
+    def ensure_scanned_upto(self, color_id_set, block_height):
+        for color_id in color_id_set:
+            builder = self.get_builder(color_id)
+            builder.ensure_scanned_upto(block_height)
+            
 
 class BasicColorDataBuilder(ColorDataBuilder):
     def __init__(self, cdstore, blockchain_state, colordef):
@@ -53,8 +69,8 @@ class FullScanColorDataBuilder(BasicColorDataBuilder):
             self.scan_tx(tx)
         self.metastore.set_scan_height(self.color_id, height)
 
-    def update(self):
-        if self.cur_height == self.blockchain_state.get_height():
+    def ensure_scanned_upto(self, block_height):
+        if self.cur_height >= block_height:
             pass # up-to-date
         else:
             if self.cur_height:
@@ -62,5 +78,5 @@ class FullScanColorDataBuilder(BasicColorDataBuilder):
             else:
                 # we cannot get genesis block via RPC, so we start from block 1
                 from_height = self.colordef.starting_height or 1
-            self.scan_blockchain(from_height, self.blockchain_state.get_height())
+            self.scan_blockchain(from_height, block_height)
                 

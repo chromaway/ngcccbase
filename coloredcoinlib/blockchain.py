@@ -51,6 +51,17 @@ class BlockchainState(object):
     def __init__(self, url):
         self.bitcoind = authproxy.AuthServiceProxy(url)
         self.cur_height = None
+
+    def get_tx_state(self, txhash):
+        try:
+            raw = self.bitcoind.getrawtransaction(txhash, 1)
+        except:
+            return (None, False)
+        if 'blockhash' in raw:
+            block_data = self.bitcoind.getblock(raw['blockhash'])
+            return (block_data['height'], False)
+        else:
+            return (None, True)
     
     def get_tx(self, txhash):
         return CTransaction.from_jsonrpc(self.bitcoind.getrawtransaction(txhash, 1), self)

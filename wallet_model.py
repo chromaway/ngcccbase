@@ -23,6 +23,7 @@ class ColorSet(object):
 
 class AssetDefinition(object):
     def __init__(self, model, params):
+        self.model = model
         self.moniker = params.get('moniker')
         self.color_set = ColorSet(model, params.get('color_set'))
     def get_moniker(self):
@@ -78,7 +79,8 @@ class AddressWrapper(object):
         all_utxos = self.model.txdata.unspent.get_for_address(self.get_address())
         cdata = self.model.ccc.colordata
         def relevant(utxo):
-            cvl = cdata.get_any(utxo.txhash, utxo.outindex)
+            cvl = cdata.get_colorstates(color_set.color_id_set, 
+                                        utxo.txhash, utxo.outindex)
             if not cvl:
                 return color_set.has_color_id(0)
             for cv in cvl:
@@ -122,12 +124,11 @@ class ColoredCoinContext(object):
 
         params = config.get('ccc')
 
-        from coloredcoinlib import agent
         from coloredcoinlib import blockchain
         from coloredcoinlib import builder
-        from coloredcoinlib import colordef
         from coloredcoinlib import store
         from coloredcoinlib import colormap
+        from coloredcoinlib import colordata
 
         self.blockchain_state = blockchain.BlockchainState(params.get('bitcoind_url'))
         
@@ -137,13 +138,11 @@ class ColoredCoinContext(object):
 
         self.colormap = colormap.ColorMap(self.metastore)
         
-        # dummies
-        colordefman = agent.ColorDefinitionManager()
-        mempoolcd = agent.MempoolColorData(self.blockchain_state)
-
-        cdbuilder = builder.CompositeColorDataBuilder()
+        cdbuilder = builder.ColorDataBuilderManager(self.colormap, self.blockchain_state,
+                                                    self.cdstore, self.metastore)
         
-        self.colordata = agent.ThickColorData(cdbuilder, mempoolcd, self.blockchain_state, colordefman, self.cdstore)
+        self.colordata = colordata.ThickColorData(cdbuilder, self.blockchain_state, self.cdstore)
+        
 
 
 class CoinQuery(object):
@@ -152,8 +151,8 @@ class CoinQuery(object):
         self.model = model
         self.asset = asset
     def get_result(self):
-        addr_man = self.model.get_address_manager()
         color_set = self.asset.get_color_set()
+        addr_man = self.model.get_address_manager()
         addresses = addr_man.get_addresses_for_color_set(color_set)
         utxos = []
         for address in addresses:
