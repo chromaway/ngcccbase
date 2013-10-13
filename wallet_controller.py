@@ -8,6 +8,10 @@ class WalletController(object):
         wam = self.model.get_address_manager()
         return wam.get_new_address(asset.get_color_set())
 
+    def get_all_addresses(self, asset):
+        wam = self.model.get_address_manager()
+        return wam.get_addresses_for_color_set(asset.get_color_set())
+
     def add_asset_definition(self, params):
         self.model.get_asset_definition_manager().add_asset_definition(params)
 

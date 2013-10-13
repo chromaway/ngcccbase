@@ -23,6 +23,8 @@ class ColorDataBuilderManager(object):
         return builder
     def ensure_scanned_upto(self, color_id_set, block_height):
         for color_id in color_id_set:
+            if color_id == 0:
+                continue
             builder = self.get_builder(color_id)
             builder.ensure_scanned_upto(block_height)
             

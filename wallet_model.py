@@ -79,7 +79,9 @@ class AddressWrapper(object):
         all_utxos = self.model.txdata.unspent.get_for_address(self.get_address())
         cdata = self.model.ccc.colordata
         def relevant(utxo):
-            cvl = cdata.get_colorstates(color_set.color_id_set, 
+            if self.color_set.color_id_set == set([0]):
+                return True
+            cvl = cdata.get_colorstates(self.color_set.color_id_set, 
                                         utxo.txhash, utxo.outindex)
             if not cvl:
                 return color_set.has_color_id(0)
