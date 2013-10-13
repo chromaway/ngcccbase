@@ -13,7 +13,3 @@ class ThickColorData(object):
                     if entry[0] in color_id_set]
         else:
             raise Exception("transaction isn't in blockchain yet")
-
-        
-
-

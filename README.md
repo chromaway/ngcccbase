@@ -18,7 +18,7 @@ Contributors
 ------------
 
  * Alex "killerstorm" Mizrahi
- * Plazmotech
+ * Thor "Plazmotech" Correia
  * Victor Knyazhin (coloredcoinlib)
 
 License

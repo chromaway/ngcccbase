@@ -26,7 +26,6 @@ class ColorDefinition(object):
         code = get_color_desc_code(color_desc)
         cdclass = cdc.cd_classes[code]
         return cdclass.from_color_desc(color_id, color_desc)
-        
 
 class OBColorDefinition(ColorDefinition):
     class_code = 'obc'
@@ -68,7 +67,7 @@ class OBColorDefinition(ColorDefinition):
             else:
                 out_colorstates.append(None)
         return out_colorstates
-        
+
     @classmethod
     def from_color_desc(cdc, color_id, color_desc):
         code, txhash, outindex, height = color_desc.split(':')

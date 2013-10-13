@@ -15,7 +15,7 @@ class ColorDataBuilderManager(object):
         if color_id in self.builders:
             return self.builders[color_id]
         colordef = self.colormap.get_color_def(color_id)
-        builder = FullScanColorDataBuilder(self.cdstore, 
+        builder = FullScanColorDataBuilder(self.cdstore,
                                            self.blockchain_state,
                                            colordef,
                                            self.metastore)
@@ -27,7 +27,7 @@ class ColorDataBuilderManager(object):
                 continue
             builder = self.get_builder(color_id)
             builder.ensure_scanned_upto(block_height)
-            
+
 
 class BasicColorDataBuilder(ColorDataBuilder):
     def __init__(self, cdstore, blockchain_state, colordef):
@@ -51,15 +51,15 @@ class BasicColorDataBuilder(ColorDataBuilder):
             val = out_colorstates[oi]
             if val:
                 self.cdstore.add(self.color_id, tx.hash, oi, val[0], val[1])
-        
-            
+
+
 class FullScanColorDataBuilder(BasicColorDataBuilder):
     """color data builder based on exhaustive blockchain scan, for one specific color"""
     def __init__(self, cdstore, blockchain_state, colordef, metastore):
         super(FullScanColorDataBuilder, self).__init__(cdstore, blockchain_state, colordef)
         self.metastore = metastore
         self.cur_height = metastore.get_scan_height(self.color_id)
-       
+
     def scan_blockchain(self, from_height, to_height):
         for i in xrange(from_height, to_height + 1):
             self.scan_block(i)
@@ -81,4 +81,3 @@ class FullScanColorDataBuilder(BasicColorDataBuilder):
                 # we cannot get genesis block via RPC, so we start from block 1
                 from_height = self.colordef.starting_height or 1
             self.scan_blockchain(from_height, block_height)
-                

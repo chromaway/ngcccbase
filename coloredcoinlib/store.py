@@ -8,12 +8,12 @@ class DataStoreConnection(object):
         self.path = path
         self.conn = sqlite3.connect(path)
         self.conn.isolation_level = None
-        
+
     def __del__(self):
         if self.conn:
             self.conn.close()
-            
-     
+
+
 class DataStore(object):
     def __init__(self, conn):
         self.conn = conn
@@ -47,7 +47,7 @@ class ColorDataStore(DataStore):
         self.queries['get'] = "SELECT value, label FROM {0} WHERE color_id = ? AND txhash = ? AND outindex = ?".format(self.tablename)
         self.queries['get_any'] = "SELECT color_id, value, label FROM {0} WHERE txhash = ? AND outindex = ?".format(self.tablename)
         self.queries['get_all'] = "SELECT txhash, outindex, value, label FROM {0} WHERE color_id = ?".format(self.tablename)
-                                                                                                                             
+
     def add(self, color_id, txhash, outindex, value, label):
         self.execute(self.queries['add'], (color_id, txhash, outindex, value, label))
     def remove(self, color_id, txhash, outindex):
@@ -89,8 +89,8 @@ class PersistentDictStore(DictMixin, DataStore):
             raise KeyError()
     def keys(self):
         return map(unwrap1, self.execute("SELECT key FROM {0}".format(self.tablename)).fetchall())
-            
-                   
+
+
 class ColorMetaStore(DataStore):
     def __init__(self, conn):
         super(ColorMetaStore, self).__init__(conn)
@@ -116,5 +116,3 @@ class ColorMetaStore(DataStore):
         return unwrap1(self.execute(q, (color_id,)).fetchone())
     def get_persistent_dict(self, dictname):
         return PersistentDictStore(self.conn, dictname)
-                       
-                  
