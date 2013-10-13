@@ -1,6 +1,6 @@
 class ThickColorData(object):
     def __init__(self, cdbuilder_manager, blockchain_state, cdstore):
-        self.cdbuilder = cdbuilder_manager
+        self.cdbuilder_manager = cdbuilder_manager
         self.blockchain_state = blockchain_state
         self.cdstore = cdstore
 

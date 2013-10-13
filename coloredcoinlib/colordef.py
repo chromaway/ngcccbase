@@ -23,9 +23,9 @@ class ColorDefinition(object):
 
     @classmethod
     def from_color_desc(cdc, color_id, color_desc):
-        code = get_color_desc_class(color_desc)
+        code = get_color_desc_code(color_desc)
         cdclass = cdc.cd_classes[code]
-        cdclass.from_color_desc(color_id, color_desc)
+        return cdclass.from_color_desc(color_id, color_desc)
         
 
 class OBColorDefinition(ColorDefinition):
@@ -72,11 +72,11 @@ class OBColorDefinition(ColorDefinition):
     @classmethod
     def from_color_desc(cdc, color_id, color_desc):
         code, txhash, outindex, height = color_desc.split(':')
-        if (code != class_code):
+        if (code != cdc.class_code):
             raise Exception('wrong color code in from_color_desc')
         genesis = {'txhash': txhash,
                    'height': int(height),
                    'outindex': int(outindex)}
-        return cdc(colorid, genesis)
+        return cdc(color_id, genesis)
 
 ColorDefinition.register_color_def_class(OBColorDefinition.class_code, OBColorDefinition)

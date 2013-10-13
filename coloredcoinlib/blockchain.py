@@ -67,8 +67,6 @@ class BlockchainState(object):
         return CTransaction.from_jsonrpc(self.bitcoind.getrawtransaction(txhash, 1), self)
 
     def iter_block_txs(self, height):
-        if (not self.cur_height) or (self.cur_height < height):
-            raise Exception("iter_block_txs: height exceeds available height")
         txhashes = self.bitcoind.getblock(self.bitcoind.getblockhash(height))['tx']
         for txhash in txhashes:
             yield self.get_tx(txhash)
