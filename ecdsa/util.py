@@ -212,4 +212,3 @@ def sigdecode_der(sig_der, order):
         raise der.UnexpectedDER("trailing junk after DER numbers: %s" %
                                 binascii.hexlify(empty))
     return r, s
-

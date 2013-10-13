@@ -45,7 +45,7 @@ class CTransaction(object):
                 inp.value = prevtx.outputs[inp.outpoint.n].value
             else:
                 inp.value = 0 # TODO: value of coinbase tx?
-        
+
 
 class BlockchainState(object):
     def __init__(self, url):
@@ -62,7 +62,7 @@ class BlockchainState(object):
             return (block_data['height'], False)
         else:
             return (None, True)
-    
+
     def get_tx(self, txhash):
         return CTransaction.from_jsonrpc(self.bitcoind.getrawtransaction(txhash, 1), self)
 
@@ -78,5 +78,3 @@ class BlockchainState(object):
     def update(self):
         """make sure we use latest data"""
         self.cur_height = self.bitcoind.getblockcount() - 1
-
-

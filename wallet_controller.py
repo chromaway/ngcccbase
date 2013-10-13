@@ -1,5 +1,6 @@
-
-
+# Controls wallet model in a high level manner
+# Executes high level tasks such as get balance (tasks that require more complex logic)
+# [verification needed]
 class WalletController(object):
     def __init__(self, model):
         self.model = model

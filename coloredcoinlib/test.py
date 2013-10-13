@@ -14,12 +14,12 @@ def test():
     genesis = {'txhash': 'b1586cd10b32f78795b86e9a3febe58dcb59189175fad884a7f4a6623b77486e',
                'outindex': 0,
                'height': 46442}
-               
+
     colordef1 = colordef.OBColorDefinition(1, genesis)
     colordefman = agent.ColorDefinitionManager()
 
     cdbuilder = builder.FullScanColorDataBuilder(cdstore, blockchain_state, colordef1, metastore)
-    
+
     mempoolcd = agent.MempoolColorData(blockchain_state)
     cdata = agent.ThickColorData(cdbuilder, mempoolcd, blockchain_state, colordefman, cdstore)
 

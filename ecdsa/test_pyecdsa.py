@@ -478,7 +478,7 @@ class Util(unittest.TestCase):
         self.failUnless(counts[order-1])
         for i in range(1, order):
             print "%3d: %s" % (i, "*"*(counts[i]//100))
-            
+
 
 def __main__():
     unittest.main()

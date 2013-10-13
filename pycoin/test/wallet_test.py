@@ -134,4 +134,3 @@ class Bip0032TestCase(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-

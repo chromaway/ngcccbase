@@ -187,4 +187,3 @@ def topem(der, name):
                   for start in range(0, len(b64), 64)])
     lines.append("-----END %s-----\n" % name)
     return "".join(lines)
-

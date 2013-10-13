@@ -31,4 +31,3 @@ class ColorMap(object):
         cd = ColorDefinition.from_color_desc(color_id, color_desc)
         self.colordefs[color_id] = cd
         return cd
-        
