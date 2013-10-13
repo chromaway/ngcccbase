@@ -24,16 +24,16 @@ class ColorSet(object):
 class AssetDefinition(object):
     def __init__(self, model, params):
         self.model = model
-        self.moniker = params.get('moniker')
+        self.monikers = params.get('monikers', [])
         self.color_set = ColorSet(model, params.get('color_set'))
-    def get_moniker(self):
-        return self.moniker
+    def get_monikers(self):
+        return self.monikers
     def get_color_set(self):
         return self.color_set
     def get_utxo_value(self, utxo):
         return utxo.value
     def get_data(self):
-        return {"moniker": self.moniker,
+        return {"monikers": self.monikers,
                 "color_set": self.color_set.get_data()}
 
 class AssetDefinitionManager(object):
@@ -50,8 +50,7 @@ class AssetDefinitionManager(object):
             self.register_asset_definition(AssetDefinition(model, ad_params))
     def register_asset_definition(self, assdef):
         self.asset_definitions.append(assdef)
-        moniker = assdef.get_moniker()
-        if moniker:
+        for moniker in assdef.get_monikers():
             if moniker in self.assdef_by_moniker:
                 raise Exception('more than one asset definition have same moniker')
             self.assdef_by_moniker[moniker] = assdef

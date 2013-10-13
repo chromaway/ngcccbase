@@ -88,7 +88,7 @@ class PersistentDictStore(DictMixin, DataStore):
         else:
             raise KeyError()
     def keys(self):
-        return map(unwrap1, self.execute("SELECT key FROM {0}".format(self.tablename).fetchall()))
+        return map(unwrap1, self.execute("SELECT key FROM {0}".format(self.tablename)).fetchall())
             
                    
 class ColorMetaStore(DataStore):
