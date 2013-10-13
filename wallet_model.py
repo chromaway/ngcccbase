@@ -3,6 +3,8 @@
 # model provides facilities for working with addresses, coins and asset definitions,
 # but it doesn't implement high-level operations (those are implemented in controller)
 
+import meat
+
 class ColorSet(object):
     """a set of colors which belong to certain asset, 
     it can be used to filter addresses and UTXOs"""
@@ -51,8 +53,7 @@ class AssetDefinitionManager(object):
 
 class AddressWrapper(object):
     def __init__(self, model, params):
-        import meat
-
+        self.model = model
         self.color_set = ColorSet(model, params.get('color_set'))
         self.meat = meat.Address.fromObj(params.get('address_data'))
     def get_color_set(self):
@@ -60,11 +61,23 @@ class AddressWrapper(object):
     def getData(self):
         return {"color_set": self.color_set.getData(),
                 "address_data": self.meat.getJSONData()}
+    def getUTXOs(self, color_set):
+        all_utxos = self.model.txdata.unspent.get_for_address(self.get_address())
+        cdata = self.model.ccc.colordata
+        def relevant(utxo):
+            cvl = cdata.get_any(utxo.txhash, utxo.outindex)
+            if not cvl:
+                return color_set.has_color_id(0)
+            for cv in cvl:
+                if color_set.has_color_id(cv[0]):
+                    return True
+            return False        
+        return filter(relevant, all_utxos)
+
     def get_address(self):
         return self.meat.pubkey
     @classmethod
     def new(cls, model, color_set):
-        import meat
         newaddr = meat.Address.new()
         return cls(model, {"color_set": color_set.getData(),
                            "address_data": newaddr.getJSONData()})
@@ -110,6 +123,14 @@ class ColoredCoinContext(object):
         self.metastore = store.ColorMetaStore(self.store_conn.conn)
 
         self.colormap = colormap.ColorMap(self.metastore)
+        
+        # dummies
+        colordefman = agent.ColorDefinitionManager()
+        mempoolcd = agent.MempoolColorData(self.blockchain_state)
+
+        cdbuilder = builder.CompositeColorDataBuilder()
+        
+        self.colordata = agent.ThickColorData(cdbuilder, mempoolcd, self.blockchain_state, colordefman, self.cdstore)
 
 
 class CoinQuery(object):
@@ -138,6 +159,8 @@ class WalletModel(object):
         self.ass_def_man = AssetDefinitionManager(self, config)
         self.address_man = WalletAddressManager(self, config)
         self.coin_query_factory = CoinQueryFactory(self, config)
+        self.txdata = meat.TransactionData()
+        
     def get_coin_query_factory(self):
         return self.coin_query_factory
     def make_coin_query(self, params):
