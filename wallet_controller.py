@@ -5,6 +5,15 @@ class WalletController(object):
     def __init__(self, model):
         self.model = model
 
+    def send_coins(self, target_addr, asset, value):
+        txcon = self.model.make_transaction_constructor()
+        txcon.addTarget(target_addr, asset, value)
+        txcon.constructTx()
+        txhex = txcon.getTxDataHex()
+        print txhex
+        self.model.ccc.blockchain_state.bitcoind.sendrawtransaction(txhex)
+        
+
     def get_new_address(self, asset):
         wam = self.model.get_address_manager()
         return wam.get_new_address(asset.get_color_set())

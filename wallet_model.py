@@ -4,6 +4,7 @@
 # but it doesn't implement high-level operations (those are implemented in controller)
 
 import meat
+import txcons
 
 # A set of colors which belong to certain asset, it can be used to filter addresses and UTXOs
 class ColorSet(object):
@@ -38,6 +39,14 @@ class AssetDefinition(object):
 
     def get_utxo_value(self, utxo):
         return utxo.value
+
+    def make_transaction_constructor(self):
+        if self.color_set.color_id_set == set([0]):
+            return txcons.UncoloredTC(self.model, self)
+        else:
+            if len(self.color_set.color_id_set)>0:
+                raise Exception('unable to make transaction constructor for more than one color')
+            return txcons.MonocolorTC(self.model, self)
 
     def get_data(self):
         return {"monikers": self.monikers,
@@ -86,23 +95,29 @@ class AddressWrapper(object):
 
     def get_data(self):
         return {"color_set": self.color_set.get_data(),
-                        "address_data": self.meat.getJSONData()}
+                "address_data": self.meat.getJSONData()}
 
     def getUTXOs(self, color_set):
         all_utxos = self.model.txdata.unspent.get_for_address(self.get_address())
         cdata = self.model.ccc.colordata
-        def relevant(utxo):
-            if self.color_set.color_id_set == set([0]):
-                return True
-            cvl = cdata.get_colorstates(self.color_set.color_id_set,
-                                                                    utxo.txhash, utxo.outindex)
-            if not cvl:
-                return color_set.has_color_id(0)
-            for cv in cvl:
-                if color_set.has_color_id(cv[0]):
-                    return True
-            return False
-        return filter(relevant, all_utxos)
+        address_is_uncolored = self.color_set.color_id_set == set([0])
+        for utxo in all_utxos:
+            utxo.address = self
+            if not address_is_uncolored:
+                utxo.colorvalues = cdata.get_colorstates(self.color_set.color_id_set,
+                                                         utxo.txhash, utxo.outindex)
+        if address_is_uncolored:
+            return all_utxos
+        else:
+            def relevant(utxo):
+                cvl = utxo.colorvalues
+                if not cvl:
+                    return color_set.has_color_id(0)
+                for cv in cvl:
+                    if color_set.has_color_id(cv[0]):
+                        return True
+                    return False
+            return filter(relevant, all_utxos)
 
     def get_address(self):
         return self.meat.pubkey
@@ -188,7 +203,8 @@ class WalletModel(object):
         self.address_man = WalletAddressManager(self, config)
         self.coin_query_factory = CoinQueryFactory(self, config)
         self.txdata = meat.TransactionData()
-
+    def make_transaction_constructor(self):
+        return txcons.GenericTC(self)
     def get_coin_query_factory(self):
         return self.coin_query_factory
     def make_coin_query(self, params):

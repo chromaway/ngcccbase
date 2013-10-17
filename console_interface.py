@@ -10,7 +10,8 @@ class CommandInterpreter(object):
                 "newaddr": self.newaddr,
                 "alladdresses": self.alladdresses,
                 "addasset": self.addasset,
-                "dump_config": self.dump_config
+                "dump_config": self.dump_config,
+                "send": self.send
         }
 
     def run_command(self, args):
@@ -54,3 +55,8 @@ class CommandInterpreter(object):
         config = self.wallet.wallet_config
         dict_config = dict(config.iteritems())
         print json.dumps(dict_config, indent=4)
+
+    def send(self, args):
+        asset = self.get_asset_definition(args[1])
+        value = int(args[3])
+        self.controller.send_coins(args[2], asset, value)
