@@ -53,7 +53,7 @@ class AssetDefinition(object):
             or not tx_spec.is_monocolor()):
             raise Exception('tx spec type not supported')
         op_tx_spec = txcons.SimpleOperationalTxSpec(self.model, self)
-        color_id = list(self.color_set.color_is_set)[0]
+        color_id = list(self.color_set.color_id_set)[0]
         for target in tx_spec.targets:
             # TODO: translate colorvalues
             op_tx_spec.add_target(target[0], color_id, target[2])

@@ -20,7 +20,7 @@ class OperationalTxSpec(object):
 
     def is_monocolor(self):
         targets = self.get_targets()
-        color_id = targers[0][1]
+        color_id = targets[0][1]
         for target in targets:
             if color_id != target[1]:
                 return False
@@ -46,5 +46,5 @@ class ComposedTxSpec(object):
         self.txouts = txouts
 
     def get_txins(self): return self.txins
-    def get_txouts(self): return self.txins
+    def get_txouts(self): return self.txouts
     

@@ -5,7 +5,7 @@ from coloredcoinlib import txspec
 class SimpleOperationalTxSpec(txspec.OperationalTxSpec):
     """subclass of OperationalTxSpec which uses wallet model"""
     def __init__(self, model, asset):
-        super(WalletOperationalTxSpec, self).__init__()
+        super(SimpleOperationalTxSpec, self).__init__()
         self.model = model
         self.targets = []
         self.asset = asset
@@ -69,15 +69,15 @@ class BasicTxSpec(object):
         return True
     
     def is_monocolor(self):
-        if not is_monoasset(stxs):
+        if not self.is_monoasset():
             return False
         asset = self.targets[0][1]
-        return len(asset.get_color_list().color_id_set) == 1
+        return len(asset.get_color_set().color_id_set) == 1
 
-    def is_uncolored(stxs):
-        if not is_monoasset(stxs):
+    def is_uncolored(self):
+        if not self.is_monoasset():
             return False
-        asset = stxs.targets[0][1]
+        asset = self.targets[0][1]
         return asset.get_color_list().color_id_set == set([0])
 
 
@@ -109,10 +109,10 @@ class SignedTxSpec(object):
                    for txout in self.composed_tx_spec.get_txouts()]
         self.tx_data = pycoin_construct_tx(input_utxos, outputs)
 
-    def get_tx_data():
+    def get_tx_data(self):
         return self.tx_data
 
-    def get_hex_tx_data():
+    def get_hex_tx_data(self):
         import binascii
         return binascii.hexlify(self.tx_data).decode("utf8")
 
@@ -150,7 +150,7 @@ class TransactionSpecTransformer(object):
 
     def transform_basic(self, tx_spec, target_spec_kind):
         if target_spec_kind in ['operational', 'composed', 'signed']:
-            if tx_spec.is_monoasset(tx_spec):
+            if tx_spec.is_monoasset():
                 asset = tx_spec.targets[0][1]
                 operational_ts = asset.make_operational_tx_spec(tx_spec)
                 return self.transform(operational_ts, target_spec_kind)
@@ -164,7 +164,7 @@ class TransactionSpecTransformer(object):
                     composed = compose_uncolored_tx_spec(tx_spec)
                 else:
                     color_def = self.model.get_color_map().get_color_def(color_id)
-                    composed = color_def.compose_tx(tx_spec)
+                    composed = color_def.compose_tx_spec(tx_spec)
                 return self.transform(composed, target_spec_kind)
         raise Exception('do not know how to transform tx spec')
         
