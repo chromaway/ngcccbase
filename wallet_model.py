@@ -163,7 +163,12 @@ class WalletAddressManager(object):
         return na
 
     def get_change_address(self, color_set):
-        return self.get_new_addres(color_set)
+        acs = self.get_addresses_for_color_set(color_set)
+        if acs:
+            # reuse
+            return acs[0]
+        else:
+            return self.get_new_addres(color_set)
 
     def get_addresses_for_color_set(self, color_set):
         return [addr for addr in self.addresses
