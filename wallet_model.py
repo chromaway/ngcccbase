@@ -24,6 +24,13 @@ class ColorSet(object):
     def intersects(self, other):
         return len(self.color_id_set & other.color_id_set) > 0
 
+    @classmethod
+    def from_color_ids(cls, model, color_ids):
+        colormap = model.get_color_map()
+        color_desc_list = [colormap.find_color_desc(color_id) 
+                           for color_id in color_ids]
+        return cls(model, color_desc_list)
+
 # Stores the definition of a particular asset, including its colour sets, it's name (moniker), and the wallet model that represents it.
 class AssetDefinition(object):
     def __init__(self, model, params):
@@ -39,6 +46,18 @@ class AssetDefinition(object):
 
     def get_utxo_value(self, utxo):
         return utxo.value
+
+    def make_operational_tx_spec(self, tx_spec):
+        if (not isinstance(tx_spec, txcons.BasicTxSpec) 
+            or not tx_spec.is_monoasset()
+            or not tx_spec.is_monocolor()):
+            raise Exception('tx spec type not supported')
+        op_tx_spec = txcons.SimpleOperationalTxSpec(self.model, self)
+        color_id = list(self.color_set.color_is_set)[0]
+        for target in tx_spec.targets:
+            # TODO: translate colorvalues
+            op_tx_spec.add_target(target[0], color_id, target[2])
+        return op_tx_spec
 
     def make_transaction_constructor(self):
         if self.color_set.color_id_set == set([0]):
@@ -143,6 +162,9 @@ class WalletAddressManager(object):
         self.update_config()
         return na
 
+    def get_change_address(self, color_set):
+        return self.get_new_addres(color_set)
+
     def get_addresses_for_color_set(self, color_set):
         return [addr for addr in self.addresses
                         if color_set.intersects(addr.get_color_set())]
@@ -178,23 +200,32 @@ class ColoredCoinContext(object):
 
 class CoinQuery(object):
     """can be used to request UTXOs satisfying certain criteria"""
-    def __init__(self, model, asset):
+    def __init__(self, model, color_set):
         self.model = model
-        self.asset = asset
+        self.color_set = color_set
     def get_result(self):
-        color_set = self.asset.get_color_set()
         addr_man = self.model.get_address_manager()
-        addresses = addr_man.get_addresses_for_color_set(color_set)
+        addresses = addr_man.get_addresses_for_color_set(self.color_set)
         utxos = []
         for address in addresses:
-            utxos.extend(address.getUTXOs(color_set))
+            utxos.extend(address.getUTXOs(self.color_set))
         return utxos
 
 class CoinQueryFactory(object):
     def __init__(self, model, config):
         self.model = model
+
     def make_query(self, query):
-        return CoinQuery(self.model, query.get("asset"))
+        color_set = query.get('color_set')
+        if not color_set:
+            if 'color_id_set' in query:
+                color_set = ColorSet.from_color_ids(self.model, 
+                                                    query['color_id_set'])
+            elif 'asset' in query:
+                color_set = query['asset'].get_color_set()
+            else:
+                raise Exception('color set is not specified')
+        return CoinQuery(self.model, color_set)
 
 class WalletModel(object):
     def __init__(self, config):
@@ -203,8 +234,10 @@ class WalletModel(object):
         self.address_man = WalletAddressManager(self, config)
         self.coin_query_factory = CoinQueryFactory(self, config)
         self.txdata = meat.TransactionData()
-    def make_transaction_constructor(self):
-        return txcons.GenericTC(self)
+        self.tx_spec_transformer = txcons.TransactionSpecTransformer(self)
+
+    def transform_tx_spec(self, tx_spec, target_spec_kind):
+        return self.tx_spec_transformer.transform(tx_spec, target_spec_kind)
     def get_coin_query_factory(self):
         return self.coin_query_factory
     def make_coin_query(self, params):

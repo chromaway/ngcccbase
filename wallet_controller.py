@@ -1,15 +1,18 @@
 # Controls wallet model in a high level manner
 # Executes high level tasks such as get balance (tasks that require more complex logic)
 # [verification needed]
+
+import txcons
+
 class WalletController(object):
     def __init__(self, model):
         self.model = model
 
     def send_coins(self, target_addr, asset, value):
-        txcon = self.model.make_transaction_constructor()
-        txcon.addTarget(target_addr, asset, value)
-        txcon.constructTx()
-        txhex = txcon.getTxDataHex()
+        tx_spec = txcons.BasicTxSpec(self.model)
+        tx_spec.add_target(target_addr, asset, value)
+        signed_tx_spec = self.model.transform_tx_spec(tx_spec, 'signed')
+        txhex = signed_tx_spec.get_hex_tx_data()
         print txhex
         self.model.ccc.blockchain_state.bitcoind.sendrawtransaction(txhex)
         
