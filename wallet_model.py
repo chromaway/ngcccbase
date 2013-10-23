@@ -95,6 +95,7 @@ class AssetDefinitionManager(object):
         assdef = AssetDefinition(self.model, params)
         self.register_asset_definition(assdef)
         self.update_config()
+        return assdef
 
     def get_asset_by_moniker(self, moniker):
         return self.assdef_by_moniker.get(moniker)

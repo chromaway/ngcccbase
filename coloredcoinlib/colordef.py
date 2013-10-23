@@ -70,6 +70,25 @@ class OBColorDefinition(ColorDefinition):
                 out_colorstates.append(None)
         return out_colorstates
 
+    @classmethod
+    def compose_genesis_tx_spec(self, op_tx_spec):
+        targets = op_tx_spec.get_targets()[:]
+        if len(targets) != 1:
+            raise Exception('genesis transaction spec needs exactly one target')
+        target_addr, color_id, value = targets[0]
+        if color_id != -1:
+            raise Exception('genesis transaction target should use -1 color_id')
+        fee = op_tx_spec.get_required_fee(300)
+        inputs, total = op_tx_spec.select_coins(0, fee + value)
+        change = total - fee - value
+        if change > 0:
+            targets.append((op_tx_spec.get_change_addr(0), 0, change))
+        txins = [txspec.ComposedTxSpec.TxIn(utxo)
+                 for utxo in inputs]
+        txouts = [txspec.ComposedTxSpec.TxOut(target[2], target[0]) 
+                  for target in targets]
+        return txspec.ComposedTxSpec(txins, txouts)        
+
     def compose_tx_spec(self, op_tx_spec):
         colored_targets = []
         uncolored_targets = []
