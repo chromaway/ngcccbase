@@ -63,7 +63,6 @@ class FullScanColorDataBuilder(BasicColorDataBuilder):
     def scan_blockchain(self, from_height, to_height):
         for i in xrange(from_height, to_height + 1):
             self.scan_block(i)
-            return
 
     def scan_block(self, height):
         log("scanning block at height %s" % height)
