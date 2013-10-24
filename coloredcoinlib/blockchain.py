@@ -1,4 +1,5 @@
 from bitcoinrpc import authproxy
+import bitcoin.core
 
 class COutpoint(object):
     def __init__(self, hash, n):
@@ -35,6 +36,24 @@ class CTransaction(object):
             tx.outputs.append(CTxOut(long(o['value'] * 100000000)))
         return tx
 
+    @classmethod
+    def from_bitcoincore(klass, txhash, bctx, bs):
+        tx = CTransaction(bs)
+
+        tx.hash = txhash
+        tx.inputs = []
+        for i in bctx.vin:
+            if i.prevout.is_null():
+                tx.inputs.append(CTxIn('coinbase', 0))
+            else:
+                op = i.prevout
+                tx.inputs.append(CTxIn(bitcoin.core.b2lx(op.hash),
+                                       op.n))
+        tx.outputs = []
+        for o in bctx.vout:
+            tx.outputs.append(CTxOut(o.nValue))
+        return tx
+
     def ensure_input_values(self):
         if self.have_input_values:
             return
@@ -64,6 +83,12 @@ class BlockchainState(object):
             return (None, True)
 
     def get_tx(self, txhash):
+        txhex = self.bitcoind.getrawtransaction(txhash, 0)
+        txbin = bitcoin.core.x(txhex)
+        tx = bitcoin.core.CTransaction.deserialize(txbin)
+        return CTransaction.from_bitcoincore(txhash, tx, self)
+
+    def get_tx_old(self, txhash):
         return CTransaction.from_jsonrpc(self.bitcoind.getrawtransaction(txhash, 1), self)
 
     def iter_block_txs(self, height):
