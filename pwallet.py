@@ -17,7 +17,9 @@ class PersistentWallet(object):
             self.wallet_config[k] = config[k]
 
     def initialize_new_wallet(self):
-        self.wallet_config['ccc'] = {"bitcoind_url": "http://bitcoinrpc:8oso9n8E1KnTexnKHn16N3tcsGpfEThksK4ojzrkzn3b@localhost:8332/"}
+        #self.wallet_config['ccc'] = {"bitcoind_url": "http://bitcoinrpc:8oso9n8E1KnTexnKHn16N3tcsGpfEThksK4ojzrkzn3b@localhost:8332/"}
+        pass
+    
 
     def get_model(self):
         return self.wallet_model

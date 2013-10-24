@@ -181,7 +181,7 @@ class WalletAddressManager(object):
 class ColoredCoinContext(object):
     def __init__(self, config):
 
-        params = config.get('ccc')
+        params = config.get('ccc', {})
 
         from coloredcoinlib import blockchain
         from coloredcoinlib import builder
@@ -189,7 +189,7 @@ class ColoredCoinContext(object):
         from coloredcoinlib import colormap
         from coloredcoinlib import colordata
 
-        self.blockchain_state = blockchain.BlockchainState(params.get('bitcoind_url'))
+        self.blockchain_state = blockchain.BlockchainState(params.get('bitcoind_url', None))
 
         self.store_conn = store.DataStoreConnection(params.get("color.db", "color.db"))
         self.cdstore = store.ColorDataStore(self.store_conn.conn)
@@ -198,7 +198,7 @@ class ColoredCoinContext(object):
         self.colormap = colormap.ColorMap(self.metastore)
 
         cdbuilder = builder.ColorDataBuilderManager(self.colormap, self.blockchain_state,
-                                                                                                self.cdstore, self.metastore)
+                                                    self.cdstore, self.metastore)
 
         self.colordata = colordata.ThickColorData(cdbuilder, self.blockchain_state, self.cdstore)
 
