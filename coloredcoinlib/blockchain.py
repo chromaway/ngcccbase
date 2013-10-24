@@ -1,5 +1,7 @@
 from bitcoinrpc import authproxy
 import bitcoin.core
+import bitcoin.serialize
+import bitcoin.rpc
 
 class COutpoint(object):
     def __init__(self, hash, n):
@@ -68,7 +70,8 @@ class CTransaction(object):
 
 class BlockchainState(object):
     def __init__(self, url):
-        self.bitcoind = authproxy.AuthServiceProxy(url)
+        # self.bitcoind = authproxy.AuthServiceProxy(url)
+        self.bitcoind = bitcoin.rpc.RawProxy(url)
         self.cur_height = None
 
     def get_tx_state(self, txhash):
@@ -92,9 +95,23 @@ class BlockchainState(object):
         return CTransaction.from_jsonrpc(self.bitcoind.getrawtransaction(txhash, 1), self)
 
     def iter_block_txs(self, height):
-        txhashes = self.bitcoind.getblock(self.bitcoind.getblockhash(height))['tx']
-        for txhash in txhashes:
-            yield self.get_tx(txhash)
+        block_hex = None
+        try:
+            block_hex = self.bitcoind.getblock(self.bitcoind.getblockhash(height), False)
+        except bitcoin.rpc.JSONRPCException:
+            pass
+        
+        if block_hex:
+            # block at once
+            block = bitcoin.core.CBlock.deserialize(bitcoin.core.x(block_hex))
+            block_hex = None
+            for tx in block.vtx:
+                txhash = bitcoin.core.b2lx(bitcoin.serialize.Hash(tx.serialize()))
+                yield CTransaction.from_bitcoincore(txhash, tx, self)
+        else:
+            txhashes = self.bitcoind.getblock(self.bitcoind.getblockhash(height))['tx']
+            for txhash in txhashes:
+                yield self.get_tx(txhash)
 
     def get_height(self):
         return self.cur_height
