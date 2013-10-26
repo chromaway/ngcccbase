@@ -2,8 +2,6 @@ import ecdsa
 import hashlib
 import json
 import util
-import pycoin.tx
-import urllib2
 
 # Lambda's for hashes
 sha256 = lambda h: hashlib.sha256(h).digest()
@@ -54,40 +52,3 @@ class Address():
     def getJSONData(self):
         return {"pubkey":self.pubkey, "privkey":self.privkey, "rawPrivkey":self.rawPrivkey.encode("hex"), "rawPubkey":self.rawPubkey.encode("hex")}
 
-# This class represents an unspent transaction output.
-class UTXO(object):
-    def __init__(self, txhash, outindex, value, script):
-        self.txhash = txhash
-        self.outindex = outindex
-        self.value = value
-        self.script = script
-
-    # I assume this outputs utxo object data as pycoin utxo data for use with pycoin send [verification needed]
-    def get_pycoin_coin_source(self):
-        le_txhash = self.txhash.decode('hex')[::-1]
-        pycoin_txout = pycoin.tx.TxOut(self.value, self.script.decode('hex'))
-        return (le_txhash, self.outindex, pycoin_txout)
-
-# Fetches UTXO's for specific address
-class UTXOFetcher(object):
-    def get_for_address(self, address):
-        url = "http://blockchain.info/unspent?active=%s" % address
-        try:
-            jsonData = urllib2.urlopen(url).read()
-            data = json.loads(jsonData)
-            utxos = []
-            for utxo_data in data['unspent_outputs']:
-                txhash = utxo_data['tx_hash'].decode('hex')[::-1].encode('hex')
-                utxo = UTXO(txhash, utxo_data['tx_output_n'], utxo_data['value'], utxo_data['script'])
-                utxos.append(utxo)
-                return utxos
-        except urllib2.HTTPError as e:
-            if e.code == 500:
-                return []
-            else:
-                raise
-
-# [verification needed]
-class TransactionData(object):
-    def __init__(self):
-        self.unspent = UTXOFetcher()

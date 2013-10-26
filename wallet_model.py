@@ -5,6 +5,7 @@
 
 import meat
 import txcons
+import utxodb
 
 # A set of colors which belong to certain asset, it can be used to filter addresses and UTXOs
 class ColorSet(object):
@@ -103,8 +104,8 @@ class AssetDefinitionManager(object):
     def update_config(self):
         self.config['asset_definitions'] = [assdef.get_data() for assdef in self.asset_definitions]
 
-# [verificaton needed]
-class AddressWrapper(object):
+class AddressRecord(object):
+    """data associated with an address: keypair, color_set, ..."""
     def __init__(self, model, params):
         self.model = model
         self.color_set = ColorSet(model, params.get('color_set'))
@@ -116,28 +117,6 @@ class AddressWrapper(object):
     def get_data(self):
         return {"color_set": self.color_set.get_data(),
                 "address_data": self.meat.getJSONData()}
-
-    def getUTXOs(self, color_set):
-        all_utxos = self.model.txdata.unspent.get_for_address(self.get_address())
-        cdata = self.model.ccc.colordata
-        address_is_uncolored = self.color_set.color_id_set == set([0])
-        for utxo in all_utxos:
-            utxo.address = self
-            if not address_is_uncolored:
-                utxo.colorvalues = cdata.get_colorstates(self.color_set.color_id_set,
-                                                         utxo.txhash, utxo.outindex)
-        if address_is_uncolored:
-            return all_utxos
-        else:
-            def relevant(utxo):
-                cvl = utxo.colorvalues
-                if not cvl:
-                    return color_set.has_color_id(0)
-                for cv in cvl:
-                    if color_set.has_color_id(cv[0]):
-                        return True
-                    return False
-            return filter(relevant, all_utxos)
 
     def get_address(self):
         return self.meat.pubkey
@@ -154,11 +133,11 @@ class WalletAddressManager(object):
         self.model = model
         self.addresses = []
         for addr_params in config.get('addresses', []):
-            address = AddressWrapper(model, addr_params)
+            address = AddressRecord(model, addr_params)
             self.addresses.append(address)
 
     def get_new_address(self, color_set):
-        na = AddressWrapper.new(self.model, color_set)
+        na = AddressRecord.new(self.model, color_set)
         self.addresses.append(na)
         self.update_config()
         return na
@@ -170,6 +149,9 @@ class WalletAddressManager(object):
             return acs[0]
         else:
             return self.get_new_addres(color_set)
+
+    def get_all_addresses(self):
+        return self.addresses
 
     def get_addresses_for_color_set(self, color_set):
         return [addr for addr in self.addresses
@@ -204,19 +186,6 @@ class ColoredCoinContext(object):
 
 
 
-class CoinQuery(object):
-    """can be used to request UTXOs satisfying certain criteria"""
-    def __init__(self, model, color_set):
-        self.model = model
-        self.color_set = color_set
-    def get_result(self):
-        addr_man = self.model.get_address_manager()
-        addresses = addr_man.get_addresses_for_color_set(self.color_set)
-        utxos = []
-        for address in addresses:
-            utxos.extend(address.getUTXOs(self.color_set))
-        return utxos
-
 class CoinQueryFactory(object):
     def __init__(self, model, config):
         self.model = model
@@ -231,7 +200,7 @@ class CoinQueryFactory(object):
                 color_set = query['asset'].get_color_set()
             else:
                 raise Exception('color set is not specified')
-        return CoinQuery(self.model, color_set)
+        return utxodb.UTXOQuery(self.model, color_set)
 
 class WalletModel(object):
     def __init__(self, config):
@@ -239,7 +208,7 @@ class WalletModel(object):
         self.ass_def_man = AssetDefinitionManager(self, config)
         self.address_man = WalletAddressManager(self, config)
         self.coin_query_factory = CoinQueryFactory(self, config)
-        self.txdata = meat.TransactionData()
+        self.utxo_man = utxodb.UTXOManager(self, config)
         self.tx_spec_transformer = txcons.TransactionSpecTransformer(self)
 
     def transform_tx_spec(self, tx_spec, target_spec_kind):
@@ -254,3 +223,5 @@ class WalletModel(object):
         return self.address_man
     def get_color_map(self):
         return self.ccc.colormap
+    def get_utxo_manager(self):
+        return self.utxo_man

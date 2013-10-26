@@ -13,6 +13,8 @@ class WalletController(object):
         print txhex
         return self.model.ccc.blockchain_state.bitcoind.sendrawtransaction(txhex)
 
+    def scan_utxos(self):
+        self.model.utxo_man.update_all()
 
     def send_coins(self, target_addr, asset, value):
         tx_spec = txcons.BasicTxSpec(self.model)

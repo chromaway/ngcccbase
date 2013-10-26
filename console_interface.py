@@ -12,7 +12,8 @@ class CommandInterpreter(object):
                 "addasset": self.addasset,
                 "dump_config": self.dump_config,
                 "send": self.send,
-                "issue": self.issue
+                "issue": self.issue,
+                "scan": self.scan
         }
 
     def run_command(self, args):
@@ -64,3 +65,6 @@ class CommandInterpreter(object):
 
     def issue(self, args):
         self.controller.issue_coins(args[1], args[2], int(args[3]), int(args[4]))
+
+    def scan(self, args):
+        self.controller.scan_utxos()
