@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 from wallet_controller import WalletController
 from pwallet import PersistentWallet
 from console_interface import CommandInterpreter

@@ -6,6 +6,7 @@
 import meat
 import txcons
 import utxodb
+import txdb
 
 # A set of colors which belong to certain asset, it can be used to filter addresses and UTXOs
 class ColorSet(object):
@@ -209,8 +210,11 @@ class WalletModel(object):
         self.address_man = WalletAddressManager(self, config)
         self.coin_query_factory = CoinQueryFactory(self, config)
         self.utxo_man = utxodb.UTXOManager(self, config)
+        self.txdb = txdb.TxDb(self, config)
         self.tx_spec_transformer = txcons.TransactionSpecTransformer(self)
 
+    def get_tx_db(self):
+        return self.txdb
     def transform_tx_spec(self, tx_spec, target_spec_kind):
         return self.tx_spec_transformer.transform(tx_spec, target_spec_kind)
     def get_coin_query_factory(self):

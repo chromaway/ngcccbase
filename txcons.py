@@ -86,7 +86,7 @@ def pycoin_construct_tx(input_utxos, outputs):
     from pycoin.tx import UnsignedTx, SecretExponentSolver
     import io
     inputs = [utxo.get_pycoin_coin_source() for utxo in input_utxos]
-    secret_exponents = [encoding.wif_to_secret_exponent(utxo.address.meat.privkey)
+    secret_exponents = [encoding.wif_to_secret_exponent(utxo.address_rec.meat.privkey)
                         for utxo in input_utxos]
     unsigned_tx = UnsignedTx.standard_tx(inputs, outputs)
     solver = SecretExponentSolver(secret_exponents)

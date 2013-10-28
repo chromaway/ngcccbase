@@ -11,7 +11,9 @@ class WalletController(object):
     def publish_tx(self, signed_tx_spec):
         txhex = signed_tx_spec.get_hex_tx_data()
         print txhex
-        return self.model.ccc.blockchain_state.bitcoind.sendrawtransaction(txhex)
+        txhash = self.model.ccc.blockchain_state.bitcoind.sendrawtransaction(txhex)
+        self.model.txdb.add_tx(txhash, txhex)
+        return txhash
 
     def scan_utxos(self):
         self.model.utxo_man.update_all()
