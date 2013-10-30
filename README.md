@@ -12,7 +12,7 @@ Dependencies
 
 (included) [pycoin](https://github.com/richardkiss/pycoin)  is used to work with transactions. (Particularly, sign them.)
 
-(not included) [python-bitcoinrpc](https://github.com/jgarzik/python-bitcoinrpc) is used to connect to local bitcoind.
+(included) [python-bitcoinrpc](https://github.com/jgarzik/python-bitcoinlib) is used to connect to local bitcoind.
 
 Contributors
 ------------
