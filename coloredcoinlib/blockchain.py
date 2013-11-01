@@ -23,25 +23,10 @@ class CTransaction(object):
         self.have_input_values = False
 
     @classmethod
-    def from_jsonrpc(klass, d, bs):
-        tx = CTransaction(bs)
-
-        tx.hash = d['txid']
-        tx.inputs = []
-        for i in d['vin']:
-            if 'coinbase' in i:
-                tx.inputs.append(CTxIn('coinbase', 0))
-            else:
-                tx.inputs.append(CTxIn(i['txid'], i['vout']))
-        tx.outputs = []
-        for o in d['vout']:
-            tx.outputs.append(CTxOut(long(o['value'] * 100000000)))
-        return tx
-
-    @classmethod
     def from_bitcoincore(klass, txhash, bctx, bs):
         tx = CTransaction(bs)
 
+        tx.raw = bctx
         tx.hash = txhash
         tx.inputs = []
         for i in bctx.vin:
@@ -90,9 +75,6 @@ class BlockchainState(object):
         txbin = bitcoin.core.x(txhex)
         tx = bitcoin.core.CTransaction.deserialize(txbin)
         return CTransaction.from_bitcoincore(txhash, tx, self)
-
-    def get_tx_old(self, txhash):
-        return CTransaction.from_jsonrpc(self.bitcoind.getrawtransaction(txhash, 1), self)
 
     def iter_block_txs(self, height):
         block_hex = None
