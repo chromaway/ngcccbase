@@ -1,8 +1,13 @@
 from coloredcoinlib.store import DataStore, DataStoreConnection
 from time import time
+from blockchain import BlockchainInterface
+from electrum import ElectrumInterface
 import sqlite3
 import urllib2
 import json
+
+ELECTRUM_SERVER = "btc.it-zone.org"
+ELECTRUM_PORT = 50001
 
 class UTXOStore(DataStore):
     def __init__(self, dbpath):
@@ -96,24 +101,19 @@ class UTXO(object):
         pycoin_txout = pycoin.tx.TxOut(self.value, self.script.decode('hex'))
         return (le_txhash, self.outindex, pycoin_txout)
 
+    def __repr__(self):
+        return "%s %s %s %s" % (self.txhash, self.outindex, self.value, self.script)
+
 class UTXOFetcher(object):
+    def __init__(self):
+        self.electrum_interface = ElectrumInterface(ELECTRUM_SERVER, ELECTRUM_PORT)
+
     """ Fetches UTXO's for specific address"""
     def get_for_address(self, address):
-        url = "http://blockchain.info/unspent?active=%s" % address
-        try:
-            jsonData = urllib2.urlopen(url).read()
-            data = json.loads(jsonData)
-            utxos = []
-            for utxo_data in data['unspent_outputs']:
-                txhash = utxo_data['tx_hash'].decode('hex')[::-1].encode('hex')
-                utxo = UTXO(txhash, utxo_data['tx_output_n'], utxo_data['value'], utxo_data['script'])
-                utxos.append(utxo)
-                return utxos
-        except urllib2.HTTPError as e:
-            if e.code == 500:
-                return []
-            else:
-                raise
+        objs = []
+        for data in self.electrum_interface.get_utxo(address):
+            objs.append(UTXO(*data))
+        return objs
 
 class UTXOManager(object):
     def __init__(self, model, config):
@@ -147,3 +147,6 @@ class UTXOManager(object):
         for address in wam.get_all_addresses():
             self.update_address(address)
 
+if __name__ == "__main__":
+    uf = UTXOFetcher()
+    print uf.get_for_address("1PAMLeDxXK3DJ4nm6okVHmjH7pmsbg8NYr")
