@@ -46,14 +46,15 @@ class UTXOQuery(object):
         self.color_set = color_set
         self.utxo_manager = model.get_utxo_manager()
 
-    def get_utxos_for_address(self, address_rec):
+    """gets utxos for an address, with color data"""
+    def get_colored_utxos_for_address(self, address_record):
         color_set = self.color_set    
-        addr_color_set = address_rec.get_color_set()
-        all_utxos = self.utxo_manager.get_utxos_for_address(address_rec.get_address())
+        addr_color_set = address_record.get_color_set()
+        all_utxos = self.utxo_manager.get_utxos_for_address(address_record.get_address())
         cdata = self.model.ccc.colordata        
         address_is_uncolored = addr_color_set.color_id_set == set([0])
         for utxo in all_utxos:
-            utxo.address_rec = address_rec
+            utxo.address_rec = address_record
             if not address_is_uncolored:
                 utxo.colorvalues = cdata.get_colorvalues(addr_color_set.color_id_set,
                                                          utxo.txhash, utxo.outindex)
@@ -75,7 +76,7 @@ class UTXOQuery(object):
         addresses = addr_man.get_addresses_for_color_set(self.color_set)
         utxos = []
         for address in addresses:
-            utxos.extend(self.get_utxos_for_address(address))
+            utxos.extend(self.get_colored_utxos_for_address(address))
         return utxos
 
 class UTXO(object):

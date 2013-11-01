@@ -1,5 +1,5 @@
 from logger import log
-
+from Queue import Queue
 class ColorDataBuilder(object):
     pass
 
@@ -47,9 +47,9 @@ class BasicColorDataBuilder(ColorDataBuilder):
         if empty and not (self.colordef.is_special_tx(tx)):
             return
         out_colorvalues = self.colordef.run_kernel(tx, in_colorvalues)
-        for oi, val in enumerate(out_colorvalues):
+        for o_index, val in enumerate(out_colorvalues):
             if val:
-                self.cdstore.add(self.color_id, tx.hash, oi, val[0], val[1])
+                self.cdstore.add(self.color_id, tx.hash, o_index, val[0], val[1])
 
 
 class FullScanColorDataBuilder(BasicColorDataBuilder):
@@ -67,7 +67,8 @@ class FullScanColorDataBuilder(BasicColorDataBuilder):
         log("scanning block at height %s" % height)
         for tx in self.blockchain_state.iter_block_txs(height):
             self.scan_tx(tx)
-        self.metastore.set_scan_height(self.color_id, height)
+        self.cur_height = height
+        self.metastore.set_scan_height(self.color_id, self.cur_height)
 
     def ensure_scanned_upto(self, block_height):
         if self.cur_height >= block_height:
@@ -80,10 +81,62 @@ class FullScanColorDataBuilder(BasicColorDataBuilder):
                 from_height = self.colordef.starting_height or 1
             self.scan_blockchain(from_height, block_height)
             
-            
-class AidedColorDataBuilder(BasicColorDataBuilder):
+
+class SetQueue(Queue):
+    def _init(self, maxsize):
+        self.queue = set()
+    def _put(self, item):
+        self.queue.add(item)
+    def _get(self):
+        return self.queue.pop()
+
+class AidedColorDataBuilder(FullScanColorDataBuilder):
     """color data builder based on following output spending transactions, for one specific color"""
+    def __init__(self, cdstore, blockchain_state, colordef, metastore):
+        super(AidedColorDataBuilder, self).__init__(cdstore, blockchain_state, colordef, metastore)
+        if not self.cur_height:
+            self.scan_tx(colordef.genesis)
+            self.cur_height = self.colordef.starting_height or 1
 
+    def get_spends(self, tx):
+        # TODO, using http://explorer.tumak.cz/spends
+        return []
 
+    def ensure_scanned_upto(self, block_height):
+        if self.cur_height >= block_height:
+            pass # up-to-date
+        else:
+            self.scan_color_history_to(self.cur_height, block_height)
+
+    """ get transactions from a block height which contain colored outputs"""
+    def get_txs_containing_color(self, height):
+        def has_color_output(tx):
+            for n, output in enumerate(tx.outputs):
+                if self.cdstore.get(self.color_id, tx.hash, n):
+                    return True
+            return False
+        return [tx for tx in self.blockchain_state.iter_block_txs(height)
+                 if has_color_output(tx)]
+            
+
+    """ scans color's history from an already known block"""
+    def scan_color_history(self, from_height, to_height):
+        from_txs = self.get_txs_containing_color(from_height)
+        tx_queue = SetQueue()
+        for tx in from_txs:
+            tx_queue.put(tx)
+            
+        while not tx_queue.empty():
+            tx = tx_queue.get()
+            if tx.block_height > to_height: # too far above
+                continue
+             
+            spends = self.get_spends(tx)
+            for stx in spends:
+                tx_queue.put(stx)
+            
+            if tx in from_txs: # already scanned
+                continue
+            self.scan_tx(tx)
 
 

@@ -5,7 +5,7 @@ class ThickColorData(object):
         self.cdstore = cdstore
 
     def get_colorvalues(self, color_id_set, txhash, outindex):
-        block_height, in_mempool = self.blockchain_state.get_tx_state(txhash)
+        block_height, in_mempool = self.blockchain_state.get_tx_block_height(txhash)
         if block_height:
             self.cdbuilder_manager.ensure_scanned_upto(color_id_set, block_height)
             res = self.cdstore.get_any(txhash, outindex)

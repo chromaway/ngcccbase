@@ -73,7 +73,7 @@ class BlockchainState(object):
         self.bitcoind = bitcoin.rpc.RawProxy(url)
         self.cur_height = None
 
-    def get_tx_state(self, txhash):
+    def get_tx_block_height(self, txhash):
         try:
             raw = self.bitcoind.getrawtransaction(txhash, 1)
         except:
