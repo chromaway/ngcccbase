@@ -1,4 +1,3 @@
-from bitcoinrpc import authproxy
 import bitcoin.core
 import bitcoin.serialize
 import bitcoin.rpc

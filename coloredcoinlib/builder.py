@@ -37,18 +37,17 @@ class BasicColorDataBuilder(ColorDataBuilder):
         self.color_id = colordef.color_id
 
     def scan_tx(self, tx):
-        in_colorstates = []
+        in_colorvalues = []
         empty = True
         for inp in tx.inputs:
             val = self.cdstore.get(self.color_id, inp.outpoint.hash, inp.outpoint.n)
-            in_colorstates.append(val)
+            in_colorvalues.append(val)
             if val:
                 empty = False
         if empty and not (self.colordef.is_special_tx(tx)):
             return
-        out_colorstates = self.colordef.run_kernel(tx, in_colorstates)
-        for oi in xrange(len(out_colorstates)):
-            val = out_colorstates[oi]
+        out_colorvalues = self.colordef.run_kernel(tx, in_colorvalues)
+        for oi, val in enumerate(out_colorvalues):
             if val:
                 self.cdstore.add(self.color_id, tx.hash, oi, val[0], val[1])
 
@@ -80,3 +79,11 @@ class FullScanColorDataBuilder(BasicColorDataBuilder):
                 # we cannot get genesis block via RPC, so we start from block 1
                 from_height = self.colordef.starting_height or 1
             self.scan_blockchain(from_height, block_height)
+            
+            
+class AidedColorDataBuilder(BasicColorDataBuilder):
+    """color data builder based on following output spending transactions, for one specific color"""
+
+
+
+

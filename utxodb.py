@@ -55,7 +55,7 @@ class UTXOQuery(object):
         for utxo in all_utxos:
             utxo.address_rec = address_rec
             if not address_is_uncolored:
-                utxo.colorvalues = cdata.get_colorstates(addr_color_set.color_id_set,
+                utxo.colorvalues = cdata.get_colorvalues(addr_color_set.color_id_set,
                                                          utxo.txhash, utxo.outindex)
         if address_is_uncolored:
             return all_utxos
