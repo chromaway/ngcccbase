@@ -18,6 +18,18 @@ Dependencies
 
 (not included) [bunch](http://github.com/dsc/bunch) is used by python-jsonrpc
 
+Development
+------------
+
+ * Create a python virtualenv to work in
+ ex. `cd $YOUR_PROJECT_DIRECTORY/env/ && virtualenv ngcccbase`
+ * Activate the virtualenv
+ ex. `source $YOUR_PROJECT_DIRECTORY/env/ngcccbase/bin/activate`
+ * Clone ngcccbase
+ ex. `cd $YOUR_PROJECT_DIRECTORY && git clone https://github.com/bitcoinx/ngcccbase.git`
+ * Install ngcccbase for development
+ ex `cd $YOUR_PROJECT_DIRECTORY/ngcccbase && python setup.py develop`
+
 Contributors
 ------------
 
@@ -25,6 +37,7 @@ Contributors
  * Jimmy Song
  * Thor "Plazmotech" Correia
  * Victor Knyazhin (coloredcoinlib)
+ * Daniel "Ademan" Roberts
 
 License
 -------
