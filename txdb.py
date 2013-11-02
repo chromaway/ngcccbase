@@ -2,21 +2,55 @@ from coloredcoinlib.store import DataStore, DataStoreConnection
 
 TX_STATUS_UNKNOWN = 0
 
+create_table = """\
+CREATE TABLE tx_data (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    txhash TEXT,
+    data TEXT,
+    status INTEGER
+);
+"""
+
+create_address_table = """\
+CREATE TABLE tx_address (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    address TEXT,
+    type INTEGER,
+    transaction INTEGER,
+    FOREIGN KEY(transaction) REFERENCES tx_data(id)
+);
+"""
+
+TXIN = 0
+TXOUT = 1
+
 class TxDataStore(DataStore):
     def __init__(self, conn):
         super(TxDataStore, self).__init__(conn)
         if not self.table_exists('tx_data'):
-            self.execute("CREATE TABLE tx_data (id INTEGER PRIMARY KEY AUTOINCREMENT, \
-txhash TEXT, data TEXT, status INTEGER)")
+            self.execute(create_table)
             self.execute("CREATE UNIQUE INDEX tx_data_txhash ON tx_data (txhash)")
+        if not self.table_exists('tx_address'):
+            self.execute(create_table_address)
         #if not self.table_exists('tx_addr_index'):
         #    self.execute("CREATE TABLE tx_addr_index (tx_id INTEGER, address TEXT)")
         #    self.execute("CREATE INDEX tx_addr_index_tx_id ON tx_addr_index (tx_id)")
         #    self.execute("CREATE INDEX tx_addr_index_address ON tx_addr_index (address)")
-            
+
     def add_tx(self, txhash, txdata, status=TX_STATUS_UNKNOWN):
-        self.execute("INSERT INTO tx_data (txhash, data, status) VALUES (?, ?, ?)",
+        return self.execute("INSERT INTO tx_data (txhash, data, status) VALUES (?, ?, ?)",
                      (txhash, txdata, status))
+
+    def add_signed_tx(self, txhash, tx):
+        txid = self.add_tx(txhash, tx.get_hex_tx_data()).lastrowid
+
+        for txin in tx.txins:
+            self.execute("INSERT INTO tx_address (address, type, transaction) VALUES(?, ?, ?)",
+                         (txin.utxo.address_rec, TXIN, txid))
+
+        for txout in tx.txouts:
+            self.execute("INSERT INTO tx_address (address, type, transaction) VALUES(?, ?, ?)",
+                         (txout.target_address, TXOUT, txid))
 
     def get_tx_by_hash(self, txhash):
         return self.execute("SELECT * FROM tx_data WHERE txhash = ?",
@@ -29,3 +63,7 @@ class TxDb(object):
 
     def add_tx(self, txhash, txdata, status=TX_STATUS_UNKNOWN):
         self.store.add_tx(txhash, txdata, status)
+
+    def add_signed_tx(self, txhash, tx):
+        self.store.add_signed_tx(txhash, tx)
+

@@ -12,7 +12,7 @@ class WalletController(object):
         txhex = signed_tx_spec.get_hex_tx_data()
         print txhex
         txhash = self.model.ccc.blockchain_state.bitcoind.sendrawtransaction(txhex)
-        self.model.txdb.add_tx(txhash, txhex)
+        self.model.txdb.add_signed_tx(txhash, signed_tx_spec)
         return txhash
 
     def scan_utxos(self):
