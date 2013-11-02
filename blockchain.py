@@ -5,7 +5,7 @@ import json
 class BlockchainInterface(object):
 
     @classmethod
-    def get_utxo(address):
+    def get_utxo(cls, address):
         url = "http://blockchain.info/unspent?active=%s" % address
         try:
             jsonData = urllib2.urlopen(url).read()
@@ -15,7 +15,7 @@ class BlockchainInterface(object):
                 txhash = utxo_data['tx_hash'].decode('hex')[::-1].encode('hex')
                 utxo = [txhash, utxo_data['tx_output_n'], utxo_data['value'], utxo_data['script']]
                 utxos.append(utxo)
-                return utxos
+            return utxos
         except urllib2.HTTPError as e:
             if e.code == 500:
                 return []
