@@ -6,8 +6,8 @@ import sqlite3
 import urllib2
 import json
 
-ELECTRUM_SERVER = "btc.it-zone.org"
-ELECTRUM_PORT = 50001
+DEFAULT_ELECTRUM_SERVER = "btc.it-zone.org"
+DEFAULT_ELECTRUM_PORT = 50001
 
 class UTXOStore(DataStore):
     def __init__(self, dbpath):
@@ -105,13 +105,21 @@ class UTXO(object):
         return "%s %s %s %s" % (self.txhash, self.outindex, self.value, self.script)
 
 class UTXOFetcher(object):
-    def __init__(self):
-        self.electrum_interface = ElectrumInterface(ELECTRUM_SERVER, ELECTRUM_PORT)
+    def __init__(self, params):
+        use = params.get('interface', 'blockchain')
+        if use == 'blockchain':
+            self.interface = BlockchainInterface()
+        elif use == 'electrum':
+            electrum_server = params.get('electrum_server', DEFAULT_ELECTRUM_SERVER)
+            electrum_port = params.get('electrum_port', DEFAULT_ELECTRUM_PORT)
+            self.interface = ElectrumInterface(electrum_server, electrum_port)
+        else:
+            raise Exception('unknown service for UTXOFetcher')
 
     """ Fetches UTXO's for specific address"""
     def get_for_address(self, address):
         objs = []
-        for data in self.electrum_interface.get_utxo(address):
+        for data in self.interface.get_utxo(address):
             objs.append(UTXO(*data))
         return objs
 
@@ -120,7 +128,7 @@ class UTXOManager(object):
         params = config.get('utxodb', {})
         self.model = model
         self.store = UTXOStore(params.get('dbpath', "utxo.db"))
-        self.utxo_fetcher = UTXOFetcher()
+        self.utxo_fetcher = UTXOFetcher(params.get('utxo_fetcher', {}))
 
     def get_utxos_for_address(self, address):
         utxos = []
