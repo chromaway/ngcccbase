@@ -4,9 +4,11 @@ import json
 
 class BlockchainInterface(object):
 
+    URL_TEMPLATE = "http://blockchain.info/unspent?active=%s"
+
     @classmethod
     def get_utxo(cls, address):
-        url = "http://blockchain.info/unspent?active=%s" % address
+        url = cls.URL_TEMPLATE % address
         try:
             jsonData = urllib2.urlopen(url).read()
             data = json.loads(jsonData)
@@ -20,3 +22,8 @@ class BlockchainInterface(object):
             if e.code == 500:
                 return []
             raise
+
+class TestnetInterface(BlockchainInterface):
+
+    URL_TEMPLATE = "http://explorer.tumak.cz/unspent/%s"
+    
