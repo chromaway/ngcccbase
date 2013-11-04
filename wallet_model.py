@@ -198,7 +198,8 @@ class ColoredCoinContext(object):
         self.colormap = colormap.ColorMap(self.metastore)
 
         cdbuilder = builder.ColorDataBuilderManager(self.colormap, self.blockchain_state,
-                                                    self.cdstore, self.metastore)
+                                                    self.cdstore, self.metastore,
+                                                    builder.FullScanColorDataBuilder)
 
         self.colordata = colordata.ThickColorData(cdbuilder, self.blockchain_state, self.cdstore)
 
