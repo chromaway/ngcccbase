@@ -54,9 +54,11 @@ class CTransaction(object):
 
 
 class BlockchainState(object):
-    def __init__(self, url):
-        # self.bitcoind = authproxy.AuthServiceProxy(url)
-        self.bitcoind = bitcoin.rpc.RawProxy(url)
+    def __init__(self, url, testnet=False):
+        if testnet:
+            self.bitcoind = bitcoin.rpc.RawProxy(service_url=url,service_port=18332)
+        else:
+            self.bitcoind = bitcoin.rpc.RawProxy(service_url=url)
         self.cur_height = None
 
     def get_tx_state(self, txhash):
