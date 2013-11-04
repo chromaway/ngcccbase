@@ -56,7 +56,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QComboBox" name="cb_assets"/>
+            <widget class="QComboBox" name="cb_monikers"/>
            </item>
           </layout>
          </item>
@@ -155,7 +155,7 @@
  <tabstops>
   <tabstop>cb_addresses</tabstop>
   <tabstop>btn_newAddress</tabstop>
-  <tabstop>cb_assets</tabstop>
+  <tabstop>cb_monikers</tabstop>
  </tabstops>
  <resources/>
  <connections/>

@@ -20,21 +20,21 @@ class OverviewPage(QtGui.QWidget):
         if address and address in addresses:
             self.cb_addresses.setCurrentIndex(addresses.index(address))
 
-    def update_assets(self, assets):
-        currentAsset = self.get_asset()
-        self.cb_assets.clear()
-        assets.remove('bitcoin')
-        assets = ['bitcoin'] + assets
-        self.cb_assets.addItems(assets)
-        self.set_assets(currentAsset)
+    def update_monikers(self, monikers):
+        currentMoniker = self.get_moniker()
+        self.cb_monikers.clear()
+        monikers.remove('bitcoin')
+        monikers = ['bitcoin'] + monikers
+        self.cb_monikers.addItems(monikers)
+        self.set_moniker(currentMoniker)
 
-    def get_asset(self):
-        return str(self.cb_assets.currentText())
+    def get_moniker(self):
+        return str(self.cb_monikers.currentText())
 
-    def set_assets(self, asset):
-        assets = [str(self.cb_assets.itemText(i)) for i in range(self.cb_assets.count())]
-        if asset and asset in assets:
-            self.cb_addresses.setCurrentIndex(assets.index(asset))
+    def set_moniker(self, moniker):
+        monikers = [str(self.cb_monikers.itemText(i)) for i in range(self.cb_monikers.count())]
+        if moniker and moniker in monikers:
+            self.cb_monikers.setCurrentIndex(monikers.index(moniker))
 
     def update_wallet(self, address, balance):
         self.lbl_address.setText(address)
