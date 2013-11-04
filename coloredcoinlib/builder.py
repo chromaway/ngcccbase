@@ -1,5 +1,8 @@
 from logger import log
 from Queue import Queue
+from explorer import get_spends
+from toposort import toposorted
+
 class ColorDataBuilder(object):
     pass
 
@@ -98,45 +101,35 @@ class AidedColorDataBuilder(FullScanColorDataBuilder):
             self.scan_tx(colordef.genesis)
             self.cur_height = self.colordef.starting_height or 1
 
-    def get_spends(self, tx):
-        # TODO, using http://explorer.tumak.cz/spends
-        return []
-
-    def ensure_scanned_upto(self, block_height):
-        if self.cur_height >= block_height:
-            pass # up-to-date
-        else:
-            self.scan_color_history_to(self.cur_height, block_height)
-
-    """ get transactions from a block height which contain colored outputs"""
-    def get_txs_containing_color(self, height):
-        def has_color_output(tx):
-            for n, output in enumerate(tx.outputs):
-                if self.cdstore.get(self.color_id, tx.hash, n):
-                    return True
-            return False
-        return [tx for tx in self.blockchain_state.iter_block_txs(height)
-                 if has_color_output(tx)]
+    def scan_blockchain(self, from_height, to_height):
+        tx_queue = [self.colordef.genesis]
+        for cur_block_height in xrange(self.colordef.starting_height, to_height):
+            # remove txs from this block from the queue
+            block_tx_queue = [tx for tx in tx_queue if tx.block_height == cur_block_height]
+            tx_queue = [tx for tx in tx_queue if tx.block_height != cur_block_height]
             
-
-    """ scans color's history from an already known block"""
-    def scan_color_history(self, from_height, to_height):
-        from_txs = self.get_txs_containing_color(from_height)
-        tx_queue = SetQueue()
-        for tx in from_txs:
-            tx_queue.put(tx)
+            block_txs = {}
+            while block_tx_queue:
+                tx = block_tx_queue.pop()
+                block_txs[tx.txhash] = tx
+                spends = get_spends(tx.txhash)
+                for stx in spends:
+                    if stx.block_height == cur_block_height:
+                        block_tx_queue.append(stx)
+                    else:
+                        tx_queue.append(stx)
+         
+            def dependent(tx):
+                """all transactions from current block this transaction directly depends on"""
+                dep_tx = []
+                for inp in tx.inputs:
+                    if inp.outpoint.hash in block_txs:
+                        dep_tx.append(block_txs[inp.outpoint.hash])
+                return dep_tx
+         
+            sorted_block_txs = toposorted(block_txs.values(), dependent)
             
-        while not tx_queue.empty():
-            tx = tx_queue.get()
-            if tx.block_height > to_height: # too far above
-                continue
-             
-            spends = self.get_spends(tx)
-            for stx in spends:
-                tx_queue.put(stx)
-            
-            if tx in from_txs: # already scanned
-                continue
-            self.scan_tx(tx)
+            for tx in sorted_block_txs:
+                self.scan_tx(tx)
 
 
