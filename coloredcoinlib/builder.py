@@ -86,11 +86,6 @@ class FullScanColorDataBuilder(BasicColorDataBuilder):
 
 class AidedColorDataBuilder(FullScanColorDataBuilder):
     """color data builder based on following output spending transactions, for one specific color"""
-    def __init__(self, cdstore, blockchain_state, colordef, metastore):
-        super(AidedColorDataBuilder, self).__init__(cdstore, blockchain_state, colordef, metastore)
-        if not self.cur_height:
-            self.scan_tx(colordef.genesis)
-            self.cur_height = self.colordef.starting_height or 1
 
     def scan_blockchain(self, from_height, to_height):
         tx_queue = [self.colordef.genesis]
