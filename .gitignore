@@ -7,3 +7,5 @@
 *.egg-info/
 .*.sw?
 
+/build
+/dist
