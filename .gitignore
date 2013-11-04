@@ -4,3 +4,6 @@
 *.db
 *~
 .*project
+*.egg-info/
+.*.sw?
+
