@@ -7,17 +7,19 @@ class ColorDataBuilder(object):
 
 class ColorDataBuilderManager(object):
     """manages multiple color data builders, one per color"""
-    def __init__(self, colormap, blockchain_state, cdstore, metastore):
+    def __init__(self, colormap, blockchain_state, cdstore, metastore, builder_class):
         self.colormap = colormap
         self.metastore = metastore
         self.blockchain_state = blockchain_state
         self.cdstore = cdstore
         self.builders = {}
+        self.builder_class = builder_class
+        
     def get_builder(self, color_id):
         if color_id in self.builders:
             return self.builders[color_id]
         colordef = self.colormap.get_color_def(color_id)
-        builder = FullScanColorDataBuilder(self.cdstore,
+        builder = self.builder_class(self.cdstore,
                                            self.blockchain_state,
                                            colordef,
                                            self.metastore)
@@ -119,3 +121,27 @@ class AidedColorDataBuilder(FullScanColorDataBuilder):
                 self.scan_tx(tx)
 
 
+
+if __name__ == "__main__":
+    import blockchain
+    import store
+    import colormap as cm
+    import colordata
+    
+    blockchain_state = blockchain.BlockchainState(None, True)
+
+    store_conn = store.DataStoreConnection("test-color.db")
+    cdstore = store.ColorDataStore(store_conn.conn)
+    metastore = store.ColorMetaStore(store_conn.conn)
+
+    colormap = cm.ColorMap(metastore)
+    
+    cdbuilder = ColorDataBuilderManager(colormap, blockchain_state,
+                                cdstore, metastore,
+                                FullScanColorDataBuilder)
+    colordata = colordata.ThickColorData(cdbuilder, blockchain_state, cdstore)
+    colordata.get_colorvalues(set(0), "b1586cd10b32f78795b86e9a3febe58dcb59189175fad884a7f4a6623b77486e", 1)
+    
+    
+
+    
