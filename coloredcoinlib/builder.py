@@ -1,5 +1,4 @@
 from logger import log
-from Queue import Queue
 from explorer import get_spends
 from toposort import toposorted
 
@@ -85,14 +84,6 @@ class FullScanColorDataBuilder(BasicColorDataBuilder):
             self.scan_blockchain(from_height, block_height)
             
 
-class SetQueue(Queue):
-    def _init(self, maxsize):
-        self.queue = set()
-    def _put(self, item):
-        self.queue.add(item)
-    def _get(self):
-        return self.queue.pop()
-
 class AidedColorDataBuilder(FullScanColorDataBuilder):
     """color data builder based on following output spending transactions, for one specific color"""
     def __init__(self, cdstore, blockchain_state, colordef, metastore):
@@ -112,7 +103,7 @@ class AidedColorDataBuilder(FullScanColorDataBuilder):
             while block_tx_queue:
                 tx = block_tx_queue.pop()
                 block_txs[tx.txhash] = tx
-                spends = get_spends(tx.txhash)
+                spends = get_spends(tx.txhash, self.blockchain_state)
                 for stx in spends:
                     if stx.block_height == cur_block_height:
                         block_tx_queue.append(stx)

@@ -3,7 +3,7 @@ import urllib2
 import json
 
 """ Returns transactions which spend outputs from a given transaction """
-def get_spends(tx):
+def get_spends(tx, blockchain_state):
     response = urllib2.urlopen('http://explorer.tumak.cz/spends/'+tx)
     j = json.load(response)
     ret = []
@@ -11,10 +11,7 @@ def get_spends(tx):
         print i, tx_hash, output_n
         ret.append({'txhash': tx_hash,
                'outindex': output_n,
-               'height': 46442}) #TODO: fix height
-    return 
+               'height': blockchain_state.get_tx_block_height(tx_hash)})
+    return ret
 
 
-
-if __name__ == "__main__":
-    print get_spends("a8d3c4b20b25dab4465f6e2039194a424331a2dcf899c28e8fb811864f64a3a1")
