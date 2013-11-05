@@ -165,8 +165,8 @@ if __name__ == "__main__":
     print g(br_set, "8f6c8751f39357cd42af97a67301127d497597ae699ad0670b4f649bd9e39abf", 0), "== 1000 Red (red genesis TX)"
     print g(br_set, "b1586cd10b32f78795b86e9a3febe58dcb59189175fad884a7f4a6623b77486e", 1), "== None (blue genesis TX, other output)"
     print g(br_set, "8f6c8751f39357cd42af97a67301127d497597ae699ad0670b4f649bd9e39abf", 1), "== None (red genesis TX, other output)"
-    print g(br_set, 'c1d8d2fb75da30b7b61e109e70599c0187906e7610fe6b12c58eecc3062d1da5', 0)
-    print g(br_set, '36af9510f65204ec5532ee62d3785584dc42a964013f4d40cfb8b94d27b30aa1', 0)
+    print g(br_set, 'c1d8d2fb75da30b7b61e109e70599c0187906e7610fe6b12c58eecc3062d1da5', 0), "== Red"
+    print g(br_set, '36af9510f65204ec5532ee62d3785584dc42a964013f4d40cfb8b94d27b30aa1', 0), "== Red"
     print g(br_set, '3a60b70d425405f3e45f9ed93c30ca62b2a97e692f305836af38a524997dd01d',0), "== None (Random TX from blockchain)"
     print g(br_set,'c1d8d2fb75da30b7b61e109e70599c0187906e7610fe6b12c58eecc3062d1da5',0), "== Red"
     print g(br_set,'8f6c8751f39357cd42af97a67301127d497597ae699ad0670b4f649bd9e39abf',0), "== Red"
