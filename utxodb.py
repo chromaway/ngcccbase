@@ -101,7 +101,8 @@ class UTXO(object):
         """returns utxo object data as pycoin utxo data for use with pycoin transaction construction"""
         import pycoin.tx
         pycoin_txout = pycoin.tx.TxOut(self.value, self.script.decode('hex'))
-        return (self.txhash.decode('hex'), self.outindex, pycoin_txout)
+        txhash_bin = self.txhash.decode('hex')[::-1]
+        return (txhash_bin, self.outindex, pycoin_txout)
 
     def __repr__(self):
         return "%s %s %s %s" % (self.txhash, self.outindex, self.value, self.script)
