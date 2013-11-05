@@ -14,6 +14,7 @@ def main():
         print "arg error"
         sys.exit(2)
 
+    if len(args) == 0: args=['help']
     # special command
     if args[0] == 'import_config':
         with open(args[1], "r") as fp:
