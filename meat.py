@@ -8,16 +8,28 @@ sha256 = lambda h: hashlib.sha256(h).digest()
 ripemd160 = lambda h: hashlib.new("ripemd160", h).digest()
 md5 = lambda h: hashlib.md5(h).digest()
 
+# exception for handling import of invalid addresses
+class InvalidAddressError(Exception):
+    pass
+
 # Address class handles the actual address pairs,
 # It creates them from using standard SECP256k1
 # We should review the secp256k1 code and make sure it's right for security.
 
-class Address():
+class Address:
+
+    PUBLIC_KEY_PREFIX = "\x00"
+    PRIVATE_KEY_PREFIX = "\x80"
+
     def __init__(self, pubkey, privkey, rawPubkey, rawPrivkey):
-        self.pubkey = pubkey
-        self.privkey = privkey
-        self.rawPrivkey = rawPrivkey
-        self.rawPubkey = rawPubkey
+        # validate that the keys correspond to the correct network
+        if rawPubkey[0] == self.PUBLIC_KEY_PREFIX:
+            self.pubkey = pubkey
+            self.privkey = privkey
+            self.rawPrivkey = rawPrivkey
+            self.rawPubkey = rawPubkey
+        else:
+            raise InvalidAddressError("%s is not a public key for %s" % (pubkey, self.__class__.__name__))
 
     # Creates new pair and returns address object
     @classmethod
@@ -27,12 +39,12 @@ class Address():
         ecdsaPubkey = ecdsaPrivkey.get_verifying_key()
 
         rawPrivkey = ecdsaPrivkey.to_string()
-        rawPubkey = "\x00" + ripemd160(sha256("\x04" + ecdsaPubkey.to_string()))
+        rawPubkey = cls.PUBLIC_KEY_PREFIX + ripemd160(sha256("\x04" + ecdsaPubkey.to_string()))
         pubkeyChecksum = sha256(sha256(rawPubkey))[:4]
         rawPubkey += pubkeyChecksum
 
         pubkey = util.b58encode(rawPubkey)
-        privkey = "\x80" + rawPrivkey
+        privkey = cls.PRIVATE_KEY_PREFIX + rawPrivkey
         privkeyChecksum = sha256(sha256(privkey))[:4]
         privkey = util.b58encode(privkey + privkeyChecksum)
 
@@ -52,3 +64,7 @@ class Address():
     def getJSONData(self):
         return {"pubkey":self.pubkey, "privkey":self.privkey, "rawPrivkey":self.rawPrivkey.encode("hex"), "rawPubkey":self.rawPubkey.encode("hex")}
 
+class TestnetAddress(Address):
+
+    PUBLIC_KEY_PREFIX = "\x6F"
+    PRIVATE_KEY_PREFIX = "\xEF"

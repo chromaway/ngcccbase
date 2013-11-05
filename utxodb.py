@@ -1,8 +1,13 @@
 from coloredcoinlib.store import DataStore, DataStoreConnection
 from time import time
+from blockchain import BlockchainInterface, TestnetInterface
+from electrum import ElectrumInterface
 import sqlite3
 import urllib2
 import json
+
+DEFAULT_ELECTRUM_SERVER = "btc.it-zone.org"
+DEFAULT_ELECTRUM_PORT = 50001
 
 class UTXOStore(DataStore):
     def __init__(self, dbpath):
@@ -89,38 +94,50 @@ class UTXO(object):
         self.colorvalues = None
         self.utxo_rec = None
 
+    def get_outpoint(self):
+        return (self.txhash, self.outindex)
+
     def get_pycoin_coin_source(self):
         """returns utxo object data as pycoin utxo data for use with pycoin transaction construction"""
         import pycoin.tx
-        le_txhash = self.txhash.decode('hex')[::-1]
+#        le_txhash = self.txhash.decode('hex')[::-1]
         pycoin_txout = pycoin.tx.TxOut(self.value, self.script.decode('hex'))
-        return (le_txhash, self.outindex, pycoin_txout)
+        return (self.txhash.decode('hex'), self.outindex, pycoin_txout)
+
+    def __repr__(self):
+        return "%s %s %s %s" % (self.txhash, self.outindex, self.value, self.script)
 
 class UTXOFetcher(object):
+    def __init__(self, params):
+        use = params.get('interface', 'blockchain')
+        if use == 'blockchain':
+            self.interface = BlockchainInterface()
+        elif use == 'testnet':
+            self.interface = TestnetInterface()
+        elif use == 'electrum':
+            electrum_server = params.get('electrum_server', DEFAULT_ELECTRUM_SERVER)
+            electrum_port = params.get('electrum_port', DEFAULT_ELECTRUM_PORT)
+            self.interface = ElectrumInterface(electrum_server, electrum_port)
+        else:
+            raise Exception('unknown service for UTXOFetcher')
+
     """ Fetches UTXO's for specific address"""
     def get_for_address(self, address):
-        url = "http://blockchain.info/unspent?active=%s" % address
-        try:
-            jsonData = urllib2.urlopen(url).read()
-            data = json.loads(jsonData)
-            utxos = []
-            for utxo_data in data['unspent_outputs']:
-                txhash = utxo_data['tx_hash'].decode('hex')[::-1].encode('hex')
-                utxo = UTXO(txhash, utxo_data['tx_output_n'], utxo_data['value'], utxo_data['script'])
-                utxos.append(utxo)
-                return utxos
-        except urllib2.HTTPError as e:
-            if e.code == 500:
-                return []
-            else:
-                raise
+        objs = []
+        for data in self.interface.get_utxo(address):
+            objs.append(UTXO(*data))
+        return objs
 
 class UTXOManager(object):
     def __init__(self, model, config):
         params = config.get('utxodb', {})
+        if config.get('testnet', False):
+            fetcher_config = dict(interface="testnet")
+        else:
+            fetcher_config = params.get('utxo_fetcher', {})
         self.model = model
         self.store = UTXOStore(params.get('dbpath', "utxo.db"))
-        self.utxo_fetcher = UTXOFetcher()
+        self.utxo_fetcher = UTXOFetcher(fetcher_config)
 
     def get_utxos_for_address(self, address):
         utxos = []
@@ -147,3 +164,6 @@ class UTXOManager(object):
         for address in wam.get_all_addresses():
             self.update_address(address)
 
+if __name__ == "__main__":
+    uf = UTXOFetcher(dict(interface='testnet'))
+    print uf.get_for_address("n3kJcsapnFU5Gna9Y1dMwDNpbTFVmYFR4o")
