@@ -94,6 +94,9 @@ class UTXO(object):
         self.colorvalues = None
         self.utxo_rec = None
 
+    def get_outpoint(self):
+        return (self.txhash, self.outindex)
+
     def get_pycoin_coin_source(self):
         """returns utxo object data as pycoin utxo data for use with pycoin transaction construction"""
         import pycoin.tx
