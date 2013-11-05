@@ -49,6 +49,7 @@ class QtUI(QtGui.QMainWindow):
         self.actionGotoSendcoins.triggered.connect(self.gotoSendcoinsPage)
 
     def bindOverviewPage(self):
+        """
         def btn_newAddressClicked():
             bitcoin_asset = self.get_asset_definition('bitcoin')
             address = self.walletController.get_new_address(bitcoin_asset)
@@ -62,8 +63,10 @@ class QtUI(QtGui.QMainWindow):
             # need change page to issue coins
             pass
         self.overviewpage.btn_newAsset.clicked.connect(btn_newAsset)
+        """
 
         def updateWallet():
+            return
             address = self.overviewpage.get_btc_address()
             moniker = self.overviewpage.get_moniker()
             if address and moniker:
@@ -75,15 +78,14 @@ class QtUI(QtGui.QMainWindow):
                     address = '%s@%s' % (moniker, address)
                     balance = '%.8f %s' % (balance, moniker)
                 self.overviewpage.update_wallet(address, balance)
-        self.overviewpage.cb_addresses.currentIndexChanged.connect(updateWallet)
         self.overviewpage.cb_monikers.currentIndexChanged.connect(updateWallet)
 
     def gotoOverviewPage(self):
         # set bitcoin addresses
-        bitcoin_asset = self.get_asset_definition('bitcoin')
-        bitcoin_addresses = [addr.get_address()
-                                for addr in self.walletController.get_all_addresses(bitcoin_asset)]
-        self.overviewpage.update_btc_addresses(bitcoin_addresses)
+        #bitcoin_asset = self.get_asset_definition('bitcoin')
+        #bitcoin_addresses = [addr.get_address()
+        #                        for addr in self.walletController.get_all_addresses(bitcoin_asset)]
+        #self.overviewpage.update_btc_addresses(bitcoin_addresses)
         # set available monikers
         monikers = self.wallet.get_model().get_asset_definition_manager().assdef_by_moniker.keys()
         self.overviewpage.update_monikers(monikers)

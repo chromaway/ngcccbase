@@ -6,20 +6,6 @@ class OverviewPage(QtGui.QWidget):
         QtGui.QWidget.__init__(self)
         uic.loadUi(uic.getUiPath('overviewpage.ui'), self)
 
-    def update_btc_addresses(self, addresses):
-        currentAddress = self.get_btc_address()
-        self.cb_addresses.clear()
-        self.cb_addresses.addItems(addresses)
-        self.set_btc_address(currentAddress)
-
-    def get_btc_address(self):
-        return str(self.cb_addresses.currentText())
-
-    def set_btc_address(self, address):
-        addresses = [str(self.cb_addresses.itemText(i)) for i in range(self.cb_addresses.count())]
-        if address and address in addresses:
-            self.cb_addresses.setCurrentIndex(addresses.index(address))
-
     def update_monikers(self, monikers):
         currentMoniker = self.get_moniker()
         self.cb_monikers.clear()
