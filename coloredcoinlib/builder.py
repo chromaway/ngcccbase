@@ -140,7 +140,9 @@ if __name__ == "__main__":
                                 cdstore, metastore,
                                 FullScanColorDataBuilder)
     colordata = colordata.ThickColorData(cdbuilder, blockchain_state, cdstore)
-    colordata.get_colorvalues(set(0), "b1586cd10b32f78795b86e9a3febe58dcb59189175fad884a7f4a6623b77486e", 1)
+    color_desc = "obc:b1586cd10b32f78795b86e9a3febe58dcb59189175fad884a7f4a6623b77486e:1:46442"
+    color_id = colormap.resolve_color_desc(color_desc)
+    print colordata.get_colorvalues(set([color_id]), "b1586cd10b32f78795b86e9a3febe58dcb59189175fad884a7f4a6623b77486e", 1)
     
     
 
