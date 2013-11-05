@@ -33,7 +33,7 @@ class CommandInterpreter(object):
 
     def balance(self, args):
         asset = self.get_asset_definition(args[1])
-        print self.controller.get_balance(asset)
+        print asset.format_value(self.controller.get_balance(asset))
 
     def newaddr(self, args):
         asset = self.get_asset_definition(args[1])
@@ -61,7 +61,7 @@ class CommandInterpreter(object):
     def send(self, args):
         asset = self.get_asset_definition(args[1])
         value = int(args[3])
-        self.controller.send_coins(args[2], asset, value)
+        self.controller.send_coins(asset.parse_value(args[2]), asset, value)
 
     def issue(self, args):
         self.controller.issue_coins(args[1], args[2], int(args[3]), int(args[4]))
