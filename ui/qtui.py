@@ -6,6 +6,7 @@ from wallet_controller import WalletController
 
 from overviewpage import OverviewPage
 from sendcoinspage import SendcoinsPage
+from receivepage import ReceivePage
 
 
 def getUiPath(ui_name):
@@ -26,6 +27,9 @@ class QtUI(QtGui.QMainWindow):
         self.sendcoinspage = SendcoinsPage()
         self.stackedWidget.addWidget(self.sendcoinspage)
         self.bindSendcoinsPage()
+        self.receivepage = ReceivePage()
+        self.stackedWidget.addWidget(self.receivepage)
+        self.bindReceivePage()
 
         self.bindActions()
         self.move(QtGui.QApplication.desktop().screen().rect().center() - self.rect().center())
@@ -44,9 +48,11 @@ class QtUI(QtGui.QMainWindow):
         self.toolbarActions = [
             self.actionGotoOverview,
             self.actionGotoSendcoins,
+            self.actionGotoReceive,
         ]
         self.actionGotoOverview.triggered.connect(self.gotoOverviewPage)
         self.actionGotoSendcoins.triggered.connect(self.gotoSendcoinsPage)
+        self.actionGotoReceive.triggered.connect(self.gotoReceivePage)
 
     def bindOverviewPage(self):
         """
@@ -140,6 +146,24 @@ class QtUI(QtGui.QMainWindow):
         for action in self.toolbarActions:
             action.setChecked(False)
         self.actionGotoSendcoins.setChecked(True)
+
+    def bindReceivePage(self):
+        pass
+
+    def gotoReceivePage(self):
+        rows = []
+        monikers = self.wallet.get_model().get_asset_definition_manager().assdef_by_moniker.keys()
+        for moniker in monikers:
+            addresses = self.walletController.get_all_addresses(self.get_asset_definition(moniker))
+            for address in addresses:
+                rows.append({'address': address.get_address(), 'moniker': moniker, 'balance': '0'})
+        self.receivepage.update_addresses(rows)#[{'moniker': 'moniker', 'address': 'address', 'balance': '0.5'}])
+        # goto
+        self.stackedWidget.setCurrentWidget(self.receivepage)
+        # change toolbar buttons
+        for action in self.toolbarActions:
+            action.setChecked(False)
+        self.actionGotoReceive.setChecked(True)
 
     def get_asset_definition(self, moniker):
         adm = self.wallet.get_model().get_asset_definition_manager()
