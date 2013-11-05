@@ -110,7 +110,10 @@ class AddressRecord(object):
     def __init__(self, model, params):
         self.model = model
         self.color_set = ColorSet(model, params.get('color_set'))
-        self.meat = meat.Address.fromObj(params.get('address_data'))
+        if params.get('testnet', False):
+            self.meat = meat.TestnetAddress.fromObj(params.get('address_data'))
+        else:
+            self.meat = meat.Address.fromObj(params.get('address_data'))
 
     def get_color_set(self):
         return self.color_set
@@ -123,22 +126,35 @@ class AddressRecord(object):
         return self.meat.pubkey
 
     @classmethod
-    def new(cls, model, color_set):
-        newaddr = meat.Address.new()
+    def new(cls, model, color_set, testnet=False):
+        if testnet:
+            newaddr = meat.TestnetAddress.new()
+        else:
+            newaddr = meat.Address.new()
         return cls(model, {"color_set": color_set.get_data(),
-                                           "address_data": newaddr.getJSONData()})
+                           "address_data": newaddr.getJSONData(),
+                           "testnet": testnet})
+
 
 class WalletAddressManager(object):
     def __init__(self, model, config):
         self.config = config
+        self.testnet = config.get('testnet', False);
         self.model = model
         self.addresses = []
         for addr_params in config.get('addresses', []):
-            address = AddressRecord(model, addr_params)
-            self.addresses.append(address)
+            addr_params['testnet'] = self.testnet
+            try:
+                address = AddressRecord(model, addr_params)
+                self.addresses.append(address)
+            except meat.InvalidAddressError:
+                address_type = "Bitcoin"
+                if self.testnet:
+                    address_type = "Testnet"
+                #print "%s is an invalid %s address" % (addr_params['address_data']['pubkey'], address_type)
 
     def get_new_address(self, color_set):
-        na = AddressRecord.new(self.model, color_set)
+        na = AddressRecord.new(self.model, color_set, self.testnet)
         self.addresses.append(na)
         self.update_config()
         return na
@@ -165,6 +181,7 @@ class ColoredCoinContext(object):
     def __init__(self, config):
 
         params = config.get('ccc', {})
+        self.testnet = config.get('testnet', False)
 
         from coloredcoinlib import blockchain
         from coloredcoinlib import builder
@@ -172,7 +189,7 @@ class ColoredCoinContext(object):
         from coloredcoinlib import colormap
         from coloredcoinlib import colordata
 
-        self.blockchain_state = blockchain.BlockchainState(params.get('bitcoind_url', None))
+        self.blockchain_state = blockchain.BlockchainState(None, self.testnet)
 
         self.store_conn = store.DataStoreConnection(params.get("color.db", "color.db"))
         self.cdstore = store.ColorDataStore(self.store_conn.conn)
@@ -211,7 +228,7 @@ class WalletModel(object):
         self.coin_query_factory = CoinQueryFactory(self, config)
         self.utxo_man = utxodb.UTXOManager(self, config)
         self.txdb = txdb.TxDb(self, config)
-        self.tx_spec_transformer = txcons.TransactionSpecTransformer(self)
+        self.tx_spec_transformer = txcons.TransactionSpecTransformer(self, config)
 
     def get_tx_db(self):
         return self.txdb

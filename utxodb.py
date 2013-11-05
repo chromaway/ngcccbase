@@ -1,6 +1,6 @@
 from coloredcoinlib.store import DataStore, DataStoreConnection
 from time import time
-from blockchain import BlockchainInterface
+from blockchain import BlockchainInterface, TestnetInterface
 from electrum import ElectrumInterface
 import sqlite3
 import urllib2
@@ -100,9 +100,9 @@ class UTXO(object):
     def get_pycoin_coin_source(self):
         """returns utxo object data as pycoin utxo data for use with pycoin transaction construction"""
         import pycoin.tx
-        le_txhash = self.txhash.decode('hex')[::-1]
+#        le_txhash = self.txhash.decode('hex')[::-1]
         pycoin_txout = pycoin.tx.TxOut(self.value, self.script.decode('hex'))
-        return (le_txhash, self.outindex, pycoin_txout)
+        return (self.txhash.decode('hex'), self.outindex, pycoin_txout)
 
     def __repr__(self):
         return "%s %s %s %s" % (self.txhash, self.outindex, self.value, self.script)
@@ -112,6 +112,8 @@ class UTXOFetcher(object):
         use = params.get('interface', 'blockchain')
         if use == 'blockchain':
             self.interface = BlockchainInterface()
+        elif use == 'testnet':
+            self.interface = TestnetInterface()
         elif use == 'electrum':
             electrum_server = params.get('electrum_server', DEFAULT_ELECTRUM_SERVER)
             electrum_port = params.get('electrum_port', DEFAULT_ELECTRUM_PORT)
@@ -129,9 +131,13 @@ class UTXOFetcher(object):
 class UTXOManager(object):
     def __init__(self, model, config):
         params = config.get('utxodb', {})
+        if config.get('testnet', False):
+            fetcher_config = dict(interface="testnet")
+        else:
+            fetcher_config = params.get('utxo_fetcher', {})
         self.model = model
         self.store = UTXOStore(params.get('dbpath', "utxo.db"))
-        self.utxo_fetcher = UTXOFetcher(params.get('utxo_fetcher', {}))
+        self.utxo_fetcher = UTXOFetcher(fetcher_config)
 
     def get_utxos_for_address(self, address):
         utxos = []
@@ -159,5 +165,5 @@ class UTXOManager(object):
             self.update_address(address)
 
 if __name__ == "__main__":
-    uf = UTXOFetcher()
-    print uf.get_for_address("1PAMLeDxXK3DJ4nm6okVHmjH7pmsbg8NYr")
+    uf = UTXOFetcher(dict(interface='testnet'))
+    print uf.get_for_address("n3kJcsapnFU5Gna9Y1dMwDNpbTFVmYFR4o")

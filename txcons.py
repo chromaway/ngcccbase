@@ -81,14 +81,14 @@ class BasicTxSpec(object):
         return asset.get_color_list().color_id_set == set([0])
 
 
-def pycoin_construct_tx(input_utxos, outputs):
+def pycoin_construct_tx(input_utxos, outputs, testnet):
     from pycoin import encoding
     from pycoin.tx import UnsignedTx, SecretExponentSolver
     import io
     inputs = [utxo.get_pycoin_coin_source() for utxo in input_utxos]
-    secret_exponents = [encoding.wif_to_secret_exponent(utxo.address_rec.meat.privkey)
+    secret_exponents = [encoding.wif_to_tuple_of_secret_exponent_compressed(utxo.address_rec.meat.privkey, is_test=testnet)[0]
                         for utxo in input_utxos]
-    unsigned_tx = UnsignedTx.standard_tx(inputs, outputs)
+    unsigned_tx = UnsignedTx.standard_tx(inputs, outputs, is_test=testnet)
     solver = SecretExponentSolver(secret_exponents)
     new_tx = unsigned_tx.sign(solver)
     s = io.BytesIO()
@@ -97,8 +97,9 @@ def pycoin_construct_tx(input_utxos, outputs):
 
 
 class SignedTxSpec(object):
-    def __init__(self, model, composed_tx_spec):
+    def __init__(self, model, composed_tx_spec, testnet):
         self.model = model
+        self.testnet = testnet
         self.composed_tx_spec = composed_tx_spec
         self.construct_tx()
 
@@ -107,7 +108,7 @@ class SignedTxSpec(object):
                        for txin in self.composed_tx_spec.get_txins()]
         outputs = [(txout.value, txout.target_addr)
                    for txout in self.composed_tx_spec.get_txouts()]
-        self.tx_data = pycoin_construct_tx(input_utxos, outputs)
+        self.tx_data = pycoin_construct_tx(input_utxos, outputs, self.testnet)
 
     def get_tx_data(self):
         return self.tx_data
@@ -133,8 +134,9 @@ def compose_uncolored_tx_spec(tx_spec):
 class TransactionSpecTransformer(object):
     """knows how to transform one kind of transaction spec into another"""
 
-    def __init__(self, model):
+    def __init__(self, model, config):
         self.model = model
+        self.testnet = config.get('testnet', False)
 
     def classify_tx_spec(self, tx_spec):
         if isinstance(tx_spec, BasicTxSpec):
@@ -170,7 +172,7 @@ class TransactionSpecTransformer(object):
         
     def transform_composed(self, tx_spec, target_spec_kind):
         if target_spec_kind in ['signed']:
-            return SignedTxSpec(self.model, tx_spec)
+            return SignedTxSpec(self.model, tx_spec, self.testnet)
         raise Exception('do not know how to transform tx spec')
 
     def transform_signed(self, tx_spec, target_spec_kind):
