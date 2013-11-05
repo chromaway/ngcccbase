@@ -20,7 +20,7 @@ requires = [
 dependency_links=[
     "https://github.com/jgarzik/python-bitcoinrpc/archive/master.zip#egg=python-bitcoinrpc",
     "https://github.com/petertodd/python-bitcoinlib/archive/pythonize.zip#egg=python-bitcoinlib",
-    "https://github.com/jimmysong/pycoin/archive/master.zip#egg=pycoin" # temporary measure until pull request is accepted
+    "https://github.com/jimmysong/pycoin/archive/testnet.zip#egg=pycoin" # temporary measure until pull request is accepted
     ]
 setup(name='ngcccbase',
     version='0.0.1',
