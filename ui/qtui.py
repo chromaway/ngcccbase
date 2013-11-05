@@ -99,10 +99,22 @@ class QtUI(QtGui.QMainWindow):
     def bindSendcoinsPage(self):
         def btn_send():
             recipients = self.sendcoinspage.get_data()
+            if not recipients:
+                return
+            message = 'Are you sure you want to send'
+            for recipient in recipients:
+                message += '<br><b>{amount} {moniker}</b> to {address}'.format(**recipient)
+            message += '?'
+            retval = QtGui.QMessageBox.question(self, 'Confirm send coins',
+                message,
+                QtGui.QMessageBox.Yes | QtGui.QMessageBox.Cancel,
+                QtGui.QMessageBox.Cancel)
+            if retval == QtGui.QMessageBox.Cancel:
+                return
             for recipient in recipients:
                 self.walletController.send_coins(recipient['address'],
-                                                    self.get_asset_definition(recipient['moniker']),
-                                                    recipient['amount'])
+                    self.get_asset_definition(recipient['moniker']),
+                    recipient['amount'])
         self.sendcoinspage.btn_send.clicked.connect(btn_send)
         self.sendcoinspage.edt_address.returnPressed.connect(btn_send)
         def amount_editingFinished():
