@@ -90,32 +90,36 @@ class AidedColorDataBuilder(FullScanColorDataBuilder):
     """color data builder based on following output spending transactions, for one specific color"""
 
     def scan_blockchain(self, from_height, to_height):
-        tx_queue = [self.colordef.genesis]
+        txo_queue = [self.colordef.genesis]
         for cur_block_height in xrange(self.colordef.starting_height, to_height):
             # remove txs from this block from the queue
-            block_tx_queue = [tx for tx in tx_queue if tx.block_height == cur_block_height]
-            tx_queue = [tx for tx in tx_queue if tx.block_height != cur_block_height]
+            block_txo_queue = [txo for txo in txo_queue if txo['height'] == cur_block_height]
+            txo_queue = [txo for txo in txo_queue if txo['height'] != cur_block_height]
             
-            block_txs = {}
-            while block_tx_queue:
-                tx = block_tx_queue.pop()
-                block_txs[tx.txhash] = tx
-                spends = get_spends(tx.txhash, self.blockchain_state)
-                for stx in spends:
-                    if stx.block_height == cur_block_height:
-                        block_tx_queue.append(stx)
+            block_txos = {}
+            while block_txo_queue:
+                txo = block_txo_queue.pop()
+                block_txos[tx.txhash] = txo
+                spends = get_spends(txo['txhash'], self.blockchain_state)
+                for stxo in spends:
+                    if stxo['height'] == cur_block_height:
+                        block_txo_queue.append(stxo)
                     else:
-                        tx_queue.append(stx)
+                        txo_queue.append(stxo)
          
-            def dependent(tx):
+            block_txs = {}
+            for txhash in block_txos.keys():
+                block_txs[txhash] = self.blockchain_state.get_tx(txhash)
+
+            def get_prev_txs(tx):
                 """all transactions from current block this transaction directly depends on"""
-                dep_tx = []
+                prev_txs = []
                 for inp in tx.inputs:
                     if inp.outpoint.hash in block_txs:
-                        dep_tx.append(block_txs[inp.outpoint.hash])
-                return dep_tx
+                        prev_txs.append(block_txs[inp.outpoint.hash])
+                return prev_txs
          
-            sorted_block_txs = toposorted(block_txs.values(), dependent)
+            sorted_block_txs = toposorted(block_txs.values(), get_prev_txs)
             
             for tx in sorted_block_txs:
                 self.scan_tx(tx)
