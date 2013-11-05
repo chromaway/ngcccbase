@@ -100,7 +100,6 @@ class UTXO(object):
     def get_pycoin_coin_source(self):
         """returns utxo object data as pycoin utxo data for use with pycoin transaction construction"""
         import pycoin.tx
-#        le_txhash = self.txhash.decode('hex')[::-1]
         pycoin_txout = pycoin.tx.TxOut(self.value, self.script.decode('hex'))
         return (self.txhash.decode('hex'), self.outindex, pycoin_txout)
 

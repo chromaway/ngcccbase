@@ -14,8 +14,7 @@ class BlockchainInterface(object):
             data = json.loads(jsonData)
             utxos = []
             for utxo_data in data['unspent_outputs']:
-                txhash = utxo_data['tx_hash'].decode('hex')[::-1].encode('hex')
-                utxo = [txhash, utxo_data['tx_output_n'], utxo_data['value'], utxo_data['script']]
+                utxo = [utxo_data['tx_hash'], utxo_data['tx_output_n'], utxo_data['value'], utxo_data['script']]
                 utxos.append(utxo)
             return utxos
         except urllib2.HTTPError as e:
