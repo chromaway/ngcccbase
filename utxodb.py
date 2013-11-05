@@ -1,6 +1,6 @@
 from coloredcoinlib.store import DataStore, DataStoreConnection
 from time import time
-from blockchain import BlockchainInterface, TestnetInterface
+from blockchain import BlockchainInfoInterface, AbeInterface
 from electrum import ElectrumInterface
 import sqlite3
 import urllib2
@@ -109,11 +109,11 @@ class UTXO(object):
 
 class UTXOFetcher(object):
     def __init__(self, params):
-        use = params.get('interface', 'blockchain')
-        if use == 'blockchain':
-            self.interface = BlockchainInterface()
+        use = params.get('interface', 'blockchain.info')
+        if use == 'blockchain.info':
+            self.interface = BlockchainInfoInterface()
         elif use == 'testnet':
-            self.interface = TestnetInterface()
+            self.interface = AbeInterface()
         elif use == 'electrum':
             electrum_server = params.get('electrum_server', DEFAULT_ELECTRUM_SERVER)
             electrum_port = params.get('electrum_port', DEFAULT_ELECTRUM_PORT)

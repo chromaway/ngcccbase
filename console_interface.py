@@ -3,7 +3,7 @@ import json
 class CommandInterpreter(object):
     def __init__(self, wallet, controller, params):
         self.wallet = wallet
-        self.model = wallet.get_model()
+        self.model = wallet.get_model() if wallet else None
         self.controller = controller
         self.command_dict = {
                 "balance": self.balance,
@@ -63,12 +63,14 @@ class CommandInterpreter(object):
     def setval(self, args):
         kpath = args[1].split('.')
         value = json.loads(args[2])
-        branch = self.wallet.wallet_config[kpath[0]]
-        cdict = branch
-        for k in kpath[1:-1]:
-            cdict = cdict[k]
-        cdict[kpath[-1]] = value
-        self.wallet.wallet_config[kpath[0]] = branch
+        if len(kpath) > 1:
+            branch = self.wallet.wallet_config[kpath[0]]
+            cdict = branch
+            for k in kpath[1:-1]:
+                cdict = cdict[k]
+            cdict[kpath[-1]] = value
+            value = branch
+        self.wallet.wallet_config[kpath[0]] = value
 
     def getval(self, args):
         kpath = args[1].split('.')

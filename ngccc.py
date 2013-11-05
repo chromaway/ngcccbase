@@ -22,10 +22,19 @@ def main():
         sys.exit(0)
 
     pw = PersistentWallet()
-    wallet_model = pw.get_model()
-    cominter = CommandInterpreter(pw,
-                                                              WalletController(wallet_model),
-                                                              {})
+    try:
+        pw.init_model()
+    except Exception as e:
+        print "failed to initialize wallet model: %s" % e
+    
+    if pw.get_model():
+        wallet_model = pw.get_model()
+        cominter = CommandInterpreter(pw,
+                                      WalletController(pw.get_model()),
+                                      {})
+    else:
+        cominter = CommandInterpreter(pw, None, {})
+
     cominter.run_command(args)
 
 if __name__ == "__main__":
