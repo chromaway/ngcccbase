@@ -1,5 +1,0 @@
-{ "utxodb": { "utxo_fetcher": { 
-  "interface": "electrum",
-  "electrum_server": "btc.it-zone.org",
-  "electrum_port": 50001
-}}}
