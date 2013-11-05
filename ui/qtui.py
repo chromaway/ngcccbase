@@ -128,7 +128,7 @@ class QtUI(QtGui.QMainWindow):
                 asset = self.get_asset_definition(moniker)
                 balance = self.walletController.get_balance(asset)
                 self.sendcoinspage.set_max_amount(balance)
-        self.sendcoinspage.cb_monikers.activated.connect(updateAvailableBalance)
+        self.sendcoinspage.cb_monikers.currentIndexChanged.connect(updateAvailableBalance)
 
     def gotoSendcoinsPage(self):
         # set available monikers
