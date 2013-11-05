@@ -39,6 +39,7 @@ class AssetDefinition(object):
         self.model = model
         self.monikers = params.get('monikers', [])
         self.color_set = ColorSet(model, params.get('color_set'))
+        self.unit = int(params.get('unit', 1))
 
     def get_monikers(self):
         return self.monikers
@@ -69,6 +70,14 @@ class AssetDefinition(object):
                 raise Exception('unable to make transaction constructor for more than one color')
             return txcons.MonocolorTC(self.model, self)
 
+    #returns the atoms (truncate down)
+    def parse_value(self, portion):
+        return int(float(portion) * self.unit)
+
+    #returns a string representation of the portion of the asset.  can envolve rounding.  doesn't display insignificant zeros
+    def format_value(self, atoms):
+        return '{0:g}'.format(atoms / float(self.unit))
+
     def get_data(self):
         return {"monikers": self.monikers,
                         "color_set": self.color_set.get_data()}
@@ -81,7 +90,8 @@ class AssetDefinitionManager(object):
         self.asset_definitions = []
         self.assdef_by_moniker = {}
         btcdef = AssetDefinition(model, {"moniker": "bitcoin",
-                                                                         "color_set": [""]})
+                                                                         "color_set": [""],
+                                                                         "unit": 100000000})
         self.assdef_by_moniker["bitcoin"] = btcdef
         for ad_params in config.get('asset_definitions', []):
             self.register_asset_definition(AssetDefinition(model, ad_params))

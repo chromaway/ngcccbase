@@ -3,7 +3,7 @@ import json
 class CommandInterpreter(object):
     def __init__(self, wallet, controller, params):
         self.wallet = wallet
-        self.model = wallet.get_model()
+        self.model = wallet.get_model() if wallet else None
         self.controller = controller
         self.command_dict = {
                 "balance": self.balance,
@@ -13,7 +13,9 @@ class CommandInterpreter(object):
                 "dump_config": self.dump_config,
                 "send": self.send,
                 "issue": self.issue,
-                "scan": self.scan
+                "scan": self.scan,
+                "setval": self.setval,
+                "getval": self.getval
         }
 
     def run_command(self, args):
@@ -33,7 +35,7 @@ class CommandInterpreter(object):
 
     def balance(self, args):
         asset = self.get_asset_definition(args[1])
-        print self.controller.get_balance(asset)
+        print asset.format_value(self.controller.get_balance(asset))
 
     def newaddr(self, args):
         asset = self.get_asset_definition(args[1])
@@ -58,9 +60,28 @@ class CommandInterpreter(object):
         dict_config = dict(config.iteritems())
         print json.dumps(dict_config, indent=4)
 
+    def setval(self, args):
+        kpath = args[1].split('.')
+        value = json.loads(args[2])
+        if len(kpath) > 1:
+            branch = self.wallet.wallet_config[kpath[0]]
+            cdict = branch
+            for k in kpath[1:-1]:
+                cdict = cdict[k]
+            cdict[kpath[-1]] = value
+            value = branch
+        self.wallet.wallet_config[kpath[0]] = value
+
+    def getval(self, args):
+        kpath = args[1].split('.')
+        cv = self.wallet.wallet_config
+        for k in kpath:
+            cv = cv[k]
+        print json.dumps(cv)
+
     def send(self, args):
         asset = self.get_asset_definition(args[1])
-        value = int(args[3])
+        value = asset.parse_value(args[3])
         self.controller.send_coins(args[2], asset, value)
 
     def issue(self, args):
