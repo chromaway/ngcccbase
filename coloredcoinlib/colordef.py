@@ -13,11 +13,11 @@ class ColorDefinition(object):
     def is_special_tx(self, tx):
         return False
 
-    def run_kernel(self, tx, in_colorstates):
-        out_colorstates = []
-        for o in tx.outputs:
-            out_colorstates.append(None)
-        return out_colorstates
+    def run_kernel(self, tx, in_colorvalues):
+        out_colorvalues = []
+        for _ in tx.outputs:
+            out_colorvalues.append(None)
+        return out_colorvalues
 
     @staticmethod
     def register_color_def_class(code, clAss):
@@ -30,6 +30,7 @@ class ColorDefinition(object):
         return cdclass.from_color_desc(color_id, color_desc)
 
 class OBColorDefinition(ColorDefinition):
+    """Implements order-based coloring"""
     class_code = 'obc'
 
     def __init__(self, color_id, genesis):
@@ -40,8 +41,8 @@ class OBColorDefinition(ColorDefinition):
     def is_special_tx(self, tx):
         return (tx.hash == self.genesis['txhash'])
 
-    def run_kernel(self, tx, in_colorstates):
-        out_colorstates = []
+    def run_kernel(self, tx, in_colorvalues):
+        out_colorvalues = []
         inp_index = 0
         cur_value = 0
         colored = False
@@ -57,7 +58,7 @@ class OBColorDefinition(ColorDefinition):
             while cur_value < o.value:
                 cur_value += tx.inputs[inp_index].value
                 if colored:
-                    colored = (in_colorstates[inp_index] != None)
+                    colored = (in_colorvalues[inp_index] != None)
                 inp_index += 1
 
             # genesis override:
@@ -65,10 +66,10 @@ class OBColorDefinition(ColorDefinition):
                 colored = True
 
             if colored:
-                out_colorstates.append((o.value, ''))
+                out_colorvalues.append((o.value, ''))
             else:
-                out_colorstates.append(None)
-        return out_colorstates
+                out_colorvalues.append(None)
+        return out_colorvalues
 
     @classmethod
     def compose_genesis_tx_spec(self, op_tx_spec):
