@@ -61,11 +61,9 @@ class OBColorDefinition(ColorDefinition):
                     colored = (in_colorvalues[inp_index] != None)
                 inp_index += 1
 
-            # genesis override:
-            if is_genesis and (out_index == self.genesis['outindex']):
-                colored = True
+            is_genesis_output = is_genesis and (out_index == self.genesis['outindex']):
 
-            if colored:
+            if colored or is_genesis_output:
                 out_colorvalues.append((o.value, ''))
             else:
                 out_colorvalues.append(None)
