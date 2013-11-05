@@ -13,7 +13,9 @@ class CommandInterpreter(object):
                 "dump_config": self.dump_config,
                 "send": self.send,
                 "issue": self.issue,
-                "scan": self.scan
+                "scan": self.scan,
+                "setval": self.setval,
+                "getval": self.getval
         }
 
     def run_command(self, args):
@@ -57,6 +59,23 @@ class CommandInterpreter(object):
         config = self.wallet.wallet_config
         dict_config = dict(config.iteritems())
         print json.dumps(dict_config, indent=4)
+
+    def setval(self, args):
+        kpath = args[1].split('.')
+        value = json.loads(args[2])
+        branch = self.wallet.wallet_config[kpath[0]]
+        cdict = branch
+        for k in kpath[1:-1]:
+            cdict = cdict[k]
+        cdict[kpath[-1]] = value
+        self.wallet.wallet_config[kpath[0]] = branch
+
+    def getval(self, args):
+        kpath = args[1].split('.')
+        cv = self.wallet.wallet_config
+        for k in kpath:
+            cv = cv[k]
+        print json.dumps(cv)
 
     def send(self, args):
         asset = self.get_asset_definition(args[1])
