@@ -17,6 +17,7 @@ CREATE TABLE tx_address (
     address TEXT,
     type INTEGER,
     transaction INTEGER,
+    coloring TEXT,
     FOREIGN KEY(transaction) REFERENCES tx_data(id)
 );
 """
@@ -42,15 +43,20 @@ class TxDataStore(DataStore):
                      (txhash, txdata, status))
 
     def add_signed_tx(self, txhash, tx):
-        txid = self.add_tx(txhash, tx.get_hex_tx_data()).lastrowid
+        insert_transaction = """\
+        INSERT INTO tx_address (
+            address,
+            type,
+            transaction
+        ) VALUES(?, ?, ?)"""
+        with self.transaction():
+            txid = self.add_tx(txhash, tx.get_hex_tx_data()).lastrowid
 
-        for txin in tx.txins:
-            self.execute("INSERT INTO tx_address (address, type, transaction) VALUES(?, ?, ?)",
-                         (txin.utxo.address_rec, TXIN, txid))
+            for txin in tx.txins:
+                self.execute(insert_transaction, (txin.utxo.address_rec, TXIN, txid))
 
-        for txout in tx.txouts:
-            self.execute("INSERT INTO tx_address (address, type, transaction) VALUES(?, ?, ?)",
-                         (txout.target_address, TXOUT, txid))
+            for txout in tx.txouts:
+                self.execute(insert_transaction, (txout.target_address, TXOUT, txid))
 
     def get_tx_by_hash(self, txhash):
         return self.execute("SELECT * FROM tx_data WHERE txhash = ?",
