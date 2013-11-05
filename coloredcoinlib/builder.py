@@ -91,7 +91,7 @@ class AidedColorDataBuilder(FullScanColorDataBuilder):
 
     def scan_blockchain(self, from_height, to_height):
         txo_queue = [self.colordef.genesis]
-        for cur_block_height in xrange(self.colordef.starting_height, to_height):
+        for cur_block_height in xrange(self.colordef.starting_height, to_height+1):
             # remove txs from this block from the queue
             block_txo_queue = [txo for txo in txo_queue if txo['height'] == cur_block_height]
             txo_queue = [txo for txo in txo_queue if txo['height'] != cur_block_height]
@@ -99,14 +99,14 @@ class AidedColorDataBuilder(FullScanColorDataBuilder):
             block_txos = {}
             while block_txo_queue:
                 txo = block_txo_queue.pop()
-                block_txos[tx.txhash] = txo
+                block_txos[txo['txhash']] = txo
                 spends = get_spends(txo['txhash'], self.blockchain_state)
                 for stxo in spends:
                     if stxo['height'] == cur_block_height:
                         block_txo_queue.append(stxo)
                     else:
                         txo_queue.append(stxo)
-         
+
             block_txs = {}
             for txhash in block_txos.keys():
                 block_txs[txhash] = self.blockchain_state.get_tx(txhash)
@@ -142,11 +142,12 @@ if __name__ == "__main__":
     
     cdbuilder = ColorDataBuilderManager(colormap, blockchain_state,
                                 cdstore, metastore,
-                                FullScanColorDataBuilder)
+                                AidedColorDataBuilder)
     colordata = colordata.ThickColorData(cdbuilder, blockchain_state, cdstore)
-    color_desc = "obc:b1586cd10b32f78795b86e9a3febe58dcb59189175fad884a7f4a6623b77486e:1:46442"
+    color_desc = "obc:b1586cd10b32f78795b86e9a3febe58dcb59189175fad884a7f4a6623b77486e:0:46442"
+
     color_id = colormap.resolve_color_desc(color_desc)
-    print colordata.get_colorvalues(set([color_id]), "b1586cd10b32f78795b86e9a3febe58dcb59189175fad884a7f4a6623b77486e", 1)
+    print colordata.get_colorvalues(set([color_id]), '36af9510f65204ec5532ee62d3785584dc42a964013f4d40cfb8b94d27b30aa1', 0)
     
     
 
