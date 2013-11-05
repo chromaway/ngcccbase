@@ -99,6 +99,9 @@ class AidedColorDataBuilder(FullScanColorDataBuilder):
             block_txos = {}
             while block_txo_queue:
                 txo = block_txo_queue.pop()
+                if txo['txhash'] in block_txos:
+                    # skip the ones we have already visited
+                    continue
                 block_txos[txo['txhash']] = txo
                 spends = get_spends(txo['txhash'], self.blockchain_state)
                 for stxo in spends:
@@ -147,6 +150,7 @@ if __name__ == "__main__":
     color_desc = "obc:b1586cd10b32f78795b86e9a3febe58dcb59189175fad884a7f4a6623b77486e:0:46442"
 
     color_id = colormap.resolve_color_desc(color_desc)
+    print colordata.get_colorvalues(set([color_id]), 'c1d8d2fb75da30b7b61e109e70599c0187906e7610fe6b12c58eecc3062d1da5', 0)
     print colordata.get_colorvalues(set([color_id]), '36af9510f65204ec5532ee62d3785584dc42a964013f4d40cfb8b94d27b30aa1', 0)
     
     
