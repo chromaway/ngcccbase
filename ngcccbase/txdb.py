@@ -52,10 +52,10 @@ class TxDataStore(DataStore):
         with self.transaction():
             txid = self.add_tx(txhash, tx.get_hex_tx_data()).lastrowid
 
-            for txin in tx.txins:
+            for txin in tx.composed_tx_spec.txins:
                 self.execute(insert_transaction, (txin.utxo.address_rec, TXIN, txid))
 
-            for txout in tx.txouts:
+            for txout in tx.composed_tx_spec.txouts:
                 self.execute(insert_transaction, (txout.target_address, TXOUT, txid))
 
     def get_tx_by_hash(self, txhash):
