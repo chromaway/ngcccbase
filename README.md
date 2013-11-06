@@ -30,6 +30,26 @@ Development
  * Install ngcccbase for development
  ex `cd $YOUR_PROJECT_DIRECTORY/ngcccbase && python setup.py develop`
 
+Testnet Example
+---------------
+
+ * `bitcoind -testnet -txindex -daemon`
+ * `python ngccc.py setval testnet true`
+ * `python ngccc.py newaddr bitcoin`
+
+ send money to this address
+ 
+ * `bitcoind sendtoaddress mmhmMNfBiZZ37g1tgg2t8DDbNoEdqKVxAL .1`
+ 
+ this is the address returned by the last command, or run `python ngccc.py alladdresses bitcoin` to see the addresses to send testcoins.
+ 
+ * `python ngccc.py scan`
+ * `python ngccc.py balance bitcoin`
+ 
+ should say 0.1
+ 
+ * `python ngccc.py issue assetName obc 1 10000`
+
 Contributors
 ------------
 
@@ -38,6 +58,7 @@ Contributors
  * Thor "Plazmotech" Correia
  * Victor Knyazhin (coloredcoinlib)
  * Daniel "Ademan" Roberts
+ * Adrian Porter
 
 License
 -------
