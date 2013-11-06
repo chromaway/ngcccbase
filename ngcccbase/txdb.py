@@ -2,7 +2,7 @@ from coloredcoinlib.store import DataStore, DataStoreConnection
 
 TX_STATUS_UNKNOWN = 0
 
-create_table = """\
+create_transaction_table = """\
 CREATE TABLE tx_data (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     txhash TEXT,
@@ -16,9 +16,9 @@ CREATE TABLE tx_address (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     address TEXT,
     type INTEGER,
-    transaction INTEGER,
+    txid INTEGER,
     coloring TEXT,
-    FOREIGN KEY(transaction) REFERENCES tx_data(id)
+    FOREIGN KEY(txid) REFERENCES tx_data(id)
 );
 """
 
@@ -29,10 +29,10 @@ class TxDataStore(DataStore):
     def __init__(self, conn):
         super(TxDataStore, self).__init__(conn)
         if not self.table_exists('tx_data'):
-            self.execute(create_table)
+            self.execute(create_transaction_table)
             self.execute("CREATE UNIQUE INDEX tx_data_txhash ON tx_data (txhash)")
         if not self.table_exists('tx_address'):
-            self.execute(create_table_address)
+            self.execute(create_address_table)
         #if not self.table_exists('tx_addr_index'):
         #    self.execute("CREATE TABLE tx_addr_index (tx_id INTEGER, address TEXT)")
         #    self.execute("CREATE INDEX tx_addr_index_tx_id ON tx_addr_index (tx_id)")
@@ -47,7 +47,7 @@ class TxDataStore(DataStore):
         INSERT INTO tx_address (
             address,
             type,
-            transaction
+            txid
         ) VALUES(?, ?, ?)"""
         with self.transaction():
             txid = self.add_tx(txhash, tx.get_hex_tx_data()).lastrowid
