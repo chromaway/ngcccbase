@@ -25,7 +25,12 @@ class TestTxDataStore(unittest.TestCase):
         self.store = txdb.TxDataStore(connection)
         self.model = None
 
-    def test_add_signed_tx(self):
+    def test_add_empty_signed_tx(self):
         composed = txspec.ComposedTxSpec([], [])
         transaction = txcons.SignedTxSpec(self.model, composed, False)
         self.store.add_signed_tx("FAKEHASH", transaction)
+
+        stored_id, stored_hash, stored_data, stored_status = self.store.get_tx_by_hash("FAKEHASH")
+
+        self.assertEqual(stored_hash, "FAKEHASH")
+        self.assertEqual(stored_data, transaction.get_hex_tx_data())
