@@ -125,6 +125,10 @@ class AidedColorDataBuilder(FullScanColorDataBuilder):
             
             for tx in sorted_block_txs:
                 self.scan_tx(tx)
+                
+        if to_height > self.cur_height:
+            self.cur_height = to_height
+            self.metastore.set_scan_height(self.color_id, self.cur_height)
 
 
 
