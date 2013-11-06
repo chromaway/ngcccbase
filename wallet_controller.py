@@ -41,7 +41,8 @@ class WalletController(object):
             color_desc = ':'.join(['obc', genesis_tx_hash, '0', str(height)])
             adm = self.model.get_asset_definition_manager()
             assdef = adm.add_asset_definition({"monikers": [moniker],
-                                               "color_set": [color_desc]})
+                                               "color_set": [color_desc],
+                                               "unit": atoms_in_unit})
             addr.color_set = assdef.get_color_set()
             wam.update_config()                                      
         else:
