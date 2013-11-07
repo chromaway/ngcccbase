@@ -37,7 +37,8 @@ class QtUI(QtGui.QMainWindow):
 
         self.wallet = PersistentWallet()
         self.walletController = WalletController(self.wallet.get_model())
-        self.gotoOverviewPage()
+        #self.gotoOverviewPage()
+        self.gotoReceivePage()
 
         sys.exit(self.app.exec_())
 
@@ -156,8 +157,8 @@ class QtUI(QtGui.QMainWindow):
         for moniker in monikers:
             addresses = self.walletController.get_all_addresses(self.get_asset_definition(moniker))
             for address in addresses:
-                rows.append({'address': address.get_address(), 'moniker': moniker, 'balance': '0'})
-        self.receivepage.update_addresses(rows)#[{'moniker': 'moniker', 'address': 'address', 'balance': '0.5'}])
+                rows.append({'address': address.get_address(), 'moniker': moniker})
+        self.receivepage.update_addresses(rows)
         # goto
         self.stackedWidget.setCurrentWidget(self.receivepage)
         # change toolbar buttons
