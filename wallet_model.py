@@ -154,15 +154,7 @@ class AssetDefinitionManager(object):
 class AddressRecord(object):
     """data associated with an address: keypair, color_set, ..."""
     def __init__(self, **kwargs):
-        self.model = kwargs.get('model')
-        self.color_set = kwargs.get('color_set')
-        if len(self.color_set.get_data()) == 0:
-            color_string = "genesis block"
-        else:
-            color_string = self.color_set.to_string()
-        cls = meat.TestnetAddress if kwargs.get('testnet') else meat.Address
-        self.meat = cls.fromMasterKey(
-            kwargs['master_key'], color_string, kwargs['index'])
+        pass
 
     def get_color_set(self):
         return self.color_set
@@ -175,6 +167,29 @@ class AddressRecord(object):
         return self.meat.pubkey
 
 
+class DeterministicAddressRecord(AddressRecord):
+    """All addresses that are determined by the master key"""
+    def __init__(self, **kwargs):
+        self.model = kwargs.get('model')
+        self.color_set = kwargs.get('color_set')
+        if len(self.color_set.get_data()) == 0:
+            color_string = "genesis block"
+        else:
+            color_string = self.color_set.to_string()
+        cls = meat.TestnetAddress if kwargs.get('testnet') else meat.Address
+        self.meat = cls.fromMasterKey(
+            kwargs['master_key'], color_string, kwargs['index'])
+
+
+class LooseAddressRecord(AddressRecord):
+    """All addresses imported manually from the config"""
+    def __init__(self, **kwargs):
+        self.model = kwargs.get('model')
+        self.color_set = kwargs.get('color_set')
+        cls = meat.TestnetAddress if kwargs.get('testnet') else meat.Address
+        self.meat = cls.fromObj(kwargs)
+
+
 class WalletAddressManager(object):
     def __init__(self, model, adm, config):
         self.config = config
@@ -185,6 +200,14 @@ class WalletAddressManager(object):
         self.adm = adm
         self.genesis_color_sets = config.get('genesis_color_sets')
         self.max_genesis_index = len(self.genesis_color_sets)
+
+        # import the genesis addresses
+        for i, color_set in enumerate(self.genesis_color_sets):
+            addr = self.get_genesis_address(i)
+            addr.color_set = ColorSet(self.model, color_set)
+            self.addresses.append(addr)
+
+        # now import the specific color addresses
         for asset in adm.get_all_assets():
             params = {
                 'testnet': self.testnet,
@@ -194,14 +217,20 @@ class WalletAddressManager(object):
                 }
             for index in range(asset.get_max_index()):
                 params['index'] = index
-                self.addresses.append(AddressRecord(**params))
-        for i, color_set in enumerate(self.genesis_color_sets):
-            addr = self.get_genesis_address(i)
-            addr.color_set = ColorSet(self.model, color_set)
-            self.addresses.append(addr)
+                self.addresses.append(DeterministicAddressRecord(**params))
+
+        # import the one-off addresses from the config
+        for addr_params in config.get('addresses', []):
+            addr_params['testnet'] = self.testnet
+            try:
+                address = LooseAddressRecord(model, **addr_params)
+                self.addresses.append(address)
+            except meat.InvalidAddressError:
+                address_type = "Testnet" if self.testnet else "Bitcoin"
+                #print "%s is an invalid %s address" % (addr_params['address_data']['pubkey'], address_type)
 
     def get_new_address(self, asset):
-        na = AddressRecord(
+        na = DeterministicAddressRecord(
             model=self.model, master_key=self.master_key,
             color_set=asset.get_color_set(),
             index=asset.max_index, testnet=self.testnet)
@@ -212,7 +241,7 @@ class WalletAddressManager(object):
         return na
 
     def get_genesis_address(self, genesis_index):
-        return AddressRecord(
+        return DeterministicAddressRecord(
             model=self.model, master_key=self.master_key,
             color_set=ColorSet(self.model, []),
             index=genesis_index, testnet=self.testnet)
