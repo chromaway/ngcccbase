@@ -1,8 +1,9 @@
 # Controls wallet model in a high level manner
-# Executes high level tasks such as get balance (tasks that require more complex logic)
-# [verification needed]
+# Executes high level tasks such as get balance
+#  (tasks that require more complex logic) [verification needed]
 
 import txcons
+
 
 class WalletController(object):
     def __init__(self, model):
@@ -11,7 +12,8 @@ class WalletController(object):
     def publish_tx(self, signed_tx_spec):
         txhex = signed_tx_spec.get_hex_tx_data()
         print txhex
-        txhash = self.model.ccc.blockchain_state.bitcoind.sendrawtransaction(txhex)
+        txhash = self.model.ccc.blockchain_state.bitcoind.sendrawtransaction(
+            txhex)
         self.model.txdb.add_tx(txhash, txhex)
         return txhash
 
@@ -23,7 +25,7 @@ class WalletController(object):
         tx_spec.add_target(target_addr, asset, value)
         signed_tx_spec = self.model.transform_tx_spec(tx_spec, 'signed')
         self.publish_tx(signed_tx_spec)
-    
+
     def issue_coins(self, moniker, pck, units, atoms_in_unit):
         from coloredcoinlib.colordef import OBColorDefinition
         from wallet_model import ColorSet
@@ -32,9 +34,11 @@ class WalletController(object):
             total = units * atoms_in_unit
             op_tx_spec = txcons.SimpleOperationalTxSpec(self.model, None)
             wam = self.model.get_address_manager()
-            addr = wam.get_new_address(ColorSet(self.model, []))
+            addr = wam.get_genesis_address(wam.max_genesis_index)
+            wam.max_genesis_index += 1
             op_tx_spec.add_target(addr.get_address(), -1, total)
-            genesis_ctxs = OBColorDefinition.compose_genesis_tx_spec(op_tx_spec)
+            genesis_ctxs = OBColorDefinition.compose_genesis_tx_spec(
+                op_tx_spec)
             genesis_tx = self.model.transform_tx_spec(genesis_ctxs, 'signed')
             height = self.model.ccc.blockchain_state.bitcoind.getblockcount() - 1
             genesis_tx_hash = self.publish_tx(genesis_tx)
@@ -44,13 +48,15 @@ class WalletController(object):
                                                "color_set": [color_desc],
                                                "unit": atoms_in_unit})
             addr.color_set = assdef.get_color_set()
-            wam.update_config()                                      
+            wam.add_genesis_color_set(assdef.get_color_set().get_data())
+            wam.update_config()
+            adm.update_config()
         else:
             raise Exception('color scheme not recognized')
 
     def get_new_address(self, asset):
         wam = self.model.get_address_manager()
-        return wam.get_new_address(asset.get_color_set())
+        return wam.get_new_address(asset)
 
     def get_all_addresses(self, asset):
         wam = self.model.get_address_manager()
