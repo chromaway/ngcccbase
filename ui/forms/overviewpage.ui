@@ -66,6 +66,12 @@
          <layout class="QFormLayout" name="formLayout">
           <item row="1" column="1">
            <widget class="QLabel" name="lbl_address">
+            <property name="font">
+             <font>
+              <weight>75</weight>
+              <bold>true</bold>
+             </font>
+            </property>
             <property name="cursor">
              <cursorShape>IBeamCursor</cursorShape>
             </property>
@@ -93,6 +99,12 @@
           </item>
           <item row="2" column="1">
            <widget class="QLabel" name="lbl_balance">
+            <property name="font">
+             <font>
+              <weight>75</weight>
+              <bold>true</bold>
+             </font>
+            </property>
             <property name="cursor">
              <cursorShape>IBeamCursor</cursorShape>
             </property>

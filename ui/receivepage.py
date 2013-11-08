@@ -1,17 +1,13 @@
 from PyQt4 import QtCore, QtGui, uic
 
+from wallet import wallet
+
 
 class AddressTableModel(QtCore.QAbstractTableModel):
     def __init__(self, parent):
         QtCore.QAbstractTableModel.__init__(self)
         self.columns = ['Color', 'Address']
-        self.addresses = [
-            ['bitcoin', '1PhPzHMUwbHi3HHjTGGMRgsrWsHq1QXG1f'],
-            ['bitcoin', '17LwKaDbzhysqahriTDMAEfEjbbWRMnKCJ'],
-            ['bitcoin', '1DKnFhS8bmiGNahefnCQNoDAbCwfT6JP4z'],
-            ['bitcoin', '16dcN6vNv3gvTuNuwPfNp6V9sG5iRQ3Pzd'],
-            ['bitcoin', '12jszpvWzDkhMB161YyXUqAhhzWaoEzvFq']
-        ]
+        self.addresses = []
 
     def rowCount(self, parent):
         return len(self.addresses)
@@ -36,29 +32,66 @@ class AddressTableModel(QtCore.QAbstractTableModel):
             return self.columns[section];
         return QtCore.QVariant();
 
+    def addRow(self, row):
+        index = len(self.addresses)
+        self.beginInsertRows(QtCore.QModelIndex(), index, index)
+        self.addresses.append(row)
+        self.endInsertRows()
+
+    def removeRows(self, row, count, parent=None):
+        self.beginRemoveRows(QtCore.QModelIndex(), row, row+count-1)
+        for _ in range(row, row+count):
+            self.addresses.pop(row)
+        self.endRemoveRows()
+
+    def updateData(self):
+        self.removeRows(0, len(self.addresses))
+        monikers = wallet.get_all_monikers()
+        for moniker in monikers:
+            for address in wallet.get_all_addresses(moniker):
+                self.addRow([moniker, address])
+
 class ReceivePage(QtGui.QWidget):
     def __init__(self):
         QtGui.QWidget.__init__(self)
         uic.loadUi(uic.getUiPath('receivepage.ui'), self)
+
         self.model = AddressTableModel(self)
-        self.setModel(self.model)
+        self.proxyModel = QtGui.QSortFilterProxyModel(self)
+        self.proxyModel.setSourceModel(self.model)
+        self.proxyModel.setDynamicSortFilter(True)
+        self.proxyModel.setSortCaseSensitivity(QtCore.Qt.CaseInsensitive)
+        self.proxyModel.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
 
-    def setModel(self, model):
-        self.model = model
-        if not model:
-            return
-
-        proxyModel = QtGui.QSortFilterProxyModel(self)
-        proxyModel.setSourceModel(model)
-        proxyModel.setDynamicSortFilter(True)
-        proxyModel.setSortCaseSensitivity(QtCore.Qt.CaseInsensitive)
-        proxyModel.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
-
-        self.tableView.setModel(proxyModel)
+        self.tableView.setModel(self.proxyModel)
         self.tableView.sortByColumn(0, QtCore.Qt.AscendingOrder)
-
         self.tableView.horizontalHeader().setResizeMode(0, QtGui.QHeaderView.Stretch)
         self.tableView.horizontalHeader().setResizeMode(1, QtGui.QHeaderView.ResizeToContents)
 
-    def update_addresses(self, addresses):
-        pass
+        self.chk_onlyBitcoin.stateChanged.connect(self.on_chkOnlyBitcoin)
+        self.btn_copy.clicked.connect(self.on_btnCopy)
+        self.tableView.selectionModel().selectionChanged.connect(self.on_tableViewSelect)
+
+    def update(self):
+        self.model.updateData()
+
+    def on_chkOnlyBitcoin(self, checked):
+        if checked == QtCore.Qt.Checked:
+            self.proxyModel.setFilterFixedString(QtCore.QString('bitcoin'))
+            self.proxyModel.setFilterKeyColumn(0)
+        else:
+            self.proxyModel.setFilterFixedString(QtCore.QString(''))
+
+    def on_btnCopy(self):
+        selected = self.tableView.selectedIndexes()
+        if selected:
+            address = str(self.proxyModel.data(selected[1]).toString())
+            clipboard = QtGui.QApplication.clipboard()
+            clipboard.setText(address)
+
+    def on_tableViewSelect(self, selected, deselected):
+        if len(selected):
+            self.tableView.selectRow(selected.indexes()[0].row())
+            self.btn_copy.setEnabled(True)
+        else:
+            self.btn_copy.setEnabled(False)
