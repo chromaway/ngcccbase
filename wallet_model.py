@@ -279,9 +279,14 @@ class ColoredCoinContext(object):
         from coloredcoinlib import store
         from coloredcoinlib import colormap
         from coloredcoinlib import colordata
+        from electrum import EnhancedBlockchainState
 
-        self.blockchain_state = blockchain.BlockchainState(
-            None, self.testnet)
+        if self.testnet:
+            self.blockchain_state = blockchain.BlockchainState(
+                None, self.testnet)
+        else:
+            self.blockchain_state = EnhancedBlockchainState(
+                "btc.it-zone.org", 50001)
 
         self.store_conn = store.DataStoreConnection(
             params.get("color.db", "color.db"))
