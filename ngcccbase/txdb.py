@@ -69,9 +69,6 @@ class TxDataStore(DataStore):
         JOIN tx_address ON tx_data.id = tx_address.txid
         WHERE tx_address.address = ?
         """
-            #txhash,
-            #data,
-            #status
         return self.execute(select_tx, (address,))
 
 class TxDb(object):
