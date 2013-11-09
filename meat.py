@@ -2,8 +2,10 @@ from ecdsa.curves import SECP256k1
 
 import ecdsa
 import hashlib
+import hmac
 import json
 import util
+import binascii
 
 # Lambda's for hashes
 sha256 = lambda h: hashlib.sha256(h).digest()
@@ -46,7 +48,6 @@ class Address:
         else:
             ecdsaPrivkey = ecdsa.SigningKey.generate(
                 curve=SECP256k1, entropy=None)
-        ecdsaPrivkey = ecdsa.SigningKey.generate(curve=ecdsa.curves.SECP256k1)
         return cls.from_privkey(ecdsaPrivkey)
 
     @classmethod
@@ -68,9 +69,11 @@ class Address:
 
     @classmethod
     def fromMasterKey(cls, master_key, color_string, index):
-        base = "%s|%s|%s" % (master_key, color_string, index)
-        # the seed string needs to be exactly 32, so use sha256
-        string = hashlib.sha256(base).digest()
+        h = hmac.new(master_key,
+                     "%s|%s" % (color_string, index),
+                     hashlib.sha256)
+        # the seed string needs to be exactly 32 bytes long
+        string = h.digest()
         return cls.new(string)
 
     # Creates pair from JSON parsed into standard python objects

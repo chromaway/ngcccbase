@@ -6,6 +6,7 @@
 
 import hashlib
 import json
+import binascii
 
 import meat
 import txcons
@@ -188,13 +189,12 @@ class LooseAddressRecord(AddressRecord):
     """All addresses imported manually from the config"""
     def __init__(self, **kwargs):
         self.model = kwargs.get('model')
-        self.color_set = kwargs.get('color_set')
+        self.color_set = ColorSet(self.model, kwargs.get('color_set'))
         cls = meat.TestnetAddress if kwargs.get('testnet') else meat.Address
-        self.meat = cls.fromObj(kwargs)
-
+        self.meat = cls.fromObj(kwargs['address_data'])
 
 class DWalletAddressManager(object):
-    def __init__(self, model, adm, config):
+    def __init__(self, model, config):
         self.config = config
         self.testnet = config.get('testnet', False)
         self.model = model
@@ -227,20 +227,35 @@ class DWalletAddressManager(object):
                 'model': self.model,
                 'color_set': color_set
                 }
-            for index in xrange(max_index):
+            for index in xrange(max_index + 1):
                 params['index'] = index
                 self.addresses.append(DeterministicAddressRecord(**params))
 
         # import the one-off addresses from the config
         for addr_params in config.get('addresses', []):
             addr_params['testnet'] = self.testnet
+            addr_params['model'] = model
             try:
-                address = LooseAddressRecord(model, **addr_params)
+                address = LooseAddressRecord(**addr_params)
                 self.addresses.append(address)
             except meat.InvalidAddressError:
                 address_type = "Testnet" if self.testnet else "Bitcoin"
                 #print "%s is an invalid %s address" % (
                 #    addr_params['address_data']['pubkey'], address_type)
+
+    def init_new_wallet(self):
+        if not 'dw_master_key' in self.config:
+            from meat import Address
+            # privkey is in WIF format. not exactly 
+            # what we want, but passable, I guess
+            master_key = Address.new().privkey
+            self.config['dw_master_key'] = master_key
+        dwam_params = {
+            'genesis_color_sets': [],            
+            'color_set_states': []
+            }
+        self.config['dwam'] = dwam_params
+        return dwam_params
 
     def increment_max_index_for_color_set(self, color_set):
         # TODO: speed up, cache(?)
@@ -257,8 +272,8 @@ class DWalletAddressManager(object):
         return 0
 
     def get_new_address(self, asset_or_color_set):
-        if isinstance(asset, AssetDefinition):
-            color_set = asset.get_color_set()
+        if isinstance(asset_or_color_set, AssetDefinition):
+            color_set = asset_or_color_set.get_color_set()
         else:
             color_set = asset_or_color_set
         index = self.increment_max_index_for_color_set(color_set)
@@ -283,7 +298,7 @@ class DWalletAddressManager(object):
         return self.get_genesis_address(index)
     
     def update_genesis_address(self, address,  color_set):
-        assert address.color_set.color_id_list = set([])
+        assert address.color_set.color_id_list == set([])
         address.color_set = color_set
         self.genesis_color_setsp[address.index] = color_set.get_data()
         self.update_config()
@@ -307,7 +322,12 @@ class DWalletAddressManager(object):
                 if color_set.intersects(addr.get_color_set())]
 
     def update_config(self):
-        self.config['genesis_color_sets'] = self.genesis_color_sets
+        dwam_params = {
+            'genesis_color_sets': self.genesis_color_sets,
+            'color_set_states': self.color_set_states
+            }
+        self.config['dwam'] = dwam_params
+
 
 
 class ColoredCoinContext(object):
@@ -366,7 +386,7 @@ class WalletModel(object):
     def __init__(self, config):
         self.ccc = ColoredCoinContext(config)
         self.ass_def_man = AssetDefinitionManager(self, config)
-        self.address_man = WalletAddressManager(self, self.ass_def_man, config)
+        self.address_man = DWalletAddressManager(self, config)
         self.coin_query_factory = CoinQueryFactory(self, config)
         self.utxo_man = utxodb.UTXOManager(self, config)
         self.txdb = txdb.TxDb(self, config)
