@@ -34,8 +34,7 @@ class WalletController(object):
             total = units * atoms_in_unit
             op_tx_spec = txcons.SimpleOperationalTxSpec(self.model, None)
             wam = self.model.get_address_manager()
-            addr = wam.get_genesis_address(wam.max_genesis_index)
-            wam.max_genesis_index += 1
+            addr = wam.get_new_genesis_address()
             op_tx_spec.add_target(addr.get_address(), -1, total)
             genesis_ctxs = OBColorDefinition.compose_genesis_tx_spec(
                 op_tx_spec)
@@ -48,10 +47,7 @@ class WalletController(object):
             assdef = adm.add_asset_definition({"monikers": [moniker],
                                                "color_set": [color_desc],
                                                "unit": atoms_in_unit})
-            addr.color_set = assdef.get_color_set()
-            wam.add_genesis_color_set(assdef.get_color_set().get_data())
-            wam.update_config()
-            adm.update_config()
+            wam.update_genesis_address(assdef.get_color_set())
         else:
             raise Exception('color scheme not recognized')
 

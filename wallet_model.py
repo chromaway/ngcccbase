@@ -4,12 +4,18 @@
 #  definitions, but it doesn't implement high-level operations
 #  (those are implemented in controller)
 
+import hashlib
+import json
+
 import meat
 import txcons
 import utxodb
-import hashlib
+
 from ngcccbase import txdb
 
+def deterministic_json_dumps(obj):
+    """TODO: make it even more deterministic!"""
+    return json.dumps(obj, separators=(',',':'), sort_keys=True)
 
 # A set of colors which belong to certain asset, it can be used to filter
 #  addresses and UTXOs
@@ -24,15 +30,19 @@ class ColorSet(object):
     def get_data(self):
         return self.color_desc_list
 
-    def to_string(self):
-        # make this hex so we don't barf on string concatenation
-        return hashlib.sha256(",".join(self.color_desc_list)).hexdigest()
+    def get_hash_string(self):
+        json = deterministic_json_dumps(
+            sorted(self.color_desc_list))
+        return hashlib.sha256(json).hexdigest()
 
     def has_color_id(self, color_id):
         return (color_id in self.color_id_set)
 
     def intersects(self, other):
         return len(self.color_id_set & other.color_id_set) > 0
+
+    def equals(self, other):
+        return self.color_id_set == other.color_id_set
 
     @classmethod
     def from_color_ids(cls, model, color_ids):
@@ -49,7 +59,6 @@ class AssetDefinition(object):
         self.model = model
         self.monikers = params.get('monikers', [])
         self.color_set = ColorSet(model, params.get('color_set'))
-        self.max_index = params.get('max_index', 0)
         self.unit = int(params.get('unit', 1))
 
     def get_monikers(self):
@@ -57,9 +66,6 @@ class AssetDefinition(object):
 
     def get_color_set(self):
         return self.color_set
-
-    def get_max_index(self):
-        return self.max_index
 
     def get_utxo_value(self, utxo):
         return utxo.value
@@ -97,9 +103,8 @@ class AssetDefinition(object):
         return {
             "monikers": self.monikers,
             "color_set": self.color_set.get_data(),
-            "max_index": self.max_index
             }
-
+    
 
 # Manages asset definitions
 class AssetDefinitionManager(object):
@@ -119,7 +124,6 @@ class AssetDefinitionManager(object):
                     "monikers": ["bitcoin"],
                     "color_set": [""],
                     "unit": 100000000,
-                    "max_index": 0,
                     })
             self.lookup_by_moniker["bitcoin"] = btcdef
             self.asset_definitions.append(btcdef)
@@ -131,7 +135,6 @@ class AssetDefinitionManager(object):
             if moniker in self.lookup_by_moniker:
                 raise Exception(
                     'more than one asset definition have same moniker')
-            color_set_key = assdef.get_color_set().to_string()
             self.lookup_by_moniker[moniker] = assdef
 
     def add_asset_definition(self, params):
@@ -175,7 +178,7 @@ class DeterministicAddressRecord(AddressRecord):
         if len(self.color_set.get_data()) == 0:
             color_string = "genesis block"
         else:
-            color_string = self.color_set.to_string()
+            color_string = self.color_set.get_hash_string()
         cls = meat.TestnetAddress if kwargs.get('testnet') else meat.Address
         self.meat = cls.fromMasterKey(
             kwargs['master_key'], color_string, kwargs['index'])
@@ -190,32 +193,41 @@ class LooseAddressRecord(AddressRecord):
         self.meat = cls.fromObj(kwargs)
 
 
-class WalletAddressManager(object):
+class DWalletAddressManager(object):
     def __init__(self, model, adm, config):
         self.config = config
         self.testnet = config.get('testnet', False)
         self.model = model
-        self.master_key = config.get('master_key', None)
         self.addresses = []
-        self.adm = adm
-        self.genesis_color_sets = config.get('genesis_color_sets')
-        self.max_genesis_index = len(self.genesis_color_sets)
+
+        params = config.get('dwam', None)
+        if params == None:
+            params = self.init_new_wallet()
+
+        #note: master key is stored in a separate config entry
+        self.master_key = config['dw_master_key']
+
+        self.genesis_color_sets = params['genesis_color_sets']
+        self.color_set_states = params['color_set_states']
 
         # import the genesis addresses
-        for i, color_set in enumerate(self.genesis_color_sets):
+        for i, color_desc_list in enumerate(self.genesis_color_sets):
             addr = self.get_genesis_address(i)
-            addr.color_set = ColorSet(self.model, color_set)
+            addr.color_set = ColorSet(self.model, color_set_data)
             self.addresses.append(addr)
 
         # now import the specific color addresses
-        for asset in adm.get_all_assets():
+        for color_set_st in self.color_set_states:
+            color_desc_list = color_set_st['color_set']
+            max_index = color_set_st['max_index']
+            color_set = ColorSet(self.model, color_desc_list)
             params = {
                 'testnet': self.testnet,
                 'master_key': self.master_key,
                 'model': self.model,
-                'color_set': asset.get_color_set()
+                'color_set': color_set
                 }
-            for index in range(asset.get_max_index()):
+            for index in xrange(max_index):
                 params['index'] = index
                 self.addresses.append(DeterministicAddressRecord(**params))
 
@@ -230,13 +242,30 @@ class WalletAddressManager(object):
                 #print "%s is an invalid %s address" % (
                 #    addr_params['address_data']['pubkey'], address_type)
 
-    def get_new_address(self, asset):
+    def increment_max_index_for_color_set(self, color_set):
+        # TODO: speed up, cache(?)
+        for color_set_st in self.color_set_states:
+            color_desc_list = color_set_st['color_set']
+            max_index = color_set_st['max_index']
+            cur_color_set = ColorSet(self.model, color_desc_list)
+            if cur_color_set.equals(color_set):
+                max_index += 1
+                color_set_st['max_index'] = max_index
+                return max_index
+        self.color_set_states.append({"color_set": color_set.get_data(),
+                                      "max_index": 0})
+        return 0
+
+    def get_new_address(self, asset_or_color_set):
+        if isinstance(asset, AssetDefinition):
+            color_set = asset.get_color_set()
+        else:
+            color_set = asset_or_color_set
+        index = self.increment_max_index_for_color_set(color_set)
         na = DeterministicAddressRecord(
             model=self.model, master_key=self.master_key,
-            color_set=asset.get_color_set(),
-            index=asset.max_index, testnet=self.testnet)
-        asset.max_index += 1
-        self.adm.update_config()
+            color_set=color_set,
+            index=index, testnet=self.testnet)
         self.addresses.append(na)
         self.update_config()
         return na
@@ -247,16 +276,28 @@ class WalletAddressManager(object):
             color_set=ColorSet(self.model, []),
             index=genesis_index, testnet=self.testnet)
 
-    def add_genesis_color_set(self, color_set):
-        self.genesis_color_sets.append(color_set)
+    def get_new_genesis_address(self):
+        index = len(self.genesis_color_sets)
+        self.genesis_color_sets.append([])
+        self.update_config()
+        return self.get_genesis_address(index)
+    
+    def update_genesis_address(self, address,  color_set):
+        assert address.color_set.color_id_list = set([])
+        address.color_set = color_set
+        self.genesis_color_setsp[address.index] = color_set.get_data()
+        self.update_config()
 
-    def get_change_address(self, color_set):
+    def get_some_address(self, color_set):
         acs = self.get_addresses_for_color_set(color_set)
         if acs:
             # reuse
             return acs[0]
         else:
             return self.get_new_addres(color_set)
+
+    def get_change_address(self, color_set):
+        return self.get_some_address(color_set)
 
     def get_all_addresses(self):
         return self.addresses
