@@ -12,8 +12,6 @@ class OperationalETxSpec(txspec.OperationalTxSpec):
             color_set = self.ewctrl.resolve_color_spec(cspec)
             for inp in inps:
                 cs = colordata.get_colorstates(color_set, inp[0], inp[1])
-                
-        
 
     def prepare_targets(self, etx_spec, their):
         self.targets = []
@@ -22,18 +20,13 @@ class OperationalETxSpec(txspec.OperationalTxSpec):
             self.targets.append((tgt_spec[0], tgt_color_id, tgt_spec[2]))
         their_color_set = self.ewctrl.resolve_color_spec(their['color_spec'])
         wam = self.model.get_wallet_address_manager()
-        self.targets.add((wam.get_change_address(their_color_set), list(their_color_set)[0],
-                          their['value']))
+        self.targets.add(
+            (wam.get_change_address(their_color_set), list(their_color_set)[0],
+             their['value']))
 
-        
-        
-        
-
-
-    
     def select_coins(self, color_id, value):
-        
-        
+        pass
+
 
 class EWalletController(object):
     def __init__(self, wctrl):
@@ -64,20 +57,19 @@ class EWalletController(object):
         c_utxos, c_change = self.select_inputs(our_color_set, our['value'])
 
         inputs = {our['color_spec']: [utxo.get_outpoint() for utxo in c_utxos]}
-        
+
         wam = self.model.get_wallet_address_manager()
         our_address = self.model.get_change_address(their_color_set)
-        
-        targets = [(our_address.get_address(), their['color_spec'], their['value'])]
+
+        targets = [(our_address.get_address(),
+                    their['color_spec'], their['value'])]
 
         if c_change > 0:
             out_change_address = wam.get_change_address(our_color_set)
-            targets.append((our_change_address.get_address(), our['color_set'], c_change))
+            targets.append((our_change_address.get_address(),
+                            our['color_set'], c_change))
 
         return ETxSpec(inputs, targets)
-        
-        
+
     def make_reply_tx(self, etx_spec, our, their):
-        
-        
-        
+        pass

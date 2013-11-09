@@ -10,6 +10,7 @@ def toposorted(graph, parents):
     """
     result = []
     used = set()
+
     def use(v, top):
         if id(v) in used:
             return

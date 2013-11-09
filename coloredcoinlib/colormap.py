@@ -1,19 +1,23 @@
 from colordef import ColorDefinition
 
+
 class ColorMap(object):
     def __init__(self, metastore):
         self.metastore = metastore
         self.colordefs = {}
+
     def find_color_desc(self, color_id):
         if color_id == 0:
             return ""
         else:
             return self.metastore.find_color_desc(color_id)
+
     def resolve_color_desc(self, color_desc):
         if color_desc == "":
             return 0
         else:
             return self.metastore.resolve_color_desc(color_desc)
+
     def get_color_def(self, color_id_or_desc):
         if color_id_or_desc == 0:
             return None
