@@ -1,4 +1,5 @@
 from coloredcoinlib import txspec
+from collections import defaultdict
 
 
 class OperationalETxSpec(txspec.OperationalTxSpec):
@@ -6,12 +7,21 @@ class OperationalETxSpec(txspec.OperationalTxSpec):
         self.model = model
         self.ewctrl = ewctrl
 
-    def prepare_inputs(self, etx_spec, their):
+    def get_targets(self):
+        return self.targets
+
+    def get_change_addr(self, color_id):
+        pass
+
+    def prepare_inputs(self, etx_spec):
+        self.inputs = defaultdict(list)
         colordata = self.model.ccc.colordata
         for cspec, inps in etx_spec.inputs.items():
             color_set = self.ewctrl.resolve_color_spec(cspec)
             for inp in inps:
                 cs = colordata.get_colorstates(color_set, inp[0], inp[1])
+                if cs and len(cs) == 1:
+                    self.inputs[cs[0]].append((cs[1], inp))
 
     def prepare_targets(self, etx_spec, their):
         self.targets = []
@@ -26,6 +36,30 @@ class OperationalETxSpec(txspec.OperationalTxSpec):
 
     def select_coins(self, color_id, value):
         pass
+
+    def get_required_fee(self, tx_size):
+        return 10000 # TODO
+    
+    def select_coins(self, color_id, value):
+        if color_id in self.inputs:
+            c_inputs = self.inputs[color_id]
+            tv = sum(inp[0] for inp in c_inputs]
+            return [inp[1] for inp in c_inputs], tv
+        else:
+            color_id_set = set([color_id])
+            cq = self.model.make_coin_query({"color_id_set": color_id_set})
+            utxo_list = cq.get_result()
+
+            ssum = 0
+            selection = []
+            if value == 0:
+                raise Exception('cannot select 0 coins')
+            for utxo in utxo_list:
+                ssum += utxo.value
+                selection.append(utxo)
+            if ssum >= value:
+                return selection, ssum
+            raise Exception('not enough coins to reach the target')
 
 
 class EWalletController(object):
@@ -72,4 +106,9 @@ class EWalletController(object):
         return ETxSpec(inputs, targets)
 
     def make_reply_tx(self, etx_spec, our, their):
-        pass
+        op_tx_spec = OperationalETxSpec(self.model, self)
+        op_tx_spec.prepare_inputs(etx_spec)
+        op_tx_spec.prepare_targets(etx_spec, their)
+        signed_tx = self.model.transform_tx_spec(op_tx_spec, 'signed')
+        return signed_tx
+        
