@@ -36,6 +36,10 @@ class Address:
     def new(cls):
         # Generates warner ECDSA objects
         ecdsaPrivkey = ecdsa.SigningKey.generate(curve=ecdsa.curves.SECP256k1)
+        return cls.from_privkey(ecdsaPrivkey)
+
+    @classmethod
+    def from_privkey(cls, ecdsaPrivkey):
         ecdsaPubkey = ecdsaPrivkey.get_verifying_key()
 
         rawPrivkey = ecdsaPrivkey.to_string()

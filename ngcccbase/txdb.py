@@ -53,14 +53,26 @@ class TxDataStore(DataStore):
             txid = self.add_tx(txhash, tx.get_hex_tx_data()).lastrowid
 
             for txin in tx.composed_tx_spec.txins:
-                self.execute(insert_transaction, (txin.utxo.address_rec, TXIN, txid))
+                self.execute(insert_transaction, (txin.utxo.address_rec.meat.pubkey, TXIN, txid))
 
             for txout in tx.composed_tx_spec.txouts:
-                self.execute(insert_transaction, (txout.target_address, TXOUT, txid))
+                self.execute(insert_transaction, (txout.target_addr, TXOUT, txid))
 
     def get_tx_by_hash(self, txhash):
         return self.execute("SELECT * FROM tx_data WHERE txhash = ?",
                             (txhash, )).fetchone()
+
+    def get_tx_by_output_address(self, address):
+        select_tx = """\
+        SELECT txhash, data, status
+         FROM tx_data
+        JOIN tx_address ON tx_data.id = tx_address.txid
+        WHERE tx_address.address = ?
+        """
+            #txhash,
+            #data,
+            #status
+        return self.execute(select_tx, (address,))
 
 class TxDb(object):
     def __init__(self, model, config):
