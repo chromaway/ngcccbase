@@ -4,8 +4,8 @@ class ThickColorData(object):
         self.blockchain_state = blockchain_state
         self.cdstore = cdstore
 
-    def get_colorstates(self, color_id_set, txhash, outindex):
-        block_height, in_mempool = self.blockchain_state.get_tx_state(txhash)
+    def get_colorvalues(self, color_id_set, txhash, outindex):
+        block_height, in_mempool = self.blockchain_state.get_tx_block_height(txhash)
         if block_height:
             self.cdbuilder_manager.ensure_scanned_upto(color_id_set, block_height)
             res = self.cdstore.get_any(txhash, outindex)
@@ -13,3 +13,4 @@ class ThickColorData(object):
                     if entry[0] in color_id_set]
         else:
             raise Exception("transaction isn't in blockchain yet")
+    

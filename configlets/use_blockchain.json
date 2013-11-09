@@ -1,1 +1,0 @@
-{ "utxodb": { "utxo_fetcher": { "interface": "blockchain" } } }
