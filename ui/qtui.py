@@ -1,4 +1,6 @@
-import os, sys, signal
+import os
+import sys
+import signal
 from PyQt4 import QtGui, uic
 
 from pwallet import PersistentWallet
@@ -9,8 +11,10 @@ from sendcoinspage import SendcoinsPage
 
 
 def getUiPath(ui_name):
-    return os.path.join(os.path.dirname(os.path.abspath(__file__)), 'forms', ui_name)
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        'forms', ui_name)
 uic.getUiPath = getUiPath
+
 
 class QtUI(QtGui.QMainWindow):
     def __init__(self):
@@ -28,7 +32,8 @@ class QtUI(QtGui.QMainWindow):
         self.bindSendcoinsPage()
 
         self.bindActions()
-        self.move(QtGui.QApplication.desktop().screen().rect().center() - self.rect().center())
+        self.move(QtGui.QApplication.desktop().screen().rect().center()
+                  - self.rect().center())
         self.show()
 
         self.wallet = PersistentWallet()
@@ -52,8 +57,9 @@ class QtUI(QtGui.QMainWindow):
         def btn_newAddressClicked():
             bitcoin_asset = self.get_asset_definition('bitcoin')
             address = self.walletController.get_new_address(bitcoin_asset)
-            addresses = [addr.get_address()
-                            for addr in self.walletController.get_all_addresses(bitcoin_asset)]
+            addresses = [
+                addr.get_address() for addr in
+                self.walletController.get_all_addresses(bitcoin_asset)]
             self.overviewpage.update_btc_addresses(addresses)
             self.overviewpage.set_btc_address(addr.get_address())
         self.overviewpage.btn_newAddress.clicked.connect(btn_newAddressClicked)
@@ -75,17 +81,20 @@ class QtUI(QtGui.QMainWindow):
                     address = '%s@%s' % (moniker, address)
                     balance = '%.8f %s' % (balance, moniker)
                 self.overviewpage.update_wallet(address, balance)
-        self.overviewpage.cb_addresses.currentIndexChanged.connect(updateWallet)
+        self.overviewpage.cb_addresses.currentIndexChanged.connect(
+            updateWallet)
         self.overviewpage.cb_monikers.currentIndexChanged.connect(updateWallet)
 
     def gotoOverviewPage(self):
         # set bitcoin addresses
         bitcoin_asset = self.get_asset_definition('bitcoin')
-        bitcoin_addresses = [addr.get_address()
-                                for addr in self.walletController.get_all_addresses(bitcoin_asset)]
+        bitcoin_addresses = [
+            addr.get_address() for addr in
+            self.walletController.get_all_addresses(bitcoin_asset)]
         self.overviewpage.update_btc_addresses(bitcoin_addresses)
         # set available monikers
-        monikers = self.wallet.get_model().get_asset_definition_manager().assdef_by_moniker.keys()
+        monikers = self.wallet.get_model().get_asset_definition_manager() \
+            .assdef_by_moniker.keys()
         self.overviewpage.update_monikers(monikers)
         # goto
         self.stackedWidget.setCurrentWidget(self.overviewpage)
@@ -98,15 +107,18 @@ class QtUI(QtGui.QMainWindow):
         def btn_send():
             recipients = self.sendcoinspage.get_data()
             for recipient in recipients:
-                self.walletController.send_coins(recipient['address'],
-                                                    self.get_asset_definition(recipient['moniker']),
-                                                    recipient['amount'])
+                self.walletController.send_coins(
+                    recipient['address'],
+                    self.get_asset_definition(recipient['moniker']),
+                    recipient['amount'])
         self.sendcoinspage.btn_send.clicked.connect(btn_send)
         self.sendcoinspage.edt_address.returnPressed.connect(btn_send)
+
         def amount_editingFinished():
             if self.sendcoinspage.edt_amount.hasFocus():
                 btn_send()
-        self.sendcoinspage.edt_amount.editingFinished.connect(amount_editingFinished)
+        self.sendcoinspage.edt_amount.editingFinished.connect(
+            amount_editingFinished)
 
         def updateAvailableBalance():
             moniker = self.sendcoinspage.get_moniker()
@@ -114,11 +126,13 @@ class QtUI(QtGui.QMainWindow):
                 asset = self.get_asset_definition(moniker)
                 balance = self.walletController.get_balance(asset)
                 self.sendcoinspage.set_max_amount(balance)
-        self.sendcoinspage.cb_monikers.activated.connect(updateAvailableBalance)
+        self.sendcoinspage.cb_monikers.activated.connect(
+            updateAvailableBalance)
 
     def gotoSendcoinsPage(self):
         # set available monikers
-        monikers = self.wallet.get_model().get_asset_definition_manager().assdef_by_moniker.keys()
+        monikers = self.wallet.get_model().get_asset_definition_manager() \
+            .assdef_by_moniker.keys()
         self.sendcoinspage.update_monikers(monikers)
         # goto
         self.stackedWidget.setCurrentWidget(self.sendcoinspage)

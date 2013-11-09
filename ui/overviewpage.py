@@ -16,7 +16,8 @@ class OverviewPage(QtGui.QWidget):
         return str(self.cb_addresses.currentText())
 
     def set_btc_address(self, address):
-        addresses = [str(self.cb_addresses.itemText(i)) for i in range(self.cb_addresses.count())]
+        addresses = [str(self.cb_addresses.itemText(i))
+                     for i in range(self.cb_addresses.count())]
         if address and address in addresses:
             self.cb_addresses.setCurrentIndex(addresses.index(address))
 
@@ -32,7 +33,8 @@ class OverviewPage(QtGui.QWidget):
         return str(self.cb_monikers.currentText())
 
     def set_moniker(self, moniker):
-        monikers = [str(self.cb_monikers.itemText(i)) for i in range(self.cb_monikers.count())]
+        monikers = [str(self.cb_monikers.itemText(i))
+                    for i in range(self.cb_monikers.count())]
         if moniker and moniker in monikers:
             self.cb_monikers.setCurrentIndex(monikers.index(moniker))
 

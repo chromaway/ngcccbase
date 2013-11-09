@@ -1,22 +1,23 @@
 import json
 
+
 class CommandInterpreter(object):
     def __init__(self, wallet, controller, params):
         self.wallet = wallet
         self.model = wallet.get_model() if wallet else None
         self.controller = controller
         self.command_dict = {
-                "balance": self.balance,
-                "newaddr": self.newaddr,
-                "alladdresses": self.alladdresses,
-                "addasset": self.addasset,
-                "dump_config": self.dump_config,
-                "send": self.send,
-                "issue": self.issue,
-                "scan": self.scan,
-                "setval": self.setval,
-                "getval": self.getval,
-                "help": self.display_help,
+            "balance": self.balance,
+            "newaddr": self.newaddr,
+            "alladdresses": self.alladdresses,
+            "addasset": self.addasset,
+            "dump_config": self.dump_config,
+            "send": self.send,
+            "issue": self.issue,
+            "scan": self.scan,
+            "setval": self.setval,
+            "getval": self.getval,
+            "help": self.display_help,
         }
 
     def run_command(self, args):
@@ -56,7 +57,7 @@ class CommandInterpreter(object):
             return
         asset = self.get_asset_definition(args[1])
         print [addr.get_address()
-                   for addr in self.controller.get_all_addresses(asset)]
+               for addr in self.controller.get_all_addresses(asset)]
 
     def addasset(self, args):
         if len(args) < 3:
@@ -65,8 +66,10 @@ class CommandInterpreter(object):
         moniker = args[1]
         color_desc = args[2]
         self.controller.add_asset_definition(
-                {"monikers": [moniker],
-                 "color_set": [color_desc]}
+            {
+                "monikers": [moniker],
+                "color_set": [color_desc],
+            }
         )
 
     def dump_config(self, args):
@@ -121,7 +124,8 @@ class CommandInterpreter(object):
         if len(args) < 5:
             print "issue command expects:  moniker pck units atoms_in_unit"
             return
-        self.controller.issue_coins(args[1], args[2], int(args[3]), int(args[4]))
+        self.controller.issue_coins(
+            args[1], args[2], int(args[3]), int(args[4]))
 
     def scan(self, args):
         self.controller.scan_utxos()
@@ -132,4 +136,3 @@ class CommandInterpreter(object):
         print 'available commands:'
         for command in self.command_dict:
             print '    ', command
-

@@ -18,7 +18,8 @@ class SendcoinsPage(QtGui.QWidget):
         return str(self.cb_monikers.currentText())
 
     def set_moniker(self, moniker):
-        monikers = [str(self.cb_monikers.itemText(i)) for i in range(self.cb_monikers.count())]
+        monikers = [str(self.cb_monikers.itemText(i))
+                    for i in range(self.cb_monikers.count())]
         if moniker and moniker in monikers:
             self.cb_monikers.setCurrentIndex(monikers.index(moniker))
 
@@ -32,7 +33,7 @@ class SendcoinsPage(QtGui.QWidget):
     def get_data(self):
         data = []
         address = str(self.edt_address.text())
-        amount  = self.edt_amount.value()
+        amount = self.edt_amount.value()
         moniker = self.get_moniker()
         if address and amount > 0 and moniker:
             data.append({

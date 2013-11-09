@@ -1,8 +1,9 @@
 import time
 
-class EOffer(object): 
+
+class EOffer(object):
     # A = offerer's side, B = replyer's side
-    # ie. offerer says "I want to give you A['value'] coins of color 
+    # ie. offerer says "I want to give you A['value'] coins of color
     # A['colorid'] and receive B['value'] coins of color B['colorid']"
     def __init__(self, oid, A, B):
         self.oid = oid or make_random_id()
@@ -10,7 +11,7 @@ class EOffer(object):
         self.B = B
         self.expires = None
 
-    def expired(self, shift = 0):
+    def expired(self, shift=0):
         return (not self.expires) or (self.expires < time.time() + shift)
 
     def refresh(self, delta):
@@ -24,19 +25,23 @@ class EOffer(object):
     def matches(self, offer):
         """A <=x=> B"""
         def prop_matches(name):
-            if ((self.A[name] == offer.B[name]) and
-                (self.B[name] == offer.A[name])):
+            if (self.A[name] == offer.B[name]) \
+                    and (self.B[name] == offer.A[name]):
                 return True
         return prop_matches('value') and prop_matches('color_spec')
 
     def is_same_as_mine(self, my_offer):
         def checkprop(name):
-            if self.A[name] != my_offer.A[name]: return False
-            if self.B[name] != my_offer.B[name]: return False
+            if self.A[name] != my_offer.A[name]:
+                return False
+            if self.B[name] != my_offer.B[name]:
+                return False
             return True
 
-        if not checkprop('color_spec'):  return False
-        if not checkprop('value'): return False
+        if not checkprop('color_spec'):
+            return False
+        if not checkprop('value'):
+            return False
         return True
 
     @classmethod
@@ -45,10 +50,12 @@ class EOffer(object):
         x = cls(data["oid"], data["A"], data["B"])
         return x
 
+
 class MyEOffer(ExchangeOffer):
     def __init__(self, oid, A, B, auto_post=True):
         super(MyExchangeOffer, self).__init__(oid, A, B)
         self.auto_post = auto_post
+
 
 class ETxSpec(object):
     def __init__(self, inputs, targets):
@@ -74,6 +81,7 @@ class EProposal(object):
         return {"pid": self.pid,
                 "offer": self.offer.get_data()}
 
+
 class MyEProposal(EProposal):
     def __init__(self, ewctrl, orig_offer, my_offer):
         super(MyEProposal, self).__init__(make_random_id(),
@@ -82,11 +90,12 @@ class MyEProposal(EProposal):
         if not orig_offer.matches(my_offer):
             raise Exception("offers are incongruent")
         self.etx_spec = ewctrl.make_etx_spec(offer.B, offer.A)
-        
+
     def get_data(self):
         res = super(MyEProposal, self).get_data()
-        res["etx_spec"] = self.etx_spec.get_data())
+        res["etx_spec"] = self.etx_spec.get_data()
         return res
+
 
 class ForeignEProposal(EProposal):
     def __init__(self, ewctrl, ep_data):
@@ -94,12 +103,8 @@ class ForeignEProposal(EProposal):
         super(ForeignEProposal, self).__init__(ep_data['pid'], ewctrl, offer)
         self.etx_spec = None
         if 'etx_spec' in ep_data:
-            self.etx_spec = ETxSpec.from_data(data['etx_spec']
+            self.etx_spec = ETxSpec.from_data(data['etx_spec'])
         self.tx_data = data.get('etx_data', None)
-            
 
     def is_valid(self, my_offer):
         return my_offer.matches(self.offer)
-
-
-        

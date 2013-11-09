@@ -227,7 +227,8 @@ class WalletAddressManager(object):
                 self.addresses.append(address)
             except meat.InvalidAddressError:
                 address_type = "Testnet" if self.testnet else "Bitcoin"
-                #print "%s is an invalid %s address" % (addr_params['address_data']['pubkey'], address_type)
+                #print "%s is an invalid %s address" % (
+                #    addr_params['address_data']['pubkey'], address_type)
 
     def get_new_address(self, asset):
         na = DeterministicAddressRecord(

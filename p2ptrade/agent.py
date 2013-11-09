@@ -1,11 +1,21 @@
 import time
 
-def LOGINFO(msg): pass
-def LOGDEBUG(msg): pass
-def LOGERROR(msg): pass
+
+def LOGINFO(msg):
+    pass
+
+
+def LOGDEBUG(msg):
+    pass
+
+
+def LOGERROR(msg):
+    pass
+
 
 class EAgent(object):
-    """implements high-level exchange logic, keeps track of the state (offers, propsals)"""
+    """implements high-level exchange logic, keeps track of the state
+       (offers, propsals)"""
 
     def __init__(self, ewctrl, config, comm):
         self.ewctrl = ewctrl
@@ -18,7 +28,7 @@ class EAgent(object):
         self.config = config
 
     def set_active_ep(self, ep):
-        if ep == None:
+        if ep is None:
             self.ep_timeout = None
             self.match_orders = True
         else:
@@ -27,14 +37,16 @@ class EAgent(object):
 
     def has_active_ep(self):
         if self.ep_timeout and self.ep_timeout < time.time():
-            self.set_active_ep(None) # TODO: cleanup?
-        return self.active_ep != None
+            self.set_active_ep(None)  # TODO: cleanup?
+        return self.active_ep is not None
 
     def service_my_offers(self):
         for my_offer in self.my_offers.values():
             if my_offer.auto_post:
-                if not my_offer.expired(): continue
-                if self.active_ep and self.active_ep.offer.oid == my_offer.oid: continue
+                if not my_offer.expired():
+                    continue
+                if self.active_ep and self.active_ep.offer.oid == my_offer.oid:
+                    continue
                 my_offer.refresh(self.config.offer_expiry_interval)
                 self.postMessage(my_offer)
 
@@ -85,7 +97,7 @@ class EAgent(object):
 
     def make_exchange_proposal(self, orig_offer, my_offer):
         if self.has_active_ep():
-            raise Exception, "already have active EP (in makeExchangeProposal"
+            raise Exception("already have active EP (in makeExchangeProposal")
         ep = MyEProposal(self.ewctrl, orig_offer, my_offer)
         self.set_active_ep(ep)
         self.post_message(ep)
@@ -101,13 +113,14 @@ class EAgent(object):
             if ep.offer.oid in self.my_offers:
                 LOGDEBUG("accept exchange proposal")
                 return self.accept_exchange_proposal(ep)
-        # We have neither an offer nor a proposal matching this ExchangeProposal
+        # We have neither an offer nor a proposal matching
+        #  this ExchangeProposal
         if ep.offer.oid in self.their_offers:
             # remove offer if it is in-work
             # TODO: set flag instead of deleting it
             del self.their_offers[ep.offer.oid]
         return None
-        
+
     def accept_exchange_proposal(self, ep):
         if self.has_active_ep():
             return

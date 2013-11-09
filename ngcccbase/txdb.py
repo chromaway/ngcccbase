@@ -25,22 +25,28 @@ CREATE TABLE tx_address (
 TXIN = 0
 TXOUT = 1
 
+
 class TxDataStore(DataStore):
     def __init__(self, conn):
         super(TxDataStore, self).__init__(conn)
         if not self.table_exists('tx_data'):
             self.execute(create_transaction_table)
-            self.execute("CREATE UNIQUE INDEX tx_data_txhash ON tx_data (txhash)")
+            self.execute(
+                "CREATE UNIQUE INDEX tx_data_txhash ON tx_data (txhash)")
         if not self.table_exists('tx_address'):
             self.execute(create_address_table)
         #if not self.table_exists('tx_addr_index'):
-        #    self.execute("CREATE TABLE tx_addr_index (tx_id INTEGER, address TEXT)")
-        #    self.execute("CREATE INDEX tx_addr_index_tx_id ON tx_addr_index (tx_id)")
-        #    self.execute("CREATE INDEX tx_addr_index_address ON tx_addr_index (address)")
+        #    self.execute(
+        #        "CREATE TABLE tx_addr_index (tx_id INTEGER, address TEXT)")
+        #    self.execute(
+        #        "CREATE INDEX tx_addr_index_tx_id ON tx_addr_index (tx_id)")
+        #    self.execute(
+        #      "CREATE INDEX tx_addr_index_address ON tx_addr_index (address)")
 
     def add_tx(self, txhash, txdata, status=TX_STATUS_UNKNOWN):
-        return self.execute("INSERT INTO tx_data (txhash, data, status) VALUES (?, ?, ?)",
-                     (txhash, txdata, status))
+        return self.execute(
+            "INSERT INTO tx_data (txhash, data, status) VALUES (?, ?, ?)",
+            (txhash, txdata, status))
 
     def add_signed_tx(self, txhash, tx):
         insert_transaction = """\
@@ -53,10 +59,12 @@ class TxDataStore(DataStore):
             txid = self.add_tx(txhash, tx.get_hex_tx_data()).lastrowid
 
             for txin in tx.composed_tx_spec.txins:
-                self.execute(insert_transaction, (txin.utxo.address_rec.meat.pubkey, TXIN, txid))
+                self.execute(insert_transaction,
+                             (txin.utxo.address_rec.meat.pubkey, TXIN, txid))
 
             for txout in tx.composed_tx_spec.txouts:
-                self.execute(insert_transaction, (txout.target_addr, TXOUT, txid))
+                self.execute(
+                    insert_transaction, (txout.target_addr, TXOUT, txid))
 
     def get_tx_by_hash(self, txhash):
         return self.execute("SELECT * FROM tx_data WHERE txhash = ?",
@@ -71,6 +79,7 @@ class TxDataStore(DataStore):
         """
         return self.execute(select_tx, (address,))
 
+
 class TxDb(object):
     def __init__(self, model, config):
         self.model = model
@@ -81,4 +90,3 @@ class TxDb(object):
 
     def add_signed_tx(self, txhash, tx):
         self.store.add_signed_tx(txhash, tx)
-
