@@ -5,6 +5,7 @@ from pwallet import PersistentWallet
 from console_interface import CommandInterpreter
 import json
 
+
 def main():
     import sys
     import getopt
@@ -14,7 +15,8 @@ def main():
         print "arg error"
         sys.exit(2)
 
-    if len(args) == 0: args=['help']
+    if len(args) == 0:
+        args = ['help']
     # special command
     if args[0] == 'import_config':
         with open(args[1], "r") as fp:
@@ -27,7 +29,7 @@ def main():
         pw.init_model()
     except Exception as e:
         print "failed to initialize wallet model: %s" % e
-    
+
     if pw.get_model():
         wallet_model = pw.get_model()
         cominter = CommandInterpreter(pw,
