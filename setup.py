@@ -36,4 +36,5 @@ setup(name='ngcccbase',
     zip_safe=False,
     install_requires=requires,
     dependency_links=dependency_links,
+    test_suite="ngcccbase.tests",
     )

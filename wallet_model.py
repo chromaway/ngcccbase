@@ -7,8 +7,8 @@
 import meat
 import txcons
 import utxodb
-import txdb
 import hashlib
+from ngcccbase import txdb
 
 
 # A set of colors which belong to certain asset, it can be used to filter

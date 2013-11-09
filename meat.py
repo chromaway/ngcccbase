@@ -46,6 +46,11 @@ class Address:
         else:
             ecdsaPrivkey = ecdsa.SigningKey.generate(
                 curve=SECP256k1, entropy=None)
+        ecdsaPrivkey = ecdsa.SigningKey.generate(curve=ecdsa.curves.SECP256k1)
+        return cls.from_privkey(ecdsaPrivkey)
+
+    @classmethod
+    def from_privkey(cls, ecdsaPrivkey):
         ecdsaPubkey = ecdsaPrivkey.get_verifying_key()
 
         rawPrivkey = ecdsaPrivkey.to_string()

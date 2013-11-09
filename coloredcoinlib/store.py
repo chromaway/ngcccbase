@@ -24,6 +24,8 @@ class DataStore(object):
         cur = self.conn.cursor()
         cur.execute(statement, params)
         return cur
+    def transaction(self):
+        return self.conn
 
 def unwrap1(val):
     if val:
