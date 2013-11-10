@@ -30,15 +30,12 @@ def main():
     except Exception as e:
         print "failed to initialize wallet model: %s" % e
 
-    if pw.get_model():
-        wallet_model = pw.get_model()
-        cominter = CommandInterpreter(pw,
-                                      WalletController(pw.get_model()),
-                                      {})
-    else:
-        cominter = CommandInterpreter(pw, None, {})
+    wallet_model = pw.get_model()
+    controller = WalletController(wallet_model) \
+        if wallet_model else None
+    interpreter = CommandInterpreter(pw, controller)
 
-    cominter.run_command(args)
+    interpreter.run_command(*args)
 
 if __name__ == "__main__":
     main()
