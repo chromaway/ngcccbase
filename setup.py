@@ -13,13 +13,10 @@ requires = [
     'pycoin',
     'bunch',
     'python-jsonrpc',
-    'python-bitcoinrpc',
     'python-bitcoinlib',
 ]
 
 dependency_links = [
-    "https://github.com/jgarzik/python-bitcoinrpc/archive/master.zip" +
-    "#egg=python-bitcoinrpc",
     "https://github.com/petertodd/python-bitcoinlib/archive/pythonize.zip" +
     "#egg=python-bitcoinlib",
 ]
