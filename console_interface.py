@@ -60,7 +60,7 @@ class CommandInterpreter(object):
             raise Exception("asset not found")
 
     def balance(self, moniker=None):
-        """Returns the balance in Satoshi for a particular asset.
+        """Returns the balance in Satoshi for a particular asset/color.
         "bitcoin" is the generic uncolored coin.
         """
         if not moniker:
@@ -90,7 +90,7 @@ class CommandInterpreter(object):
                for addr in self.controller.get_all_addresses(asset)]
 
     def addasset(self, moniker=None, color_desc=None):
-        """Imports a color. This is useful if someone else has
+        """Imports a color definition. This is useful if someone else has
         issued a color and you want to be able to receive it.
         """
         if not (moniker and color_desc):

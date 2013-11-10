@@ -37,6 +37,7 @@ class QtUI(QtGui.QMainWindow):
         self.show()
 
         self.wallet = PersistentWallet()
+        self.wallet.init_model()
         self.walletController = WalletController(self.wallet.get_model())
         self.gotoOverviewPage()
 
@@ -94,7 +95,7 @@ class QtUI(QtGui.QMainWindow):
         self.overviewpage.update_btc_addresses(bitcoin_addresses)
         # set available monikers
         monikers = self.wallet.get_model().get_asset_definition_manager() \
-            .assdef_by_moniker.keys()
+            .lookup_by_moniker.keys()
         self.overviewpage.update_monikers(monikers)
         # goto
         self.stackedWidget.setCurrentWidget(self.overviewpage)
@@ -132,7 +133,7 @@ class QtUI(QtGui.QMainWindow):
     def gotoSendcoinsPage(self):
         # set available monikers
         monikers = self.wallet.get_model().get_asset_definition_manager() \
-            .assdef_by_moniker.keys()
+            .lookup_by_moniker.keys()
         self.sendcoinspage.update_monikers(monikers)
         # goto
         self.stackedWidget.setCurrentWidget(self.sendcoinspage)
