@@ -14,9 +14,11 @@ import utxodb
 
 from ngcccbase import txdb
 
+
 def deterministic_json_dumps(obj):
     """TODO: make it even more deterministic!"""
-    return json.dumps(obj, separators=(',',':'), sort_keys=True)
+    return json.dumps(obj, separators=(',', ':'), sort_keys=True)
+
 
 # A set of colors which belong to certain asset, it can be used to filter
 #  addresses and UTXOs
@@ -105,7 +107,7 @@ class AssetDefinition(object):
             "monikers": self.monikers,
             "color_set": self.color_set.get_data(),
             }
-    
+
 
 # Manages asset definitions
 class AssetDefinitionManager(object):
@@ -193,6 +195,7 @@ class LooseAddressRecord(AddressRecord):
         cls = meat.TestnetAddress if kwargs.get('testnet') else meat.Address
         self.meat = cls.fromObj(kwargs['address_data'])
 
+
 class DWalletAddressManager(object):
     def __init__(self, model, config):
         self.config = config
@@ -201,7 +204,7 @@ class DWalletAddressManager(object):
         self.addresses = []
 
         params = config.get('dwam', None)
-        if params == None:
+        if params is None:
             params = self.init_new_wallet()
 
         #note: master key is stored in a separate config entry
@@ -246,12 +249,12 @@ class DWalletAddressManager(object):
     def init_new_wallet(self):
         if not 'dw_master_key' in self.config:
             from meat import Address
-            # privkey is in WIF format. not exactly 
+            # privkey is in WIF format. not exactly
             # what we want, but passable, I guess
             master_key = Address.new().privkey
             self.config['dw_master_key'] = master_key
         dwam_params = {
-            'genesis_color_sets': [],            
+            'genesis_color_sets': [],
             'color_set_states': []
             }
         self.config['dwam'] = dwam_params
@@ -296,7 +299,7 @@ class DWalletAddressManager(object):
         self.genesis_color_sets.append([])
         self.update_config()
         return self.get_genesis_address(index)
-    
+
     def update_genesis_address(self, address,  color_set):
         assert address.color_set.color_id_list == set([])
         address.color_set = color_set
@@ -327,7 +330,6 @@ class DWalletAddressManager(object):
             'color_set_states': self.color_set_states
             }
         self.config['dwam'] = dwam_params
-
 
 
 class ColoredCoinContext(object):

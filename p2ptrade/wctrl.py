@@ -38,8 +38,8 @@ class OperationalETxSpec(txspec.OperationalTxSpec):
         pass
 
     def get_required_fee(self, tx_size):
-        return 10000 # TODO
-    
+        return 10000  # TODO
+
     def select_coins(self, color_id, value):
         if color_id in self.inputs:
             c_inputs = self.inputs[color_id]
@@ -111,4 +111,3 @@ class EWalletController(object):
         op_tx_spec.prepare_targets(etx_spec, their)
         signed_tx = self.model.transform_tx_spec(op_tx_spec, 'signed')
         return signed_tx
-        

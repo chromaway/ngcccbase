@@ -1,6 +1,7 @@
 from wallet_model import WalletModel
 from coloredcoinlib import store
 
+
 class PersistentWallet(object):
 
     def __init__(self, import_config=None):
