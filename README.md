@@ -10,25 +10,40 @@ coloredcoinlib handles 'coloring' (color kernels, colorvalues, things like that)
 Dependencies
 ------------
 
-(included) [pycoin](https://github.com/richardkiss/pycoin)  is used to work with transactions. (Particularly, sign them.)
+Dependencies are automatically retrieved by setup.py.
 
-(included) [python-bitcoinrpc](https://github.com/jgarzik/python-bitcoinlib) is used to connect to local bitcoind.
+* [pycoin](https://github.com/richardkiss/pycoin)  is used to work with transactions. (Particularly, sign them.)
 
-(not included) [python-jsonrpc](https://github.com/gerold-penz/python-jsonrpc) is used to create a JSON-RPC API server.
+* [python-bitcoinrpc](https://github.com/jgarzik/python-bitcoinlib) is used to connect to local bitcoind.
 
-(not included) [bunch](http://github.com/dsc/bunch) is used by python-jsonrpc
+* [python-jsonrpc](https://github.com/gerold-penz/python-jsonrpc) is used to create a JSON-RPC API server.
+
+* [bunch](http://github.com/dsc/bunch) is used by python-jsonrpc
 
 Development
 ------------
 
- * Create a python virtualenv to work in
- ex. `cd $YOUR_PROJECT_DIRECTORY/env/ && virtualenv ngcccbase`
- * Activate the virtualenv
- ex. `source $YOUR_PROJECT_DIRECTORY/env/ngcccbase/bin/activate`
- * Clone ngcccbase
- ex. `cd $YOUR_PROJECT_DIRECTORY && git clone https://github.com/bitcoinx/ngcccbase.git`
- * Install ngcccbase for development
- ex `cd $YOUR_PROJECT_DIRECTORY/ngcccbase && python setup.py develop`
+Assumptions
+
+ * The following instructions assume you are using a `sh`-like shell like bash.
+
+ * The following instructions assume the environment variable `YOUR_PROJECT_DIRECTORY` contains the path to a directory where you will keep your projects
+
+ * The following instructions assume that the path `"$YOUR_PROJECT_DIRECTORY/env"` exists and is a directory
+
+Instructions
+
+ * Create a python virtualenv to work in ex. `cd $YOUR_PROJECT_DIRECTORY/env/ && virtualenv ngcccbase`
+
+ * Activate the virtualenv ex. `source $YOUR_PROJECT_DIRECTORY/env/ngcccbase/bin/activate`
+
+ * Change to your project directory ex. cd `$YOUR_PROJECT_DIRECTORY`
+
+ * Clone ngcccbase ex. `git clone https://github.com/bitcoinx/ngcccbase.git`
+
+ * Change into your cloned copy of ngcccbase ex. `cd $YOUR_PROJECT_DIRECTORY/ngcccbase`
+
+ * Install ngcccbase for development ex `&& python setup.py develop`
 
 Testnet Example
 ---------------
@@ -64,3 +79,8 @@ License
 -------
 
 MIT (see LICENSE file)
+
+Donations
+---------
+
+To financially support this project you can donate to this Bitcoin address: 1uEfNJF2Diz9ADQ3sQ16JyZpZ6qMPKxRk
