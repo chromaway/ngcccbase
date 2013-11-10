@@ -39,9 +39,6 @@ def fake_transaction(model=None):
         "\xeb\x0b\x08X\x9f}9C\xe4\x88\xfdD\x11b", curve=ecdsa.curves.SECP256k1)
 
     address = meat.Address.from_privkey(key)
-    print repr(address.rawPubkey)
-    print address.rawPubkey.encode("hex")
-    print address.pubkey
     script = tools.compile(
         "OP_DUP OP_HASH160 {0} OP_EQUALVERIFY OP_CHECKSIG".format(
             address.rawPubkey[1:-4].encode("hex"))).encode("hex")
