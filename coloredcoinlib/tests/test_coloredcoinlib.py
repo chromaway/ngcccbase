@@ -1,39 +1,32 @@
-import blockchain
-import store
-import agent
-import builder
-import colordef
+#!/usr/bin/env python
 
+import unittest
 
-def test():
-    blockchain_state = blockchain.BlockchainState(
-        "http://bitcoinrpc:8oso9n8E1KnTexnKHn16N3tcsGpfEThksK4ojzrkzn3b"
-        "@localhost:18332/")
-    store_conn = store.DataStoreConnection("color.db")
+from coloredcoinlib import blockchain
+from coloredcoinlib import store
+from coloredcoinlib import builder
+from coloredcoinlib import colordef
+from coloredcoinlib import colordata
 
-    cdstore = store.ColorDataStore(store_conn.conn)
-    metastore = store.ColorMetaStore(store_conn.conn)
+class TestColoredCoin(unittest.TestCase):
+    def test_coloredcoin(self):
+        blockchain_state = blockchain.BlockchainState(
+            "http://bitcoinrpc:8oso9n8E1KnTexnKHn16N3tcsGpfEThksK4ojzrkzn3b"
+            "@localhost:18332/")
+        store_conn = store.DataStoreConnection("color.db") # FIXME: this should be mocked, or should use test data
 
-    genesis = {
-        'txhash':
-        'b1586cd10b32f78795b86e9a3febe58dcb59189175fad884a7f4a6623b77486e',
-        'outindex': 0,
-        'height': 46442}
+        cdstore = store.ColorDataStore(store_conn.conn)
+        metastore = store.ColorMetaStore(store_conn.conn)
 
-    colordef1 = colordef.OBColorDefinition(1, genesis)
-    colordefman = agent.ColorDefinitionManager()
+        genesis = {
+            'txhash':
+            'b1586cd10b32f78795b86e9a3febe58dcb59189175fad884a7f4a6623b77486e',
+            'outindex': 0,
+            'height': 46442}
 
-    cdbuilder = builder.FullScanColorDataBuilder(
-        cdstore, blockchain_state, colordef1, metastore)
+        colordef1 = colordef.OBColorDefinition(1, genesis)
 
-    mempoolcd = agent.MempoolColorData(blockchain_state)
-    cdata = agent.ThickColorData(
-        cdbuilder, mempoolcd, blockchain_state, colordefman, cdstore)
+        cdbuilder = builder.FullScanColorDataBuilder(
+            cdstore, blockchain_state, colordef1, metastore)
 
-    wallet = agent.CAWallet()
-
-    ccagent = agent.ColoredCoinAgent(blockchain_state, cdata, wallet)
-    ccagent.update()
-
-if __name__ == "__main__":
-    test()
+        cdata = colordata.ThickColorData(cdbuilder, blockchain_state, cdstore)
