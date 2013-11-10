@@ -23,7 +23,7 @@ Dependencies are automatically retrieved by setup.py.
 Development
 ------------
 
-### Assumptions ###
+Assumptions
 
  * The following instructions assume you are using a `sh`-like shell like bash.
 
@@ -31,7 +31,7 @@ Development
 
  * The following instructions assume that the path `"$YOUR_PROJECT_DIRECTORY/env"` exists and is a directory
 
-### Instructions ###
+Instructions
 
  * Create a python virtualenv to work in ex. `cd $YOUR_PROJECT_DIRECTORY/env/ && virtualenv ngcccbase`
 
