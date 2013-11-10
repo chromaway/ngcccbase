@@ -9,6 +9,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(here, 'README.md')) as f:
     README = f.read()
 
+# FIXME: Also requires PyQt and SIP for the GUI, not available via pip
 requires = [
     'pycoin',
     'bunch',

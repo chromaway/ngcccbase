@@ -1,10 +1,15 @@
-# Util
+# util.py
+#
+# Utility functions that don't belong anywhere else.
 
 
 __b58chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 
 
 def b58encode(v):
+    """Returns the b58 encoding of a string <v>.
+    b58 encoding is the standard encoding for bitcoin addresses.
+    """
     n = long(v.encode("hex"), 16)
     r = ""
     while n > 0:
@@ -20,6 +25,8 @@ def b58encode(v):
 
     return (__b58chars[0]*pad) + r
 
+
+# ALL FUNCTIONS BELOW THIS LINE ARE CURRENTLY UNUSED
 
 #Borrowed from pywallet and compacted
 def b58decode(v, length):
