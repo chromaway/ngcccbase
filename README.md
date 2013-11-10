@@ -14,7 +14,7 @@ Dependencies are automatically retrieved by setup.py.
 
 * [pycoin](https://github.com/richardkiss/pycoin)  is used to work with transactions. (Particularly, sign them.)
 
-* [python-bitcoinrpc](https://github.com/jgarzik/python-bitcoinlib) is used to connect to local bitcoind.
+* [python-bitcoinlib](https://github.com/petertodd/python-bitcoinlib) is used to connect to local bitcoind.
 
 * [python-jsonrpc](https://github.com/gerold-penz/python-jsonrpc) is used to create a JSON-RPC API server.
 
