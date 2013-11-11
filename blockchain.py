@@ -1,11 +1,12 @@
-# blockchain.py
-#
-# This is a connector to JSON based URL's such as blockchain.info
-# For now, the main usage of this file is to grab the utxo's for a
-#  given address.
-# UTXO's (Unspent Transaction Outputs) are the record of transactions
-#  for an address that haven't been spent yet.
+"""
+blockchain.py
 
+This is a connector to JSON based URL's such as blockchain.info
+For now, the main usage of this file is to grab the utxo's for a
+given address.
+UTXO's (Unspent Transaction Outputs) are the record of transactions
+for an address that haven't been spent yet.
+"""
 import urllib2
 import json
 

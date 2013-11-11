@@ -1,9 +1,11 @@
 #!/usr/bin/env python
-#
-# ngccc.py
-#
-# command-line interface to the Next-Generation Colored Coin Client
-# You can manage your colored coins using this command.
+
+"""
+ngccc.py
+
+command-line interface to the Next-Generation Colored Coin Client
+You can manage your colored coins using this command.
+"""
 
 from wallet_controller import WalletController
 from pwallet import PersistentWallet

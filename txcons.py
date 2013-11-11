@@ -1,6 +1,8 @@
-# txcons.py
-#
-# transaction constructors
+"""
+txcons.py
+
+Transaction Constructors for the blockchain.
+"""
 
 from coloredcoinlib import txspec
 from pycoin import encoding
@@ -12,9 +14,8 @@ import io
 
 class BasicTxSpec(object):
     """Represents a really simple colored coin transaction.
-    Specifically, this particular transaction class will only handle
-    transactions that distribute exactly 1 color besides normal
-    bitcoins.
+    Specifically, this particular transaction class has not been
+    constructed, composed or signed. Those are done in other classes.
     """
     def __init__(self, model):
         """Create a BasicTxSpec that has a wallet_model <model>

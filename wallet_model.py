@@ -1,10 +1,12 @@
-# wallet_model.py
-#
-# Wallet Model: part of Wallet MVC structure
-#
-# model provides facilities for working with addresses, coins and asset
-#  definitions, but it doesn't implement high-level operations
-#  (those are implemented in controller)
+"""
+wallet_model.py
+
+Wallet Model: part of Wallet MVC structure
+
+Model provides facilities for working with addresses, coins and asset
+definitions, but it doesn't implement high-level operations
+(those are implemented in controller).
+"""
 
 from coloredcoinlib import blockchain, builder, store, colormap, colordata
 from electrum import EnhancedBlockchainState

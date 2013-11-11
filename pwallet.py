@@ -1,7 +1,9 @@
-# pwallet.py
-#
-# A colored-coin wallet implementation that uses a persistent
-# data-store. The actual storage is in sqlite3 db's via coloredcoinlib
+"""
+pwallet.py
+
+A colored-coin wallet implementation that uses a persistent
+data-store. The actual storage is in sqlite3 db's via coloredcoinlib
+"""
 
 from wallet_model import WalletModel
 from coloredcoinlib import store

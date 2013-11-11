@@ -1,12 +1,14 @@
 #!/usr/bin/env python
-#
-# electrum.py
-#
-# This is a connector to Stratum protocol Electrum servers
-# For now, the main usage of this file is to grab the utxo's for a
-#  given address.
-# UTXO's (Unspent Transaction Outputs) are the record of transactions
-#  for an address that haven't been spent yet.
+
+"""
+electrum.py
+
+This is a connector to Stratum protocol Electrum servers
+For now, the main usage of this file is to grab the utxo's for a
+given address.
+UTXO's (Unspent Transaction Outputs) are the record of transactions
+for an address that haven't been spent yet.
+"""
 
 from bitcoin.core import CBitcoinAddress, CTransaction
 from bitcoin.core import x as to_binary
