@@ -1,34 +1,28 @@
 from PyQt4 import QtGui, uic
 
+from wallet import wallet
+
 
 class SendcoinsPage(QtGui.QWidget):
     def __init__(self):
         QtGui.QWidget.__init__(self)
         uic.loadUi(uic.getUiPath('sendcoinspage.ui'), self)
 
-    def update_monikers(self, monikers):
-        currentMoniker = self.get_moniker()
-        self.cb_monikers.clear()
+        self.btn_send.clicked.connect(self.on_btnSend)
+        self.edt_address.returnPressed.connect(self.on_btnSend)
+        self.edt_amount.editingFinished.connect(lambda: self.on_btnSend() if self.edt_amount.hasFocus() else 0)
+        self.cb_monikers.currentIndexChanged.connect(self.updateAvailableBalance)
+
+    def update(self):
+        monikers = wallet.get_all_monikers()
         monikers.remove('bitcoin')
         monikers = ['bitcoin'] + monikers
-        self.cb_monikers.addItems(monikers)
-        self.set_moniker(currentMoniker)
-
-    def get_moniker(self):
-        return str(self.cb_monikers.currentText())
-
-    def set_moniker(self, moniker):
-        monikers = [str(self.cb_monikers.itemText(i))
-                    for i in range(self.cb_monikers.count())]
-        if moniker and moniker in monikers:
-            self.cb_monikers.setCurrentIndex(monikers.index(moniker))
-
-    def set_max_amount(self, amount):
-        self.edt_amount.setMaximum(amount)
-        moniker = self.get_moniker()
-        if moniker == 'bitcoin':
-            moniker = 'BTC'
-        self.lbl_availaleBalance.setText(str(amount) + ' ' + moniker)
+        comboList = self.cb_monikers
+        currentMoniker = str(comboList.currentText())
+        comboList.clear()
+        comboList.addItems(monikers)
+        if currentMoniker and currentMoniker in monikers:
+            comboList.setCurrentIndex(monikers.index(currentMoniker))
 
     def edt_address_validate(self):
         valid = True
@@ -48,17 +42,35 @@ class SendcoinsPage(QtGui.QWidget):
             self.edt_amount.setStyleSheet('')
         return valid
 
-    def get_data(self):
+    def on_btnSend(self):
         data = []
         if all([self.edt_address_validate(), self.edt_amount_validate()]):
             return data
         address = str(self.edt_address.text())
-        amount = self.edt_amount.value()
-        moniker = self.get_moniker()
+        amount  = self.edt_amount.value()
+        moniker = str(self.cb_monikers.currentText())
         if address and amount > 0 and moniker:
             data.append({
                 'address': address,
-                'amount': amount,
+                'value': amount,
                 'moniker': moniker,
             })
-        return data
+        if not data:
+            return
+        message = 'Are you sure you want to send'
+        for recipient in data:
+            message += '<br><b>{amount} {moniker}</b> to {address}'.format(**recipient)
+        message += '?'
+        retval = QtGui.QMessageBox.question(self, 'Confirm send coins',
+            message,
+            QtGui.QMessageBox.Yes | QtGui.QMessageBox.Cancel,
+            QtGui.QMessageBox.Cancel)
+        if retval == QtGui.QMessageBox.Yes:
+            wallet.send_coins(data)
+
+    def updateAvailableBalance(self):
+        moniker = str(self.cb_monikers.currentText())
+        if moniker:
+            balance = wallet.get_balance(moniker)
+            self.edt_amount.setMaximum(balance)
+            self.lbl_availaleBalance.setText('%.8f %s' % (balance, moniker))

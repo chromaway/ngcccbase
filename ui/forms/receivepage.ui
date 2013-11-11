@@ -39,12 +39,28 @@
     </layout>
    </item>
    <item>
-    <widget class="QTableView" name="tbl_addresses"/>
+    <widget class="QTableView" name="tableView">
+     <property name="alternatingRowColors">
+      <bool>true</bool>
+     </property>
+     <property name="selectionMode">
+      <enum>QAbstractItemView::SingleSelection</enum>
+     </property>
+     <property name="selectionBehavior">
+      <enum>QAbstractItemView::SelectRows</enum>
+     </property>
+     <property name="sortingEnabled">
+      <bool>true</bool>
+     </property>
+    </widget>
    </item>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_2">
      <item>
       <widget class="QPushButton" name="btn_copy">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
        <property name="text">
         <string>Copy Address</string>
        </property>
@@ -68,7 +84,7 @@
   </layout>
  </widget>
  <tabstops>
-  <tabstop>tbl_addresses</tabstop>
+  <tabstop>tableView</tabstop>
   <tabstop>chk_onlyBitcoin</tabstop>
   <tabstop>btn_copy</tabstop>
  </tabstops>
