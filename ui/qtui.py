@@ -1,5 +1,8 @@
-import os, sys, signal
 from PyQt4 import QtCore, QtGui, uic
+
+import os
+import sys
+import signal
 
 from overviewpage import OverviewPage
 from sendcoinspage import SendcoinsPage
@@ -35,7 +38,8 @@ class MainWindow(QtGui.QMainWindow):
         self.gotoOverviewPage()
 
     def bindActions(self):
-        self.actionExit.triggered.connect(lambda: QtCore.QCoreApplication.instance().exit(0))
+        self.actionExit.triggered.connect(
+            lambda: QtCore.QCoreApplication.instance().exit(0))
 
         self.toolbarActionGroup = QtGui.QActionGroup(self)
 
@@ -68,6 +72,7 @@ class QtUI(object):
     def __init__(self):
         app = Application()
         window = MainWindow()
-        window.move(QtGui.QApplication.desktop().screen().rect().center() - window.rect().center())
+        window.move(QtGui.QApplication.desktop().screen().rect().center()
+                    - window.rect().center())
         window.show()
         sys.exit(app.exec_())

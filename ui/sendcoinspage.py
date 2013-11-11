@@ -10,8 +10,10 @@ class SendcoinsPage(QtGui.QWidget):
 
         self.btn_send.clicked.connect(self.on_btnSend)
         self.edt_address.returnPressed.connect(self.on_btnSend)
-        self.edt_amount.editingFinished.connect(lambda: self.on_btnSend() if self.edt_amount.hasFocus() else 0)
-        self.cb_monikers.currentIndexChanged.connect(self.updateAvailableBalance)
+        self.edt_amount.editingFinished.connect(
+            lambda: self.on_btnSend() if self.edt_amount.hasFocus() else 0)
+        self.cb_monikers.currentIndexChanged.connect(
+            self.updateAvailableBalance)
 
     def update(self):
         monikers = wallet.get_all_monikers()
@@ -47,7 +49,7 @@ class SendcoinsPage(QtGui.QWidget):
         if all([self.edt_address_validate(), self.edt_amount_validate()]):
             return data
         address = str(self.edt_address.text())
-        amount  = self.edt_amount.value()
+        amount = self.edt_amount.value()
         moniker = str(self.cb_monikers.currentText())
         if address and amount > 0 and moniker:
             data.append({
@@ -59,9 +61,11 @@ class SendcoinsPage(QtGui.QWidget):
             return
         message = 'Are you sure you want to send'
         for recipient in data:
-            message += '<br><b>{amount} {moniker}</b> to {address}'.format(**recipient)
+            message += '<br><b>{amount} {moniker}</b> to {address}' \
+                .format(**recipient)
         message += '?'
-        retval = QtGui.QMessageBox.question(self, 'Confirm send coins',
+        retval = QtGui.QMessageBox.question(
+            self, 'Confirm send coins',
             message,
             QtGui.QMessageBox.Yes | QtGui.QMessageBox.Cancel,
             QtGui.QMessageBox.Cancel)
@@ -74,4 +78,5 @@ class SendcoinsPage(QtGui.QWidget):
             balance = wallet.get_balance(moniker)
             asset = wallet.get_asset_definition(moniker)
             self.edt_amount.setMaximum(balance)
-            self.lbl_availaleBalance.setText('%s %s' % (asset.format_value(balance), moniker))
+            self.lbl_availaleBalance.setText(
+                '%s %s' % (asset.format_value(balance), moniker))

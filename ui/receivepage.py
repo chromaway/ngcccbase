@@ -28,9 +28,10 @@ class AddressTableModel(QtCore.QAbstractTableModel):
         return QtCore.QVariant(value)
 
     def headerData(self, section, orientation, role):
-        if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
-            return self.columns[section];
-        return QtCore.QVariant();
+        if orientation == QtCore.Qt.Horizontal \
+                and role == QtCore.Qt.DisplayRole:
+            return self.columns[section]
+        return QtCore.QVariant()
 
     def addRow(self, row):
         index = len(self.addresses)
@@ -51,6 +52,7 @@ class AddressTableModel(QtCore.QAbstractTableModel):
             for address in wallet.get_all_addresses(moniker):
                 self.addRow([moniker, address])
 
+
 class ReceivePage(QtGui.QWidget):
     def __init__(self):
         QtGui.QWidget.__init__(self)
@@ -65,12 +67,15 @@ class ReceivePage(QtGui.QWidget):
 
         self.tableView.setModel(self.proxyModel)
         self.tableView.sortByColumn(0, QtCore.Qt.AscendingOrder)
-        self.tableView.horizontalHeader().setResizeMode(0, QtGui.QHeaderView.Stretch)
-        self.tableView.horizontalHeader().setResizeMode(1, QtGui.QHeaderView.ResizeToContents)
+        self.tableView.horizontalHeader().setResizeMode(
+            0, QtGui.QHeaderView.Stretch)
+        self.tableView.horizontalHeader().setResizeMode(
+            1, QtGui.QHeaderView.ResizeToContents)
 
         self.chk_onlyBitcoin.stateChanged.connect(self.on_chkOnlyBitcoin)
         self.btn_copy.clicked.connect(self.on_btnCopy)
-        self.tableView.selectionModel().selectionChanged.connect(self.on_tableViewSelect)
+        self.tableView.selectionModel().selectionChanged.connect(
+            self.on_tableViewSelect)
 
     def update(self):
         self.model.updateData()

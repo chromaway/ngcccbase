@@ -19,7 +19,7 @@ class WalletController(object):
 
     def publish_tx(self, signed_tx_spec):
         """Given a signed transaction <signed_tx_spec>, publish the transaction
-        to the public bitcoin blockchain. Prints the transaction hash as a 
+        to the public bitcoin blockchain. Prints the transaction hash as a
         side effect. Returns the transaction hash.
         """
         txhex = signed_tx_spec.get_hex_tx_data()
