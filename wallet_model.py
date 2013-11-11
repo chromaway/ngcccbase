@@ -346,7 +346,7 @@ class ColoredCoinContext(object):
         from electrum import EnhancedBlockchainState
 
         if self.testnet:
-            self.blockchain_state = blockchain.BlockchainState(
+            self.blockchain_state = blockchain.BlockchainState.from_url(
                 None, self.testnet)
         else:
             self.blockchain_state = EnhancedBlockchainState(

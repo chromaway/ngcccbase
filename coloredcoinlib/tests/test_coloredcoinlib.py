@@ -10,7 +10,7 @@ from coloredcoinlib import colordata
 
 class TestColoredCoin(unittest.TestCase):
     def test_coloredcoin(self):
-        blockchain_state = blockchain.BlockchainState(
+        blockchain_state = blockchain.BlockchainState.from_url(
             "http://bitcoinrpc:8oso9n8E1KnTexnKHn16N3tcsGpfEThksK4ojzrkzn3b"
             "@localhost:18332/")
         store_conn = store.DataStoreConnection("color.db") # FIXME: this should be mocked, or should use test data

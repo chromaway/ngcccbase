@@ -145,7 +145,7 @@ if __name__ == "__main__":
     import colormap as cm
     import colordata
 
-    blockchain_state = blockchain.BlockchainState(None, True)
+    blockchain_state = blockchain.BlockchainState.from_url(None, True)
 
     store_conn = store.DataStoreConnection("test-color.db")
     cdstore = store.ColorDataStore(store_conn.conn)
