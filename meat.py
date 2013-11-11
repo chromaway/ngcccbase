@@ -17,6 +17,29 @@ sha256 = lambda h: hashlib.sha256(h).digest()
 ripemd160 = lambda h: hashlib.new("ripemd160", h).digest()
 md5 = lambda h: hashlib.md5(h).digest()
 
+# useful constant for b58encode
+__b58chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+
+
+def b58encode(v):
+    """Returns the b58 encoding of a string <v>.
+    b58 encoding is the standard encoding for bitcoin addresses.
+    """
+    n = long(v.encode("hex"), 16)
+    r = ""
+    while n > 0:
+        n, mod = divmod(n, 58)
+        r = __b58chars[mod] + r
+
+    pad = 0
+    for c in v:
+        if c == '\x00':
+            pad += 1
+        else:
+            break
+
+    return (__b58chars[0]*pad) + r
+
 
 class InvalidAddressError(Exception):
     """Exception represents an invalid address that was trying
