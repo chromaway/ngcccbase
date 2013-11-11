@@ -143,6 +143,7 @@ class AssetDefinition(object):
         return {
             "monikers": self.monikers,
             "color_set": self.color_set.get_data(),
+            "unit": self.unit
             }
 
 

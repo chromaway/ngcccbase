@@ -23,20 +23,12 @@ class OverviewPage(QtGui.QWidget):
 
     def updateWallet(self):
         moniker = str(self.cb_monikers.currentText())
-        balance = wallet.get_balance(moniker)
-        self.lbl_balance.setText('%.8f %s' % (balance, moniker))
-        '''
-        address = self.overviewpage.get_btc_address()
-        moniker = self.overviewpage.get_moniker()
-        if address and moniker:
-            asset = self.get_asset_definition(moniker)
-            balance = self.walletController.get_balance(asset)
-            if moniker == 'bitcoin':
-                balance = '%.8f BTC' % (balance,)
-            else:
-                address = '%s@%s' % (moniker, address)
-                balance = '%.8f %s' % (balance, moniker)
-            self.overviewpage.update_wallet(address, balance)
-        self.lbl_address.setText(address)
-        self.lbl_balance.setText(balance)
-        '''
+        if moniker == '':
+            return
+        asset = wallet.get_asset_definition(moniker)
+        balance = wallet.get_balance(asset)
+        self.lbl_balance.setText('%s %s' % (asset.format_value(balance), moniker))
+        wam = wallet.model.get_address_manager()
+        addr = wam.get_some_address(asset.get_color_set()).get_address()
+        self.lbl_address.setText(addr)
+

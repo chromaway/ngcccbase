@@ -72,5 +72,6 @@ class SendcoinsPage(QtGui.QWidget):
         moniker = str(self.cb_monikers.currentText())
         if moniker:
             balance = wallet.get_balance(moniker)
+            asset = wallet.get_asset_definition(moniker)
             self.edt_amount.setMaximum(balance)
-            self.lbl_availaleBalance.setText('%.8f %s' % (balance, moniker))
+            self.lbl_availaleBalance.setText('%s %s' % (asset.format_value(balance), moniker))

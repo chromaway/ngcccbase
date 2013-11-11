@@ -6,6 +6,8 @@ from wallet_model import AssetDefinition
 class Wallet(object):
     def __init__(self):
         self.wallet = PersistentWallet()
+        self.wallet.init_model()
+        self.model = self.wallet.get_model()
         self.controller = WalletController(self.wallet.get_model())
 
     def get_asset_definition(self, moniker):
@@ -17,7 +19,8 @@ class Wallet(object):
             raise Exception("asset not found")
 
     def get_all_monikers(self):
-        return self.wallet.get_model().get_asset_definition_manager().assdef_by_moniker.keys()
+        return [asset.get_monikers()[0] for asset
+                in self.wallet.get_model().get_asset_definition_manager().get_all_assets()]
 
     def get_balance(self, color):
         if not isinstance(color, AssetDefinition):
