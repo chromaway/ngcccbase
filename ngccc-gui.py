@@ -8,7 +8,7 @@
 # Note that this requires the install of PyQt4 and PIP
 # Neither of those are accessible by pip
 # Use this command in ubuntu to install:
-#    apt-get install python-qtp python-sip
+#    apt-get install python-qt4 python-sip
 
 
 from ui.qtui import QtUI
