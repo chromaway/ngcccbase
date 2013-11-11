@@ -1,7 +1,8 @@
-# util.py
-#
-# Utility functions that don't belong anywhere else.
+"""
+util.py
 
+Utility functions that don't belong anywhere else.
+"""
 
 __b58chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 

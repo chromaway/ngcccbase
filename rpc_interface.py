@@ -1,11 +1,13 @@
-# rpc_interface.py
-#
-# This file connects ngccc-server.py to wallet_controller.py
-# The main functions that this file has are to take the
-#  JSON-RPC commands from the server
-#  and pass them through to the wallet controller.
-# console_interface.py does a similar thing for ngccc.py
-#  to wallet_controller.py
+"""
+rpc_interface.py
+
+This file connects ngccc-server.py to wallet_controller.py
+The main functions that this file has are to take the
+JSON-RPC commands from the server and pass them through to
+the wallet controller.
+Note console_interface.py does a similar thing for ngccc.py
+to wallet_controller.py
+"""
 
 from wallet_controller import WalletController
 from pwallet import PersistentWallet

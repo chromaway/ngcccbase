@@ -1,9 +1,11 @@
-# meat.py
-#
-# This file has the Address class, which is used for managing
-#  addresses in the ngccc realm.
-# The main usage of this file is to create/retrieve addresses
-#  from the bitcoin ecosystem.
+"""
+meat.py
+
+This file has the Address class, which is used for managing
+addresses in the ngccc realm.
+The main usage of this file is to create/retrieve addresses
+from the bitcoin ecosystem.
+"""
 
 from ecdsa.curves import SECP256k1
 from ecdsa import SigningKey

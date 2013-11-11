@@ -1,19 +1,21 @@
 #!/usr/bin/env python
-#
-# utxodb.py
-#
-# Unspent Transaction Out library.
-# Because of how colored coins work, it is essential that we keep
-# a very detailed record of exactly what unspent transactions exist.
-# Specifically, obc (order-based-coloring) approach requires that we
-# keep track of exactly which coins went where as the order in which
-# the addresses are recorded into the bitcoin blockchain determines
-# exactly where the colored coin goes.
-#
-# Note that a transaction consists of a bunch of tx-in's and tx-outs.
-# We only care about the Unspent TX-Outs. The sum of these is the
-# bitcoin balance. The components will tell us how much of a balance
-# of each colored coin we have.
+
+"""
+utxodb.py
+
+Unspent Transaction Out library.
+Because of how colored coins work, it is essential that we keep
+a very detailed record of exactly what unspent transactions exist.
+Specifically, obc (order-based-coloring) approach requires that we
+keep track of exactly which coins went where as the order in which
+the addresses are recorded into the bitcoin blockchain determines
+exactly where the colored coin goes.
+
+Note that a transaction consists of a bunch of tx-in's and tx-outs.
+We only care about the Unspent TX-Outs. The sum of these is the
+bitcoin balance. The components will tell us how much of a balance
+of each colored coin we have.
+"""
 
 from coloredcoinlib.store import DataStore, DataStoreConnection
 from time import time

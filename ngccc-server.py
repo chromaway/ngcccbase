@@ -1,10 +1,12 @@
 #!/usr/bin/env python
-#
-# ngccc-server.py
-#
-# JSON-RPC interface to the Next-Generation Colored Coin Client
-# This command will start a server at hostname/port that takes
-# in JSON-RPC commands for execution.
+
+"""
+ngccc-server.py
+
+JSON-RPC interface to the Next-Generation Colored Coin Client
+This command will start a server at hostname/port that takes
+in JSON-RPC commands for execution.
+"""
 
 from rpc_interface import RPCRequestHandler
 from BaseHTTPServer import HTTPServer

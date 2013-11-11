@@ -1,10 +1,12 @@
-# console_interface.py
-#
-# This file connects ngccc.py to wallet_controller.py
-# The main functions that this file has are to take the command-line
-#  inputs and pass them through to the wallet controller.
-# rpc_interface.py does a similar thing for ngccc-server.py
-#  to wallet_controller.py
+"""
+console_interface.py
+
+This file connects ngccc.py to wallet_controller.py
+The main functions that this file has are to take the command-line
+inputs and pass them through to the wallet controller.
+Note rpc_interface.py does a similar thing for ngccc-server.py
+to wallet_controller.py
+"""
 
 import json
 

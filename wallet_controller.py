@@ -1,8 +1,10 @@
-# wallet_controller.py
-#
-# Controls wallet model in a high level manner
-# Executes high level tasks such as get balance
-#  (tasks that require more complex logic) [verification needed]
+"""
+wallet_controller.py
+
+Controls wallet model in a high level manner
+Executes high level tasks such as get balance
+ (tasks that require more complex logic) [verification needed]
+"""
 
 from coloredcoinlib.colordef import OBColorDefinition
 from wallet_model import ColorSet
