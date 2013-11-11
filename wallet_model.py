@@ -463,7 +463,7 @@ class DWalletAddressManager(object):
         """Updates the configuration for the address manager.
         The data will persist in the key "dwam" and consists
         of this data:
-        genesis_color_sets - Colors created by this wallet 
+        genesis_color_sets - Colors created by this wallet
         color_set_states   - How many addresses of each color
         """
         dwam_params = {

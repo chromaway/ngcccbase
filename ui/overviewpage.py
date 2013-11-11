@@ -27,8 +27,8 @@ class OverviewPage(QtGui.QWidget):
             return
         asset = wallet.get_asset_definition(moniker)
         balance = wallet.get_balance(asset)
-        self.lbl_balance.setText('%s %s' % (asset.format_value(balance), moniker))
+        self.lbl_balance.setText(
+            '%s %s' % (asset.format_value(balance), moniker))
         wam = wallet.model.get_address_manager()
         addr = wam.get_some_address(asset.get_color_set()).get_address()
         self.lbl_address.setText(addr)
-
