@@ -57,13 +57,18 @@ class CTransaction(object):
 
 
 class BlockchainState(object):
-    def __init__(self, url, testnet=False):
+    def __init__(self, bitcoind):
+        self.bitcoind = bitcoind
+        self.cur_height = None
+
+    @classmethod
+    def from_url(cls, url, testnet=False):
         if testnet:
-            self.bitcoind = bitcoin.rpc.RawProxy(
+            bitcoind = bitcoin.rpc.RawProxy(
                 service_url=url, service_port=18332)
         else:
-            self.bitcoind = bitcoin.rpc.RawProxy(service_url=url)
-        self.cur_height = None
+            bitcoind = bitcoin.rpc.RawProxy(service_url=url)
+        return cls(bitcoind)
 
     def get_tx_block_height(self, txhash):
         try:
