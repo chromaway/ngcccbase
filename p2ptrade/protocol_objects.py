@@ -1,6 +1,12 @@
 import time
 
 
+def make_random_id():
+    import os
+    bits = os.urandom(8)
+    return binary_to_hex(bits)
+
+
 class EOffer(object):
     # A = offerer's side, B = replyer's side
     # ie. offerer says "I want to give you A['value'] coins of color
@@ -51,9 +57,9 @@ class EOffer(object):
         return x
 
 
-class MyEOffer(ExchangeOffer):
+class MyEOffer(EOffer):
     def __init__(self, oid, A, B, auto_post=True):
-        super(MyExchangeOffer, self).__init__(oid, A, B)
+        super(MyEOffer, self).__init__(oid, A, B)
         self.auto_post = auto_post
 
 

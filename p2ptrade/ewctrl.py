@@ -1,5 +1,6 @@
 from coloredcoinlib import txspec
 from collections import defaultdict
+from wallet_model import ColorSet
 
 
 class OperationalETxSpec(txspec.OperationalTxSpec):
@@ -11,7 +12,9 @@ class OperationalETxSpec(txspec.OperationalTxSpec):
         return self.targets
 
     def get_change_addr(self, color_id):
-        pass
+        cs = ColorSet.from_color_ids(self.model, [color_id])
+        wam = self.model.get_address_manager()
+        return wam.get_change_address(cs).get_address()
 
     def prepare_inputs(self, etx_spec):
         self.inputs = defaultdict(list)
@@ -34,16 +37,15 @@ class OperationalETxSpec(txspec.OperationalTxSpec):
             (wam.get_change_address(their_color_set), list(their_color_set)[0],
              their['value']))
 
-    def select_coins(self, color_id, value):
-        pass
-
     def get_required_fee(self, tx_size):
         return 10000  # TODO
 
     def select_coins(self, color_id, value):
         if color_id in self.inputs:
             c_inputs = self.inputs[color_id]
-            tv = sum(inp[0] for inp in c_inputs]
+            tv = sum([inp[0] for inp in c_inputs])
+            if tv < value:
+                raise Exception('not enough coins')
             return [inp[1] for inp in c_inputs], tv
         else:
             color_id_set = set([color_id])
