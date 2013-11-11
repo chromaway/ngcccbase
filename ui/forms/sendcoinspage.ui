@@ -94,6 +94,9 @@
               <property name="singleStep">
                <double>0.001000000000000</double>
               </property>
+              <property name="value">
+               <double>12.345599999999999</double>
+              </property>
              </widget>
             </item>
             <item>
@@ -146,7 +149,7 @@
                </font>
               </property>
               <property name="text">
-               <string>0 BTC</string>
+               <string>123.456 BTC</string>
               </property>
              </widget>
             </item>

@@ -50,6 +50,7 @@
    </attribute>
    <addaction name="actionGotoOverview"/>
    <addaction name="actionGotoSendcoins"/>
+   <addaction name="actionGotoReceive"/>
   </widget>
   <action name="actionExit">
    <property name="text">
@@ -79,6 +80,17 @@
    </property>
    <property name="toolTip">
     <string>Change to Send coins page</string>
+   </property>
+  </action>
+  <action name="actionGotoReceive">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Receive</string>
+   </property>
+   <property name="toolTip">
+    <string>Change to Receive page</string>
    </property>
   </action>
  </widget>

@@ -4,7 +4,7 @@ from PyQt4 import QtGui, uic
 class SendcoinsPage(QtGui.QWidget):
     def __init__(self):
         QtGui.QWidget.__init__(self)
-        uic.loadUi(uic.getUiPath('sendcoins.ui'), self)
+        uic.loadUi(uic.getUiPath('sendcoinspage.ui'), self)
 
     def update_monikers(self, monikers):
         currentMoniker = self.get_moniker()
@@ -30,8 +30,28 @@ class SendcoinsPage(QtGui.QWidget):
             moniker = 'BTC'
         self.lbl_availaleBalance.setText(str(amount) + ' ' + moniker)
 
+    def edt_address_validate(self):
+        valid = True
+        if len(str(self.edt_address.text())) != 34:
+            valid = False
+            self.edt_address.setStyleSheet('background:#FF8080')
+        else:
+            self.edt_address.setStyleSheet('')
+        return valid
+
+    def edt_amount_validate(self):
+        valid = True
+        if self.edt_amount.value() == 0:
+            valid = False
+            self.edt_amount.setStyleSheet('background:#FF8080')
+        else:
+            self.edt_amount.setStyleSheet('')
+        return valid
+
     def get_data(self):
         data = []
+        if all([self.edt_address_validate(), self.edt_amount_validate()]):
+            return data
         address = str(self.edt_address.text())
         amount = self.edt_amount.value()
         moniker = self.get_moniker()
