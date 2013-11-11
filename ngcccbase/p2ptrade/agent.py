@@ -1,16 +1,16 @@
 import time
+from protocol_objects import MyEOffer, EOffer, MyEProposal
+
+def LOGINFO(msg, *params):
+    print msg % params
 
 
-def LOGINFO(msg):
-    pass
+def LOGDEBUG(msg, *params):
+    print msg % params
 
 
-def LOGDEBUG(msg):
-    pass
-
-
-def LOGERROR(msg):
-    pass
+def LOGERROR(msg, *params):
+    print msg % params
 
 
 class EAgent(object):
@@ -24,7 +24,7 @@ class EAgent(object):
         self.active_ep = None
         self.ep_timeout = None
         self.comm = comm
-        self.match_offers = False
+        self.offers_updated = False
         self.config = config
 
     def set_active_ep(self, ep):
@@ -32,7 +32,7 @@ class EAgent(object):
             self.ep_timeout = None
             self.match_orders = True
         else:
-            self.ep_timeout = time.time() + self.config.ep_expiry_interval
+            self.ep_timeout = time.time() + self.config['ep_expiry_interval']
         self.active_ep = ep
 
     def has_active_ep(self):
@@ -45,19 +45,20 @@ class EAgent(object):
             if my_offer.auto_post:
                 if not my_offer.expired():
                     continue
+                #  TODO: condition is incorrect
                 if self.active_ep and self.active_ep.offer.oid == my_offer.oid:
                     continue
-                my_offer.refresh(self.config.offer_expiry_interval)
-                self.postMessage(my_offer)
+                my_offer.refresh(self.config['offer_expiry_interval'])
+                self.post_message(my_offer)
 
     def service_their_offers(self):
         for their_offer in self.their_offers.values():
-            if their_offer.expired(-standard_offer_grace_interval):
+            if their_offer.expired(-self.config.get('offer_grace_interval', 0)):
                 del self.their_offers[their_offer.oid]
 
     def update_state(self):
-        if not self.has_active_ep() and self.match_offers:
-            self.match_offers = False
+        if not self.has_active_ep() and self.offers_updated:
+            self.offers_updated = False
             self.match_offers()
         self.service_my_offers()
         self.service_their_offers()
@@ -65,7 +66,7 @@ class EAgent(object):
     def register_my_offer(self, offer):
         assert isinstance(offer, MyEOffer)
         self.my_offers[offer.oid] = offer
-        self.match_offers = True
+        self.offers_updated = True
 
     def cancel_my_offer(self, offer):
         if self.active_ep and (self.active_ep.offer.oid == offer.oid
@@ -77,14 +78,15 @@ class EAgent(object):
     def register_their_offer(self, offer):
         LOGINFO("register oid %s ", offer.oid)
         self.their_offers[offer.oid] = offer
-        offer.refresh()
-        self.match_offers = True
+        offer.refresh(self.config['offer_expiry_interval'])
+        self.offers_updated = True
 
     def match_offers(self):
         if self.has_active_ep():
             return
         for my_offer in self.my_offers.values():
             for their_offer in self.their_offers.values():
+                LOGINFO("matches %s", my_offer.matches(their_offer))
                 if my_offer.matches(their_offer):
                     success = False
                     try:
@@ -92,6 +94,7 @@ class EAgent(object):
                         success = True
                     except Exception as e:
                         LOGERROR("Exception during matching offer %s", e)
+                        raise
                     if success:
                         return
 

@@ -1,10 +1,10 @@
 import time
-
+import binascii
 
 def make_random_id():
     import os
     bits = os.urandom(8)
-    return binary_to_hex(bits)
+    return binascii.hexlify(bits)
 
 
 class EOffer(object):
@@ -66,7 +66,7 @@ class MyEOffer(EOffer):
 class ETxSpec(object):
     def __init__(self, inputs, targets):
         self.inputs = inputs
-        self.target = targets
+        self.targets = targets
 
     def get_data(self):
         return {"inputs": self.inputs,
@@ -91,11 +91,11 @@ class EProposal(object):
 class MyEProposal(EProposal):
     def __init__(self, ewctrl, orig_offer, my_offer):
         super(MyEProposal, self).__init__(make_random_id(),
-                                          ewctlr, orig_offer)
+                                          ewctrl, orig_offer)
         self.my_offer = my_offer
         if not orig_offer.matches(my_offer):
             raise Exception("offers are incongruent")
-        self.etx_spec = ewctrl.make_etx_spec(offer.B, offer.A)
+        self.etx_spec = ewctrl.make_etx_spec(self.offer.B, self.offer.A)
 
     def get_data(self):
         res = super(MyEProposal, self).get_data()

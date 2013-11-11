@@ -1,7 +1,7 @@
 from coloredcoinlib import txspec
 from collections import defaultdict
 from wallet_model import ColorSet
-
+from protocol_objects import ETxSpec
 
 class OperationalETxSpec(txspec.OperationalTxSpec):
     def __init__(self, model, ewctrl):
@@ -32,7 +32,7 @@ class OperationalETxSpec(txspec.OperationalTxSpec):
             tgt_color_id = list(self.ewctrl.resolve_color_spec(tgt_spec[1]))[0]
             self.targets.append((tgt_spec[0], tgt_color_id, tgt_spec[2]))
         their_color_set = self.ewctrl.resolve_color_spec(their['color_spec'])
-        wam = self.model.get_wallet_address_manager()
+        wam = self.model.get_address_manager()
         self.targets.add(
             (wam.get_change_address(their_color_set), list(their_color_set)[0],
              their['value']))
@@ -70,7 +70,9 @@ class EWalletController(object):
         self.model = wctrl.get_model()
 
     def resolve_color_spec(self, color_spec):
-        return color_spec
+        colormap = self.model.get_color_map()
+        color_id = colormap.resolve_color_desc(color_spec, False)
+        return ColorSet.from_color_ids(self.model, [color_id])
 
     def select_inputs(self, color_set, t_value):
         cq = self.model.make_coin_query({"color_set": color_set})
@@ -84,7 +86,7 @@ class EWalletController(object):
                 break
         if csum < t_value:
             raise Exception('not enough money')
-        return selection, (tsum - csum)
+        return selection, (t_value - csum)
 
     def make_etx_spec(self, our, their):
         our_color_set = self.resolve_color_spec(our['color_spec'])
@@ -94,8 +96,8 @@ class EWalletController(object):
 
         inputs = {our['color_spec']: [utxo.get_outpoint() for utxo in c_utxos]}
 
-        wam = self.model.get_wallet_address_manager()
-        our_address = self.model.get_change_address(their_color_set)
+        wam = self.model.get_address_manager()
+        our_address = wam.get_change_address(their_color_set)
 
         targets = [(our_address.get_address(),
                     their['color_spec'], their['value'])]

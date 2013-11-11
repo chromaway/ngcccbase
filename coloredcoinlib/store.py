@@ -162,10 +162,10 @@ class ColorMetaStore(DataStore):
             "INSERT OR REPLACE INTO builder_state VALUES (?, ?)",
             (color_id, height))
 
-    def resolve_color_desc(self, color_desc):
+    def resolve_color_desc(self, color_desc, auto_add):
         q = "SELECT color_id FROM color_map WHERE color_desc = ?"
         res = self.execute(q, (color_desc, )).fetchone()
-        if res is None:
+        if (res is None) and auto_add:
             self.execute(
                 "INSERT INTO color_map(color_id, color_desc) VALUES (NULL, ?)",
                 (color_desc,))
