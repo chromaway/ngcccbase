@@ -19,8 +19,8 @@ of each colored coin we have.
 
 from coloredcoinlib.store import DataStore, DataStoreConnection
 from time import time
-from blockchain import BlockchainInfoInterface, AbeInterface
-from electrum import ElectrumInterface
+from ngcccbase.services.blockchain import BlockchainInfoInterface, AbeInterface
+from ngcccbase.services.electrum import ElectrumInterface
 from pycoin.tx import TxOut
 
 import sqlite3

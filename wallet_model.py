@@ -9,7 +9,7 @@ definitions, but it doesn't implement high-level operations
 """
 
 from coloredcoinlib import blockchain, builder, store, colormap, colordata
-from electrum import EnhancedBlockchainState
+from ngcccbase.services.electrum import EnhancedBlockchainState
 from ngcccbase import txdb
 from meat import Address
 
