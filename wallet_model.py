@@ -106,6 +106,11 @@ class AssetDefinition(object):
         """
         return self.color_set
 
+    def get_utxo_value(self, utxo):
+        """ return asset value for a given utxo"""
+        #  TODO: user colorvalues
+        return utxo.value
+
     def make_operational_tx_spec(self, tx_spec):
         """Given a <tx_spec> of type BasicTxSpec, return
         a SimpleOperationalTxSpec.
