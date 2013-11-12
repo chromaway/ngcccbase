@@ -1,5 +1,6 @@
+#!/usr/bin/env python
 """
-meat.py
+address.py
 
 This file has the Address class, which is used for managing
 addresses in the ngccc realm.
@@ -7,40 +8,11 @@ The main usage of this file is to create/retrieve addresses
 from the bitcoin ecosystem.
 """
 
-from ecdsa.curves import SECP256k1
-from ecdsa import SigningKey
-from util import b58encode
+from ecdsa import SigningKey, SECP256k1
+from pycoin.encoding import a2b_base58, b2a_hashed_base58, hash160, b2a_base58
 
 import hashlib
 import hmac
-
-# useful functions for hashing
-sha256 = lambda h: hashlib.sha256(h).digest()
-ripemd160 = lambda h: hashlib.new("ripemd160", h).digest()
-md5 = lambda h: hashlib.md5(h).digest()
-
-# useful constant for b58encode
-__b58chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
-
-
-def b58encode(v):
-    """Returns the b58 encoding of a string <v>.
-    b58 encoding is the standard encoding for bitcoin addresses.
-    """
-    n = long(v.encode("hex"), 16)
-    r = ""
-    while n > 0:
-        n, mod = divmod(n, 58)
-        r = __b58chars[mod] + r
-
-    pad = 0
-    for c in v:
-        if c == '\x00':
-            pad += 1
-        else:
-            break
-
-    return (__b58chars[0]*pad) + r
 
 
 class InvalidAddressError(Exception):
@@ -63,20 +35,40 @@ class Address:
     PUBLIC_KEY_PREFIX = "\x00"
     PRIVATE_KEY_PREFIX = "\x80"
 
-    def __init__(self, pubkey, privkey, rawPubkey, rawPrivkey):
+    def __init__(self, pubkey, privkey):
         """The address object consists of the public key and
-        private key. rawPubkey and rawPrivkey are held in object
-        for convenience. (for that matter, so is the public key)
+        private key.
         """
         # validate that the keys correspond to the correct network
-        if rawPubkey[0] == self.PUBLIC_KEY_PREFIX:
+        if a2b_base58(pubkey)[0] == self.PUBLIC_KEY_PREFIX:
             self.pubkey = pubkey
             self.privkey = privkey
-            self.rawPrivkey = rawPrivkey
-            self.rawPubkey = rawPubkey
         else:
             raise InvalidAddressError("%s is not a public key for %s" %
                                       (pubkey, self.__class__.__name__))
+
+    def rawPrivkey(self):
+        """Returns the raw private key associated with this address.
+        This is a raw 32-byte string with no checksums
+        """
+        # note the first byte determines what type of address
+        #  and the last four are checksums
+        return a2b_base58(self.privkey)[1:-4]
+
+    def rawPubkey(self):
+        """Returns the raw public key associated with this address.
+        This is a raw 32-byte string with no checksums
+        """
+        # note the first byte determines what type of address
+        #  and the last four are checksums
+        return a2b_base58(self.pubkey)[1:-4]
+
+    def ecdsaPrivkey(self):
+        """Returns a SigningKey object for this address.
+        Useful for being able to sign a transaction.
+        """
+        return SigningKey.from_string(
+            string=self.rawPrivkey(), curve=SECP256k1)
 
     @classmethod
     def new(cls, string=None):
@@ -95,28 +87,23 @@ class Address:
             # random private key
             ecdsaPrivkey = SigningKey.generate(
                 curve=SECP256k1, entropy=None)
-        return cls.from_privkey(ecdsaPrivkey)
+        return cls.fromPrivkey(ecdsaPrivkey)
 
     @classmethod
-    def from_privkey(cls, ecdsaPrivkey):
+    def fromPrivkey(cls, ecdsaPrivkey):
         """Returns a new Address object from the private key.
         The private key can be used to get the public key,
         hence the need only for the private key.
         """
+        rawPrivkey = cls.PRIVATE_KEY_PREFIX + ecdsaPrivkey.to_string()
+        privkey = b2a_hashed_base58(rawPrivkey)
+
         ecdsaPubkey = ecdsaPrivkey.get_verifying_key()
+        rawPubkey = cls.PUBLIC_KEY_PREFIX + hash160(
+            "\x04" + ecdsaPubkey.to_string())
+        pubkey = b2a_hashed_base58(rawPubkey)
 
-        rawPrivkey = ecdsaPrivkey.to_string()
-        rawPubkey = cls.PUBLIC_KEY_PREFIX + ripemd160(
-            sha256("\x04" + ecdsaPubkey.to_string()))
-        pubkeyChecksum = sha256(sha256(rawPubkey))[:4]
-        rawPubkey += pubkeyChecksum
-
-        pubkey = b58encode(rawPubkey)
-        privkey = cls.PRIVATE_KEY_PREFIX + rawPrivkey
-        privkeyChecksum = sha256(sha256(privkey))[:4]
-        privkey = b58encode(privkey + privkeyChecksum)
-
-        return cls(pubkey, privkey, rawPubkey, rawPrivkey)
+        return cls(pubkey, privkey)
 
     @classmethod
     def fromMasterKey(cls, master_key, color_string, index):
@@ -125,9 +112,9 @@ class Address:
         and an <index>, this method will generate an Address
         object that's deterministic.
         """
-        h = hmac.new(master_key,
-                     "%s|%s" % (color_string, index),
-                     hashlib.sha256)
+        h = hmac.new(
+            master_key, "%s|%s" % (color_string, index), hashlib.sha256)
+
         # the seed string needs to be exactly 32 bytes long
         string = h.digest()
         return cls.new(string)
@@ -138,19 +125,15 @@ class Address:
         """
         pubkey = data["pubkey"]
         privkey = data["privkey"]
-        rawPubkey = data["rawPubkey"].decode("hex")
-        rawPrivkey = data["rawPrivkey"].decode("hex")
 
-        return cls(pubkey, privkey, rawPubkey, rawPrivkey)
+        return cls(pubkey, privkey)
 
     def getJSONData(self):
         """Returns a dict that can later be plugged into
         the fromObj method for later retrieval of an Address.
         This is particularly useful for storing/retrieving
         from a data store."""
-        return {"pubkey": self.pubkey, "privkey": self.privkey,
-                "rawPrivkey": self.rawPrivkey.encode("hex"),
-                "rawPubkey": self.rawPubkey.encode("hex")}
+        return {"pubkey": self.pubkey, "privkey": self.privkey}
 
 
 class TestnetAddress(Address):
@@ -159,3 +142,18 @@ class TestnetAddress(Address):
     """
     PUBLIC_KEY_PREFIX = "\x6F"
     PRIVATE_KEY_PREFIX = "\xEF"
+
+
+if __name__ == "__main__":
+    # test the key generation
+    test_key = 'a' * 32
+    address = Address.new(test_key)
+    print address.pubkey
+    rawPubkey = Address.PUBLIC_KEY_PREFIX + hash160(
+            "\x04" + address.rawPubkey())
+    print b2a_hashed_base58(rawPubkey)
+    assert address.privkey \
+        == "5JZB2s2RCtRUunKiqMbb6rAj3Z7TkJwa8zknL1cfTFpWoQArd6n", \
+        "address generation isn't what was expected"
+
+    assert address.rawPrivkey() == test_key, "wrong priv key"

@@ -59,8 +59,9 @@ class TxDataStore(DataStore):
             txid = self.add_tx(txhash, tx.get_hex_tx_data()).lastrowid
 
             for txin in tx.composed_tx_spec.txins:
-                self.execute(insert_transaction,
-                             (txin.utxo.address_rec.meat.pubkey, TXIN, txid))
+                self.execute(
+                    insert_transaction,
+                    (txin.utxo.address_rec.address.pubkey, TXIN, txid))
 
             for txout in tx.composed_tx_spec.txouts:
                 self.execute(
