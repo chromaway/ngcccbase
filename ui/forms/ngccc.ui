@@ -51,6 +51,7 @@
    <addaction name="actionGotoOverview"/>
    <addaction name="actionGotoSendcoins"/>
    <addaction name="actionGotoReceive"/>
+   <addaction name="actionP2PTrade"/>
   </widget>
   <action name="actionExit">
    <property name="text">
@@ -94,6 +95,17 @@
    </property>
    <property name="toolTip">
     <string>Change to Receive page</string>
+   </property>
+  </action>
+  <action name="actionP2PTrade">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>P2P Trade</string>
+   </property>
+   <property name="toolTip">
+    <string>Change to P2P Trade page</string>
    </property>
   </action>
  </widget>

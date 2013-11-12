@@ -16,21 +16,14 @@ class AddressTableModel(QtCore.QAbstractTableModel):
         return len(self.columns)
 
     def data(self, index, role):
-        if not index.isValid():
-            return QtCore.QVariant()
-        elif role != QtCore.Qt.DisplayRole and role != QtCore.Qt.EditRole:
-            return QtCore.QVariant()
-        value = ''
-        if role == QtCore.Qt.DisplayRole:
-            row = index.row()
-            col = index.column()
-            value = self.addresses[row][col]
-        return QtCore.QVariant(value)
+        if index.isValid() and role == QtCore.Qt.DisplayRole:
+            return QtCore.QVariant(self.addresses[index.row()][index.column()])
+        return QtCore.QVariant()
 
     def headerData(self, section, orientation, role):
         if orientation == QtCore.Qt.Horizontal \
                 and role == QtCore.Qt.DisplayRole:
-            return self.columns[section]
+            return QtCore.QVariant(self.columns[section])
         return QtCore.QVariant()
 
     def addRow(self, row):
@@ -47,10 +40,15 @@ class AddressTableModel(QtCore.QAbstractTableModel):
 
     def updateData(self):
         self.removeRows(0, len(self.addresses))
-        monikers = wallet.get_all_monikers()
-        for moniker in monikers:
+        for moniker in wallet.get_all_monikers():
             for address in wallet.get_all_addresses(moniker):
                 self.addRow([moniker, address])
+
+
+class NewAddressDialog(QtGui.QDialog):
+    def __init__(self):
+        QtGui.QDialog.__init__(self)
+        uic.loadUi(uic.getUiPath('newaddressdialog.ui'), self)
 
 
 class ReceivePage(QtGui.QWidget):
@@ -73,12 +71,28 @@ class ReceivePage(QtGui.QWidget):
             1, QtGui.QHeaderView.ResizeToContents)
 
         self.chk_onlyBitcoin.stateChanged.connect(self.on_chkOnlyBitcoin)
+        self.btn_new.clicked.connect(self.on_btnNew)
         self.btn_copy.clicked.connect(self.on_btnCopy)
         self.tableView.selectionModel().selectionChanged.connect(
             self.on_tableViewSelect)
 
     def update(self):
         self.model.updateData()
+
+    def contextMenuEvent(self, event):
+        selected = self.tableView.selectedIndexes()
+        if not selected:
+            return
+        menu = QtGui.QMenu()
+        menu.addAction(self.actionCopyColor)
+        menu.addAction(self.actionCopyAddress)
+        result = menu.exec_(event.globalPos())
+        if result is None:
+            return
+        if result in [self.actionCopyColor, self.actionCopyAddress]:
+            text = str(self.proxyModel.data(selected[
+                0 if result == self.actionCopyColor else 1]).toString())
+            QtGui.QApplication.clipboard().setText(text)
 
     def on_chkOnlyBitcoin(self, checked):
         if checked == QtCore.Qt.Checked:
@@ -87,12 +101,24 @@ class ReceivePage(QtGui.QWidget):
         else:
             self.proxyModel.setFilterFixedString(QtCore.QString(''))
 
+    def on_btnNew(self):
+        dialog = NewAddressDialog()
+        dialog.cb_monikers.addItems(wallet.get_all_monikers())
+        if dialog.exec_():
+            moniker = str(dialog.cb_monikers.currentText())
+            addr = wallet.get_new_address(moniker)
+            self.update()
+            for row in xrange(self.proxyModel.rowCount()):
+                index = self.proxyModel.index(row, 1)
+                if str(self.proxyModel.data(index).toString()) == addr:
+                    self.tableView.selectRow(row)
+                    break
+
     def on_btnCopy(self):
         selected = self.tableView.selectedIndexes()
         if selected:
             address = str(self.proxyModel.data(selected[1]).toString())
-            clipboard = QtGui.QApplication.clipboard()
-            clipboard.setText(address)
+            QtGui.QApplication.clipboard().setText(address)
 
     def on_tableViewSelect(self, selected, deselected):
         if len(selected):

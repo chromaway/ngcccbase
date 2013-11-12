@@ -17,6 +17,13 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
+      <widget class="QLabel" name="label">
+       <property name="text">
+        <string>These are your addresses for receivving payments.</string>
+       </property>
+      </widget>
+     </item>
+     <item>
       <spacer name="horizontalSpacer_2">
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
@@ -40,6 +47,9 @@
    </item>
    <item>
     <widget class="QTableView" name="tableView">
+     <property name="tabKeyNavigation">
+      <bool>false</bool>
+     </property>
      <property name="alternatingRowColors">
       <bool>true</bool>
      </property>
@@ -56,6 +66,13 @@
    </item>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <item>
+      <widget class="QPushButton" name="btn_new">
+       <property name="text">
+        <string>New Address</string>
+       </property>
+      </widget>
+     </item>
      <item>
       <widget class="QPushButton" name="btn_copy">
        <property name="enabled">
@@ -82,10 +99,21 @@
     </layout>
    </item>
   </layout>
+  <action name="actionCopyAddress">
+   <property name="text">
+    <string>Copy &amp;Address</string>
+   </property>
+  </action>
+  <action name="actionCopyColor">
+   <property name="text">
+    <string>Copy &amp;Color</string>
+   </property>
+  </action>
  </widget>
  <tabstops>
-  <tabstop>tableView</tabstop>
   <tabstop>chk_onlyBitcoin</tabstop>
+  <tabstop>tableView</tabstop>
+  <tabstop>btn_new</tabstop>
   <tabstop>btn_copy</tabstop>
  </tabstops>
  <resources/>

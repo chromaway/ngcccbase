@@ -7,6 +7,9 @@ import signal
 from overviewpage import OverviewPage
 from sendcoinspage import SendcoinsPage
 from receivepage import ReceivePage
+from tradepage import TradePage
+
+from wallet import wallet
 
 
 def getUiPath(ui_name):
@@ -32,6 +35,8 @@ class MainWindow(QtGui.QMainWindow):
         self.stackedWidget.addWidget(self.sendcoinspage)
         self.receivepage = ReceivePage()
         self.stackedWidget.addWidget(self.receivepage)
+        self.tradepage = TradePage()
+        self.stackedWidget.addWidget(self.tradepage)
 
         self.bindActions()
 
@@ -52,6 +57,9 @@ class MainWindow(QtGui.QMainWindow):
         self.toolbarActionGroup.addAction(self.actionGotoReceive)
         self.actionGotoReceive.triggered.connect(self.gotoReceivePage)
 
+        self.toolbarActionGroup.addAction(self.actionP2PTrade)
+        self.actionP2PTrade.triggered.connect(self.gotoP2PTradePage)
+
     def gotoOverviewPage(self):
         self.actionGotoOverview.setChecked(True)
         self.overviewpage.update()
@@ -67,9 +75,16 @@ class MainWindow(QtGui.QMainWindow):
         self.receivepage.update()
         self.stackedWidget.setCurrentWidget(self.receivepage)
 
+    def gotoP2PTradePage(self):
+        self.actionP2PTrade.setChecked(True)
+        self.tradepage.update()
+        self.stackedWidget.setCurrentWidget(self.tradepage)
+
 
 class QtUI(object):
     def __init__(self):
+        if len(wallet.get_all_addresses('bitcoin')) == 0:
+            wallet.get_new_address('bitcoin')
         app = Application()
         window = MainWindow()
         window.move(QtGui.QApplication.desktop().screen().rect().center()
