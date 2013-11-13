@@ -36,6 +36,8 @@ class Wallet(object):
             get_new_address(self.get_asset_definition(color)).get_address()
 
     def send_coins(self, items):
+        if isinstance(items, dict):
+            items = [items]
         for item in items:
             self.controller.send_coins(
                 item['address'],

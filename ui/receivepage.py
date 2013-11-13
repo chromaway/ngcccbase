@@ -50,6 +50,11 @@ class NewAddressDialog(QtGui.QDialog):
         QtGui.QDialog.__init__(self)
         uic.loadUi(uic.getUiPath('newaddressdialog.ui'), self)
 
+        self.cbMoniker.addItems(wallet.get_all_monikers())
+
+    def getSelectedMoniker(self):
+        return str(self.cbMoniker.currentText())
+
 
 class ReceivePage(QtGui.QWidget):
     def __init__(self):
@@ -70,11 +75,11 @@ class ReceivePage(QtGui.QWidget):
         self.tableView.horizontalHeader().setResizeMode(
             1, QtGui.QHeaderView.ResizeToContents)
 
-        self.chk_onlyBitcoin.stateChanged.connect(self.on_chkOnlyBitcoin)
-        self.btn_new.clicked.connect(self.on_btnNew)
-        self.btn_copy.clicked.connect(self.on_btnCopy)
+        self.chkOnlyBitcoin.stateChanged.connect(self.chkOnlyBitcoinStateChanged)
+        self.btnNew.clicked.connect(self.btnNewClicked)
+        self.btnCopy.clicked.connect(self.btnCopyClicked)
         self.tableView.selectionModel().selectionChanged.connect(
-            self.on_tableViewSelect)
+            self.tableViewSelectionChanged)
 
     def update(self):
         self.model.updateData()
@@ -84,8 +89,8 @@ class ReceivePage(QtGui.QWidget):
         if not selected:
             return
         menu = QtGui.QMenu()
-        menu.addAction(self.actionCopyColor)
         menu.addAction(self.actionCopyAddress)
+        menu.addAction(self.actionCopyColor)
         result = menu.exec_(event.globalPos())
         if result is None:
             return
@@ -94,18 +99,17 @@ class ReceivePage(QtGui.QWidget):
                 0 if result == self.actionCopyColor else 1]).toString())
             QtGui.QApplication.clipboard().setText(text)
 
-    def on_chkOnlyBitcoin(self, checked):
+    def chkOnlyBitcoinStateChanged(self, checked):
         if checked == QtCore.Qt.Checked:
             self.proxyModel.setFilterFixedString(QtCore.QString('bitcoin'))
             self.proxyModel.setFilterKeyColumn(0)
         else:
             self.proxyModel.setFilterFixedString(QtCore.QString(''))
 
-    def on_btnNew(self):
+    def btnNewClicked(self):
         dialog = NewAddressDialog()
-        dialog.cb_monikers.addItems(wallet.get_all_monikers())
         if dialog.exec_():
-            moniker = str(dialog.cb_monikers.currentText())
+            moniker = dialog.getSelectedMoniker()
             addr = wallet.get_new_address(moniker)
             self.update()
             for row in xrange(self.proxyModel.rowCount()):
@@ -114,15 +118,15 @@ class ReceivePage(QtGui.QWidget):
                     self.tableView.selectRow(row)
                     break
 
-    def on_btnCopy(self):
+    def btnCopyClicked(self):
         selected = self.tableView.selectedIndexes()
         if selected:
             address = str(self.proxyModel.data(selected[1]).toString())
             QtGui.QApplication.clipboard().setText(address)
 
-    def on_tableViewSelect(self, selected, deselected):
+    def tableViewSelectionChanged(self, selected, deselected):
         if len(selected):
             self.tableView.selectRow(selected.indexes()[0].row())
-            self.btn_copy.setEnabled(True)
+            self.btnCopy.setEnabled(True)
         else:
-            self.btn_copy.setEnabled(False)
+            self.btnCopy.setEnabled(False)

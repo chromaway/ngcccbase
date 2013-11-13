@@ -30,7 +30,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QComboBox" name="cb_monikers"/>
+      <widget class="QComboBox" name="cbMoniker"/>
      </item>
     </layout>
    </item>
@@ -60,7 +60,7 @@
   </layout>
  </widget>
  <tabstops>
-  <tabstop>cb_monikers</tabstop>
+  <tabstop>cbMoniker</tabstop>
   <tabstop>buttonBox</tabstop>
  </tabstops>
  <resources/>

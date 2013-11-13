@@ -37,7 +37,7 @@
       </spacer>
      </item>
      <item>
-      <widget class="QCheckBox" name="chk_onlyBitcoin">
+      <widget class="QCheckBox" name="chkOnlyBitcoin">
        <property name="text">
         <string>Show only bitcoin addresses</string>
        </property>
@@ -67,14 +67,14 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_2">
      <item>
-      <widget class="QPushButton" name="btn_new">
+      <widget class="QPushButton" name="btnNew">
        <property name="text">
         <string>New Address</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="btn_copy">
+      <widget class="QPushButton" name="btnCopy">
        <property name="enabled">
         <bool>false</bool>
        </property>
@@ -111,10 +111,10 @@
   </action>
  </widget>
  <tabstops>
-  <tabstop>chk_onlyBitcoin</tabstop>
+  <tabstop>chkOnlyBitcoin</tabstop>
   <tabstop>tableView</tabstop>
-  <tabstop>btn_new</tabstop>
-  <tabstop>btn_copy</tabstop>
+  <tabstop>btnNew</tabstop>
+  <tabstop>btnCopy</tabstop>
  </tabstops>
  <resources/>
  <connections/>
