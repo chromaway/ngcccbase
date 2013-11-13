@@ -75,7 +75,7 @@ class SendcoinsEntry(QtGui.QFrame):
     def getData(self):
         return {
             'address': str(self.edtAddress.text()),
-            'value':   self.edtAmount.value(),
+            'value':   int(self.edtAmount.value()*1e8),
             'moniker': str(self.cbMoniker.currentText()),
         }
 
@@ -116,11 +116,13 @@ class SendcoinsPage(QtGui.QWidget):
         data = [entry.getData() for entry in entries]
         message = 'Are you sure you want to send'
         for recipient in data:
-            if recipient['moniker'] == 'bitcoin':
-                tpl = '<br><b>{value} BTC</b> to {address}'
-            else:
-                tpl = '<br><b>{value} {moniker}</b> to {address}'
-            message += tpl.format(**recipient)
+            message += '<br><b>{value} {moniker}</b> to {address}'.format(**{
+                'value': wallet.get_asset_definition(recipient['moniker']). \
+                    format_value(recipient['value']),
+                'moniker': 'BTC' if recipient['moniker'] == 'bitcoin' \
+                    else recipient['moniker'],
+                'address': recipient['address'],
+            })
         message += '?'
         retval = QtGui.QMessageBox.question(
             self, 'Confirm send coins',
@@ -134,13 +136,10 @@ class SendcoinsPage(QtGui.QWidget):
         for recipient in data:
             currency[recipient['moniker']] += recipient['value']
         for moniker, value in currency.items():
-            # TODO: fix value
-            if value > wallet.get_balance(moniker)/1e8:
+            if value > wallet.get_balance(moniker):
                 QtGui.QMessageBox.warning(
                     self, 'Send coins',
                     'The amount for <b>%s</b> exceeds your balance.' % moniker,
                     QtGui.QMessageBox.Ok)
                 return
-        # TODO: fix send coins
         wallet.send_coins(data)
-
