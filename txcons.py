@@ -165,7 +165,7 @@ class SignedTxSpec(object):
         # sign the transaction using the address's private key
         secret_exponents = [
             encoding.wif_to_tuple_of_secret_exponent_compressed(
-                utxo.address_rec.meat.privkey, is_test=self.testnet)[0]
+                utxo.address_rec.address.privkey, is_test=self.testnet)[0]
             for utxo in input_utxos]
         unsigned_tx = UnsignedTx.standard_tx(
             inputs, outputs, is_test=self.testnet)

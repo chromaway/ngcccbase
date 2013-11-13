@@ -11,13 +11,12 @@ definitions, but it doesn't implement high-level operations
 from coloredcoinlib import blockchain, builder, store, colormap, colordata
 from ngcccbase.services.electrum import EnhancedBlockchainState
 from ngcccbase import txdb
-from meat import Address
+from address import Address, TestnetAddress, InvalidAddressError
 
 import hashlib
 import json
 import binascii
 
-import meat
 import txcons
 import utxodb
 
@@ -235,12 +234,12 @@ class AddressRecord(object):
         Useful for storage and persistence.
         """
         return {"color_set": self.color_set.get_data(),
-                "address_data": self.meat.getJSONData()}
+                "address_data": self.address.getJSONData()}
 
     def get_address(self):
         """Get the actual bitcoin address
         """
-        return self.meat.pubkey
+        return self.address.pubkey
 
 
 class DeterministicAddressRecord(AddressRecord):
@@ -260,8 +259,8 @@ class DeterministicAddressRecord(AddressRecord):
             color_string = "genesis block"
         else:
             color_string = self.color_set.get_hash_string()
-        cls = meat.TestnetAddress if kwargs.get('testnet') else meat.Address
-        self.meat = cls.fromMasterKey(
+        cls = TestnetAddress if kwargs.get('testnet') else Address
+        self.address = cls.fromMasterKey(
             kwargs['master_key'], color_string, kwargs['index'])
 
 
@@ -276,13 +275,11 @@ class LooseAddressRecord(AddressRecord):
         <address_data> consists of:
         privKey
         pubKey
-        rawPrivKey
-        rawPubKey
         """
         self.model = kwargs.get('model')
         self.color_set = ColorSet(self.model, kwargs.get('color_set'))
-        cls = meat.TestnetAddress if kwargs.get('testnet') else meat.Address
-        self.meat = cls.fromObj(kwargs['address_data'])
+        cls = TestnetAddress if kwargs.get('testnet') else Address
+        self.address = cls.fromObj(kwargs['address_data'])
 
 
 class DWalletAddressManager(object):
@@ -341,7 +338,7 @@ class DWalletAddressManager(object):
             try:
                 address = LooseAddressRecord(**addr_params)
                 self.addresses.append(address)
-            except meat.InvalidAddressError:
+            except InvalidAddressError:
                 address_type = "Testnet" if self.testnet else "Bitcoin"
                 #print "%s is an invalid %s address" % (
                 #    addr_params['address_data']['pubkey'], address_type)
