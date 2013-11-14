@@ -18,19 +18,25 @@
     <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,1">
      <item>
       <widget class="QGroupBox" name="groupBox">
+       <property name="minimumSize">
+        <size>
+         <width>280</width>
+         <height>0</height>
+        </size>
+       </property>
        <property name="title">
         <string>Asset:</string>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout">
         <item>
-         <widget class="QComboBox" name="comboBox"/>
+         <widget class="QComboBox" name="cbMoniker"/>
         </item>
         <item>
          <layout class="QFormLayout" name="formLayout_5">
           <item row="1" column="1">
-           <widget class="QLabel" name="label_16">
+           <widget class="QLabel" name="lblMonikerBalance">
             <property name="text">
-             <string>123.456 {moniker}</string>
+             <string/>
             </property>
            </widget>
           </item>
@@ -42,9 +48,9 @@
            </widget>
           </item>
           <item row="0" column="1">
-           <widget class="QLabel" name="label_18">
+           <widget class="QLabel" name="lblBitcoinBalance">
             <property name="text">
-             <string>123.456 BTC</string>
+             <string/>
             </property>
            </widget>
           </item>
@@ -109,9 +115,9 @@
      <item>
       <layout class="QVBoxLayout" name="verticalLayout_2" stretch="0,0,0">
        <item>
-        <widget class="QGroupBox" name="groupBox_3">
+        <widget class="QGroupBox" name="grpBinds">
          <property name="title">
-          <string>Buy {moniker}</string>
+          <string>Buy</string>
          </property>
          <layout class="QFormLayout" name="formLayout_3">
           <property name="fieldGrowthPolicy">
@@ -131,7 +137,7 @@
            </widget>
           </item>
           <item row="0" column="1">
-           <widget class="QLineEdit" name="lineEdit"/>
+           <widget class="QLineEdit" name="edtBuyQuantity"/>
           </item>
           <item row="1" column="0">
            <widget class="QLabel" name="label_8">
@@ -141,7 +147,7 @@
            </widget>
           </item>
           <item row="1" column="1">
-           <widget class="QLineEdit" name="lineEdit_2"/>
+           <widget class="QLineEdit" name="edtBuyPrice"/>
           </item>
           <item row="2" column="0">
            <widget class="QLabel" name="label_9">
@@ -153,12 +159,12 @@
           <item row="2" column="1">
            <widget class="QLabel" name="label_10">
             <property name="text">
-             <string>{Quanity * Price}</string>
+             <string/>
             </property>
            </widget>
           </item>
           <item row="3" column="0" colspan="2">
-           <widget class="QPushButton" name="pushButton">
+           <widget class="QPushButton" name="btnBuy">
             <property name="text">
              <string>Buy</string>
             </property>
@@ -181,16 +187,16 @@
         </widget>
        </item>
        <item>
-        <widget class="QTableView" name="tableView"/>
+        <widget class="QTableView" name="tableBuyBids"/>
        </item>
       </layout>
      </item>
      <item>
       <layout class="QVBoxLayout" name="verticalLayout_3" stretch="0,0,0">
        <item>
-        <widget class="QGroupBox" name="groupBox_5">
+        <widget class="QGroupBox" name="grpSell">
          <property name="title">
-          <string>Sell {moniker}</string>
+          <string>Sell</string>
          </property>
          <layout class="QFormLayout" name="formLayout_4">
           <property name="fieldGrowthPolicy">
@@ -210,7 +216,7 @@
            </widget>
           </item>
           <item row="0" column="1">
-           <widget class="QLineEdit" name="lineEdit_3"/>
+           <widget class="QLineEdit" name="edtSellQuantity"/>
           </item>
           <item row="1" column="0">
            <widget class="QLabel" name="label_12">
@@ -220,7 +226,7 @@
            </widget>
           </item>
           <item row="1" column="1">
-           <widget class="QLineEdit" name="lineEdit_4"/>
+           <widget class="QLineEdit" name="edtSellPrice"/>
           </item>
           <item row="2" column="0">
            <widget class="QLabel" name="label_14">
@@ -232,12 +238,12 @@
           <item row="2" column="1">
            <widget class="QLabel" name="label_13">
             <property name="text">
-             <string>{Quanity * Price}</string>
+             <string/>
             </property>
            </widget>
           </item>
           <item row="3" column="0" colspan="2">
-           <widget class="QPushButton" name="pushButton_2">
+           <widget class="QPushButton" name="btnSell">
             <property name="text">
              <string>Sell</string>
             </property>
@@ -260,7 +266,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QTableView" name="tableView_3"/>
+        <widget class="QTableView" name="tableSellBids"/>
        </item>
       </layout>
      </item>
@@ -280,7 +286,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QTableView" name="tableView_2"/>
+        <widget class="QTableView" name="tableTradesBids"/>
        </item>
       </layout>
      </item>
@@ -288,6 +294,18 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>cbMoniker</tabstop>
+  <tabstop>edtBuyQuantity</tabstop>
+  <tabstop>edtBuyPrice</tabstop>
+  <tabstop>btnBuy</tabstop>
+  <tabstop>tableBuyBids</tabstop>
+  <tabstop>edtSellQuantity</tabstop>
+  <tabstop>edtSellPrice</tabstop>
+  <tabstop>btnSell</tabstop>
+  <tabstop>tableSellBids</tabstop>
+  <tabstop>tableTradesBids</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>
