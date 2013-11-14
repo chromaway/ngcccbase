@@ -35,6 +35,9 @@ class Wallet(object):
         return self.controller. \
             get_new_address(self.get_asset_definition(color)).get_address()
 
+    def scan(self):
+        self.controller.scan_utxos()
+
     def send_coins(self, items):
         if isinstance(items, dict):
             items = [items]

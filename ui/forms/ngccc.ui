@@ -33,6 +33,8 @@
     <property name="title">
      <string>&amp;File</string>
     </property>
+    <addaction name="actionRescan"/>
+    <addaction name="separator"/>
     <addaction name="actionExit"/>
    </widget>
    <addaction name="menuFile"/>
@@ -126,6 +128,16 @@
    </property>
    <property name="toolTip">
     <string>Change to P2P Trade page</string>
+   </property>
+  </action>
+  <action name="actionRun_scan">
+   <property name="text">
+    <string>run scan</string>
+   </property>
+  </action>
+  <action name="actionRescan">
+   <property name="text">
+    <string>rescan</string>
    </property>
   </action>
  </widget>

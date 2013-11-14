@@ -43,6 +43,7 @@ class MainWindow(QtGui.QMainWindow):
         self.gotoOverviewPage()
 
     def bindActions(self):
+        self.actionRescan.triggered.connect(wallet.scan)
         self.actionExit.triggered.connect(
             lambda: QtCore.QCoreApplication.instance().exit(0))
 
