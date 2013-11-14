@@ -6,7 +6,7 @@ Executes high level tasks such as get balance
  (tasks that require more complex logic) [verification needed]
 """
 
-from coloredcoinlib.colordef import OBColorDefinition
+from coloredcoinlib.colordef import OBColorDefinition, genesis_output_marker
 from wallet_model import ColorSet
 from txcons import BasicTxSpec, SimpleOperationalTxSpec
 
@@ -56,7 +56,8 @@ class WalletController(object):
             op_tx_spec = SimpleOperationalTxSpec(self.model, None)
             wam = self.model.get_address_manager()
             addr = wam.get_new_genesis_address()
-            op_tx_spec.add_target(addr.get_address(), -1, total)
+            op_tx_spec.add_target(addr.get_address(),
+                                  genesis_output_marker, total)
             genesis_ctxs = OBColorDefinition.compose_genesis_tx_spec(
                 op_tx_spec)
             genesis_tx = self.model.transform_tx_spec(genesis_ctxs, 'signed')

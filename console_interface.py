@@ -159,7 +159,7 @@ class CommandInterpreter(object):
     def send(self, moniker=None, address=None, val=None):
         """Send some amount of an asset/color to an address
         """
-        if not (moniker and address and value):
+        if not (moniker and address and val):
             print "send command expects:  moniker target_address value"
             return
         asset = self.get_asset_definition(moniker)

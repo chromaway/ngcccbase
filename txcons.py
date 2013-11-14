@@ -4,7 +4,7 @@ txcons.py
 Transaction Constructors for the blockchain.
 """
 
-from coloredcoinlib import txspec
+from coloredcoinlib import txspec, colordef
 from pycoin import encoding
 from pycoin.tx import UnsignedTx, SecretExponentSolver
 from binascii import hexlify
@@ -83,7 +83,11 @@ class SimpleOperationalTxSpec(txspec.OperationalTxSpec):
         that will send color <color_id> an amount <colorvalue>
         in Satoshi worth of colored coins.
         """
-        self.targets.append((target_addr, color_id, colorvalue))
+        if not isinstance(color_id, colordef.ColorDefinition):
+            cdef = self.model.get_color_map().get_color_def(color_id)
+        else:
+            cdef = color_id
+        self.targets.append((target_addr, cdef, colorvalue))
 
     def get_targets(self):
         """Get a list of (receiving address, color_id, colorvalue)
@@ -159,7 +163,7 @@ class SignedTxSpec(object):
         """
         # get the inputs and outputs
         input_utxos = [txin.utxo for txin in self.composed_tx_spec.get_txins()]
-        inputs = [utxo.get_pycoin_coin_source() for utxos in input_utxos]
+        inputs = [utxo.get_pycoin_coin_source() for utxo in input_utxos]
         outputs = [(txout.value, txout.target_addr)
                    for txout in self.composed_tx_spec.get_txouts()]
         # sign the transaction using the address's private key
@@ -186,6 +190,25 @@ class SignedTxSpec(object):
         return hexlify(self.tx_data).decode("utf8")
 
 
+def compose_uncolored_tx(tx_spec):
+    """ compose a simple bitcoin transaction """
+    targets = tx_spec.get_targets()
+    ttotal = sum([target[2] for target in targets])
+    fee = tx_spec.get_required_fee(500)
+    sel_utxos, sum_sel_coins = tx_spec.select_coins(0, ttotal + fee)
+    txins = [txspec.ComposedTxSpec.TxIn(utxo)
+             for utxo in sel_utxos]
+    change = sum_sel_coins - ttotal - fee
+    txouts = [txspec.ComposedTxSpec.TxOut(target[2], target[0])
+              for target in targets]
+    # give ourselves the change
+    if change > 0:
+        txouts.append(
+            txspec.ComposedTxSpec.TxOut(
+                change, tx_spec.get_change_addr(0)))
+    return txspec.ComposedTxSpec(txins, txouts)
+        
+
 class TransactionSpecTransformer(object):
     """An object that can transform one type of transaction into another.
     Essentially has the ability to take a transaction, compose it
@@ -202,6 +225,33 @@ class TransactionSpecTransformer(object):
         """
         self.model = model
         self.testnet = config.get('testnet', False)
+
+    def get_tx_composer(self, op_tx_spec):
+        """Returns a function which is able to convert a given operational
+        tx spec <op_tx_spec> into a composed tx spec
+        """
+        if op_tx_spec.is_monocolor():
+            color_def = op_tx_spec.get_targets()[0][1]
+            if color_def is None:
+                return compose_uncolored_tx
+            else:
+                return color_def.compose_tx_spec
+        else:
+            # TODO: explicit support for OBC only, generalize!
+            obc_color_def = None
+            for target in op_tx_spec.get_targets():
+                color_def = target[1]
+                if color_def is None:
+                    continue
+                if isinstance(color_def, colordef.OBColorDefinition):
+                    obc_color_def = color_def
+                else:
+                    obc_color_def = None
+                    break
+            if obc_color_def:
+                return obc_color_def.compose_tx_spec
+            else:
+                return None
 
     def classify_tx_spec(self, tx_spec):
         """For a transaction <tx_spec>, returns a string that represents
@@ -237,30 +287,9 @@ class TransactionSpecTransformer(object):
         (composed, signed).
         """
         if target_spec_kind in ['composed', 'signed']:
-            if tx_spec.is_monocolor():
-                color_id = tx_spec.get_targets()[0][1]
-                if color_id == 0:
-                    # compose a simple bitcoin transaction
-                    targets = tx_spec.get_targets()
-                    ttotal = sum([target[2] for target in targets])
-                    fee = tx_spec.get_required_fee(500)
-                    sel_utxos, sum_sel_coins = tx_spec.select_coins(
-                        0, ttotal + fee)
-                    txins = [txspec.ComposedTxSpec.TxIn(utxo)
-                             for utxo in sel_utxos]
-                    change = sum_sel_coins - ttotal - fee
-                    txouts = [txspec.ComposedTxSpec.TxOut(target[2], target[0])
-                              for target in targets]
-                    # give ourselves the change
-                    if change > 0:
-                        outputs.append(
-                            txspec.ComposedTxSpec.TxOut(
-                                change, tx_spec.get_change_address(0)))
-                    composed = txspec.ComposedTxSpec(txins, txouts)
-                else:
-                    color_def = self.model.get_color_map().get_color_def(
-                        color_id)
-                    composed = color_def.compose_tx_spec(tx_spec)
+            composer = self.get_tx_composer(tx_spec)
+            if composer:
+                composed = composer(tx_spec)
                 return self.transform(composed, target_spec_kind)
         raise Exception('do not know how to transform tx spec')
 
