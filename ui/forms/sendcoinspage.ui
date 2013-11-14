@@ -25,7 +25,7 @@
         <x>0</x>
         <y>0</y>
         <width>584</width>
-        <height>303</height>
+        <height>301</height>
        </rect>
       </property>
       <layout class="QVBoxLayout" name="topLayout" stretch="0,1">
@@ -62,12 +62,20 @@
        <property name="text">
         <string>Add &amp;Recipient</string>
        </property>
+       <property name="icon">
+        <iconset>
+         <normaloff>../icons/add.png</normaloff>../icons/add.png</iconset>
+       </property>
       </widget>
      </item>
      <item>
       <widget class="QPushButton" name="btnClearAll">
        <property name="text">
         <string>Clear &amp;All</string>
+       </property>
+       <property name="icon">
+        <iconset>
+         <normaloff>../icons/remove.png</normaloff>../icons/remove.png</iconset>
        </property>
       </widget>
      </item>
@@ -88,6 +96,10 @@
       <widget class="QPushButton" name="btnSend">
        <property name="text">
         <string>Send</string>
+       </property>
+       <property name="icon">
+        <iconset>
+         <normaloff>../icons/send.png</normaloff>../icons/send.png</iconset>
        </property>
       </widget>
      </item>

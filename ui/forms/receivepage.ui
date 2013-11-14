@@ -71,6 +71,10 @@
        <property name="text">
         <string>New Address</string>
        </property>
+       <property name="icon">
+        <iconset>
+         <normaloff>../icons/add.png</normaloff>../icons/add.png</iconset>
+       </property>
       </widget>
      </item>
      <item>
@@ -80,6 +84,10 @@
        </property>
        <property name="text">
         <string>Copy Address</string>
+       </property>
+       <property name="icon">
+        <iconset>
+         <normaloff>../icons/editcopy.png</normaloff>../icons/editcopy.png</iconset>
        </property>
       </widget>
      </item>

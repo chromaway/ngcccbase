@@ -42,6 +42,9 @@
    <property name="windowTitle">
     <string>toolBar</string>
    </property>
+   <property name="toolButtonStyle">
+    <enum>Qt::ToolButtonTextBesideIcon</enum>
+   </property>
    <attribute name="toolBarArea">
     <enum>TopToolBarArea</enum>
    </attribute>
@@ -54,6 +57,11 @@
    <addaction name="actionP2PTrade"/>
   </widget>
   <action name="actionExit">
+   <property name="icon">
+    <iconset>
+     <normalon>../icons/quit.png</normalon>
+    </iconset>
+   </property>
    <property name="text">
     <string>&amp;Exit</string>
    </property>
@@ -68,6 +76,10 @@
    <property name="checked">
     <bool>false</bool>
    </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>../icons/overview.png</normaloff>../icons/overview.png</iconset>
+   </property>
    <property name="text">
     <string>Overview</string>
    </property>
@@ -79,6 +91,10 @@
    <property name="checkable">
     <bool>true</bool>
    </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>../icons/send.png</normaloff>../icons/send.png</iconset>
+   </property>
    <property name="text">
     <string>Send coins</string>
    </property>
@@ -89,6 +105,10 @@
   <action name="actionGotoReceive">
    <property name="checkable">
     <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>../icons/receive.png</normaloff>../icons/receive.png</iconset>
    </property>
    <property name="text">
     <string>Receive</string>

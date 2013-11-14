@@ -53,6 +53,10 @@
        <property name="text">
         <string/>
        </property>
+       <property name="icon">
+        <iconset>
+         <normaloff>../icons/editpaste.png</normaloff>../icons/editpaste.png</iconset>
+       </property>
       </widget>
      </item>
      <item>
@@ -62,6 +66,10 @@
        </property>
        <property name="text">
         <string/>
+       </property>
+       <property name="icon">
+        <iconset>
+         <normaloff>../icons/remove.png</normaloff>../icons/remove.png</iconset>
        </property>
       </widget>
      </item>
