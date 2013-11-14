@@ -109,8 +109,12 @@ class ForeignEProposal(EProposal):
         super(ForeignEProposal, self).__init__(ep_data['pid'], ewctrl, offer)
         self.etx_spec = None
         if 'etx_spec' in ep_data:
-            self.etx_spec = ETxSpec.from_data(data['etx_spec'])
-        self.tx_data = data.get('etx_data', None)
+            self.etx_spec = ETxSpec.from_data(ep_data['etx_spec'])
+        self.tx_data = ep_data.get('etx_data', None)
 
-    def is_valid(self, my_offer):
-        return my_offer.matches(self.offer)
+    def accept(self, my_offer):
+        if not self.offer.is_same_as_mine(my_offer):
+            raise Exception("incompatible offer")
+        if not self.etx_spec:
+            raise Exception("need etx_spec")
+        return self.ewctrl.make_reply_tx(self.etx_spec, my_offer.A, my_offer.B)
