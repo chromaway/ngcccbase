@@ -99,23 +99,18 @@ class EWalletController(object):
     def make_etx_spec(self, our, their):
         our_color_set = self.resolve_color_spec(our['color_spec'])
         their_color_set = self.resolve_color_spec(their['color_spec'])
-
         c_utxos, c_change = self.select_inputs(our_color_set, our['value'])
-
-        inputs = {our['color_spec']: [utxo.get_outpoint() for utxo in c_utxos]}
-
+        inputs = {our['color_spec']: 
+                  [utxo.get_outpoint() for utxo in c_utxos]}
         wam = self.model.get_address_manager()
         our_address = wam.get_change_address(their_color_set)
-
         targets = [(our_address.get_address(),
                     their['color_spec'], their['value'])]
-
         if c_change > 0:
             our_change_address = wam.get_change_address(our_color_set)
             targets.append((our_change_address.get_address(),
                             our['color_spec'], c_change))
-
-        return ETxSpec(inputs, targets)
+        return ETxSpec(inputs, targets, c_utxos)
 
     def make_reply_tx(self, etx_spec, our, their):
         op_tx_spec = OperationalETxSpec(self.model, self)

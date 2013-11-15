@@ -181,14 +181,8 @@ class UTXO(object):
         """
         return (self.txhash, self.outindex)
 
-    def get_pycoin_coin_source(self):
-        """Returns a tuple of binary transaction hash, outindex
-        and a pycoin TxOut object. This is useful for pycoin transaction
-        construction.
-        """
-        pycoin_txout = TxOut(self.value, self.script.decode('hex'))
-        txhash_bin = self.txhash.decode('hex')[::-1]
-        return (txhash_bin, self.outindex, pycoin_txout)
+    def get_txhash(self):
+        return self.txhash.decode('hex')[::-1]
 
     def __repr__(self):
         return "%s %s %s %s" % (

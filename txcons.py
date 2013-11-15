@@ -141,23 +141,38 @@ class SimpleOperationalTxSpec(txspec.OperationalTxSpec):
         return 10000  # TODO
 
 
-class SignedTxSpec(object):
-    """Represents a transaction that's been signed and ready
-    to be transmitted.
+class RawTxSpec(object):
+    """Represents a transaction which can be serialized.
     """
-    def __init__(self, model, composed_tx_spec, testnet):
-        """Create a signed transaction with wallet model <model>
-        and a composed transaction <composed_tx_spec>. <testnet>
-        is a boolean representing whether this is a testnet address.
-        """
+    def __init__(self, model, pycoin_tx):
         self.model = model
-        self.composed_tx_spec = composed_tx_spec
-        tx = pycoin_txcons.construct_standard_tx(composed_tx_spec, testnet)
-        pycoin_txcons.sign_tx(self.composed_tx_spec, tx, testnet)
+        self.pycoin_tx = pycoin_tx
+        self.update_tx_data()
+
+    def update_tx_data(self):
+        """Updates serialized form of transaction.
+        """
         s = io.BytesIO()
-        tx.stream(s)
+        self.pycoin_tx.stream(s)
         self.tx_data = s.getvalue()
 
+    @classmethod
+    def from_composed_tx_spec(cls, model, composed_tx_spec):
+        testnet = model.is_testnet()
+        tx = pycoin_txcons.construct_standard_tx(composed_tx_spec, testnet)
+        return cls(model, tx)
+
+    @classmethod
+    def from_tx_data(cls, model, tx_data):
+        pycoin_tx = pycoin_txcons.deserialize(tx_data)
+        return cls(model, pycoin_tx)
+
+    def sign(self, utxo_list):
+        pycoin_txcons.sign_tx(self.pycoin_tx,
+                              utxo_list,                              
+                              self.model.is_testnet())
+        self.update_tx_data()
+    
     def get_tx_data(self):
         """Returns the signed transaction data.
         """
@@ -243,7 +258,7 @@ class TransactionSpecTransformer(object):
             return 'operational'
         elif isinstance(tx_spec, txspec.ComposedTxSpec):
             return 'composed'
-        elif isinstance(tx_spec, SignedTxSpec):
+        elif isinstance(tx_spec, RawTxSpec):
             return 'signed'
         else:
             return None
@@ -278,7 +293,10 @@ class TransactionSpecTransformer(object):
         equal "signed" or will throw an exception.
         """
         if target_spec_kind in ['signed']:
-            return SignedTxSpec(self.model, tx_spec, self.testnet)
+            rtxs = RawTxSpec.from_composed_tx_spec(self.model, tx_spec)
+            utxo_list = [txin.utxo for txin in tx_spec.get_txins()]
+            rtxs.sign(utxo_list)
+            return rtxs
         raise Exception('do not know how to transform tx spec')
 
     def transform_signed(self, tx_spec, target_spec_kind):

@@ -545,6 +545,7 @@ class WalletModel(object):
         self.coin_query_factory = CoinQueryFactory(self, config)
         self.utxo_man = utxodb.UTXOManager(self, config)
         self.txdb = txdb.TxDb(self, config)
+        self.testnet = config.get('testnet', False)
         self.tx_spec_transformer = txcons.TransactionSpecTransformer(
             self, config)
 
@@ -552,6 +553,11 @@ class WalletModel(object):
         """Access method for transaction data store.
         """
         return self.txdb
+
+    def is_testnet(self):
+        """Returns True if testnet mode is enabled.
+        """
+        return self.testnet
 
     def transform_tx_spec(self, tx_spec, target_spec_kind):
         """Pass-through for TransactionSpecTransformer's transform
