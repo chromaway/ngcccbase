@@ -5,9 +5,8 @@ Transaction Constructors for the blockchain.
 """
 
 from coloredcoinlib import txspec, colordef
-from pycoin import encoding
-from pycoin.tx import UnsignedTx, SecretExponentSolver
 from binascii import hexlify
+import pycoin_txcons
 
 import io
 
@@ -152,31 +151,11 @@ class SignedTxSpec(object):
         is a boolean representing whether this is a testnet address.
         """
         self.model = model
-        self.testnet = testnet
         self.composed_tx_spec = composed_tx_spec
-        self.construct_tx()
-
-    def construct_tx(self):
-        """Adds the signed transaction data to the transaction. This is
-        entirely derived from the composed_tx_spec property
-        and sets the tx_data property.
-        """
-        # get the inputs and outputs
-        input_utxos = [txin.utxo for txin in self.composed_tx_spec.get_txins()]
-        inputs = [utxo.get_pycoin_coin_source() for utxo in input_utxos]
-        outputs = [(txout.value, txout.target_addr)
-                   for txout in self.composed_tx_spec.get_txouts()]
-        # sign the transaction using the address's private key
-        secret_exponents = [
-            encoding.wif_to_tuple_of_secret_exponent_compressed(
-                utxo.address_rec.address.privkey, is_test=self.testnet)[0]
-            for utxo in input_utxos]
-        unsigned_tx = UnsignedTx.standard_tx(
-            inputs, outputs, is_test=self.testnet)
-        solver = SecretExponentSolver(secret_exponents)
-        new_tx = unsigned_tx.sign(solver)
+        tx = pycoin_txcons.construct_standard_tx(composed_tx_spec, testnet)
+        pycoin_txcons.sign_tx(self.composed_tx_spec, tx, testnet)
         s = io.BytesIO()
-        new_tx.stream(s)
+        tx.stream(s)
         self.tx_data = s.getvalue()
 
     def get_tx_data(self):
