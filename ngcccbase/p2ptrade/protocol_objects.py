@@ -103,6 +103,22 @@ class MyEProposal(EProposal):
         return res
 
 
+class ReplyEProposal(EProposal):
+    def __init__(self, ewctrl, foreign_ep, my_offer):
+        super(ReplyEProposal, self).__init__(foreign_ep.pid,
+                                             ewctrl,
+                                             foreign_ep.offer)
+        self.my_offer = my_offer
+        self.tx = self.ewctrl.make_reply_tx(foreign_ep.etx_spec, 
+                                            my_offer.A,
+                                            my_offer.B)
+        
+    def get_data(self):
+        data = super(ReplyEProposal, self).get_data()
+        data['etx_data'] = self.tx.get_hex_tx_data()
+        return data
+        
+
 class ForeignEProposal(EProposal):
     def __init__(self, ewctrl, ep_data):
         offer = EOffer.from_data(ep_data['offer'])
@@ -110,11 +126,11 @@ class ForeignEProposal(EProposal):
         self.etx_spec = None
         if 'etx_spec' in ep_data:
             self.etx_spec = ETxSpec.from_data(ep_data['etx_spec'])
-        self.tx_data = ep_data.get('etx_data', None)
+        self.etx_data = ep_data.get('etx_data', None)
 
     def accept(self, my_offer):
         if not self.offer.is_same_as_mine(my_offer):
             raise Exception("incompatible offer")
         if not self.etx_spec:
             raise Exception("need etx_spec")
-        return self.ewctrl.make_reply_tx(self.etx_spec, my_offer.A, my_offer.B)
+        return ReplyEProposal(self.ewctrl, self, my_offer)

@@ -2,6 +2,7 @@ from coloredcoinlib import txspec
 from collections import defaultdict
 from wallet_model import ColorSet
 from protocol_objects import ETxSpec
+from utxodb import UTXO
 
 class OperationalETxSpec(txspec.OperationalTxSpec):
     def __init__(self, model, ewctrl):
@@ -39,7 +40,7 @@ class OperationalETxSpec(txspec.OperationalTxSpec):
         their_color_id =  list(their_color_set.color_id_set)[0]
         their_color_def = colormap.get_color_def(their_color_id)
         self.targets.append(
-            (wam.get_change_address(their_color_set), their_color_def,
+            (wam.get_change_address(their_color_set).get_address(), their_color_def,
              their['value']))
 
     def get_required_fee(self, tx_size):
@@ -51,7 +52,8 @@ class OperationalETxSpec(txspec.OperationalTxSpec):
             tv = sum([inp[0] for inp in c_inputs])
             if tv < value:
                 raise Exception('not enough coins')
-            return [inp[1] for inp in c_inputs], tv
+            return [UTXO(inp[1][0], inp[1][1], inp[0], None)
+                    for inp in c_inputs], tv
         else:
             color_id_set = set([color_id])
             cq = self.model.make_coin_query({"color_id_set": color_id_set})
