@@ -6,7 +6,7 @@ The colored coin toolkit. Current version is just a basic demo.
 Contributors:
 
  * Alex Mizrahi <alex.mizrahi@gmail.com>
- * Victor ***
+ * Victor Knyazhin
  * Manuel Araoz <manuelaraoz@gmail.com>
 
 License: GNU AGPL v.3 (see LICENSE)

@@ -105,6 +105,7 @@ Contributors
  * Victor Knyazhin (coloredcoinlib)
  * Daniel "Ademan" Roberts
  * Adrian Porter
+ * Manuel Araoz (coloredcoinlib)
 
 License
 -------
