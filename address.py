@@ -113,7 +113,7 @@ class Address:
         object that's deterministic.
         """
         h = hmac.new(
-            master_key, "%s|%s" % (color_string, index), hashlib.sha256)
+            str(master_key), "%s|%s" % (color_string, index), hashlib.sha256)
 
         # the seed string needs to be exactly 32 bytes long
         string = h.digest()

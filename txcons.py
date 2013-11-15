@@ -159,7 +159,7 @@ class SignedTxSpec(object):
         """
         # get the inputs and outputs
         input_utxos = [txin.utxo for txin in self.composed_tx_spec.get_txins()]
-        inputs = [utxo.get_pycoin_coin_source() for utxos in input_utxos]
+        inputs = [utxo.get_pycoin_coin_source() for utxo in input_utxos]
         outputs = [(txout.value, txout.target_addr)
                    for txout in self.composed_tx_spec.get_txouts()]
         # sign the transaction using the address's private key

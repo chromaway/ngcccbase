@@ -313,7 +313,7 @@ class DWalletAddressManager(object):
         # import the genesis addresses
         for i, color_desc_list in enumerate(self.genesis_color_sets):
             addr = self.get_genesis_address(i)
-            addr.color_set = ColorSet(self.model, color_set_data)
+            addr.color_set = ColorSet(self.model, color_desc_list)
             self.addresses.append(addr)
 
         # now import the specific color addresses
@@ -415,15 +415,17 @@ class DWalletAddressManager(object):
         index = len(self.genesis_color_sets)
         self.genesis_color_sets.append([])
         self.update_config()
-        return self.get_genesis_address(index)
+        address = self.get_genesis_address(index)
+        address.index = index
+        return address
 
-    def update_genesis_address(self, address,  color_set):
+    def update_genesis_address(self, address, color_set):
         """Updates the genesis address <address> to have a different
         color set <color_set>.
         """
-        assert address.color_set.color_id_list == set([])
+        assert address.color_set.color_id_set == set([])
         address.color_set = color_set
-        self.genesis_color_setsp[address.index] = color_set.get_data()
+        self.genesis_color_sets[address.index] = color_set.get_data()
         self.update_config()
 
     def get_some_address(self, color_set):
@@ -438,7 +440,7 @@ class DWalletAddressManager(object):
             # reuse
             return acs[0]
         else:
-            return self.get_new_addres(color_set)
+            return self.get_new_address(color_set)
 
     def get_change_address(self, color_set):
         """Returns an address that can receive the change amount
