@@ -73,7 +73,8 @@ class BlockchainState(object):
     def get_tx_block_height(self, txhash):
         try:
             raw = self.bitcoind.getrawtransaction(txhash, 1)
-        except:
+        except Exception, e:
+            print e
             return (None, False)
         if 'blockhash' in raw:
             block_data = self.bitcoind.getblock(raw['blockhash'])

@@ -7,6 +7,7 @@ Contributors:
 
  * Alex Mizrahi <alex.mizrahi@gmail.com>
  * Victor ***
+ * Manuel Araoz <manuelaraoz@gmail.com>
 
 License: GNU AGPL v.3 (see LICENSE)
 
