@@ -1,20 +1,23 @@
-from bitcoinrpc import authproxy
 import bitcoin.core
 import bitcoin.serialize
 import bitcoin.rpc
+
 
 class COutpoint(object):
     def __init__(self, hash, n):
         self.hash = hash
         self.n = n
 
+
 class CTxIn(object):
     def __init__(self, op_hash, op_n):
         self.outpoint = COutpoint(op_hash, op_n)
 
+
 class CTxOut(object):
     def __init__(self, value):
         self.value = value
+
 
 class CTransaction(object):
 
@@ -50,16 +53,22 @@ class CTransaction(object):
                 prevtx = self.bs.get_tx(prev_tx_hash)
                 inp.value = prevtx.outputs[inp.outpoint.n].value
             else:
-                inp.value = 0 # TODO: value of coinbase tx?
+                inp.value = 0  # TODO: value of coinbase tx?
 
 
 class BlockchainState(object):
-    def __init__(self, url, testnet=False):
-        if testnet:
-            self.bitcoind = bitcoin.rpc.RawProxy(service_url=url,service_port=18332)
-        else:
-            self.bitcoind = bitcoin.rpc.RawProxy(service_url=url)
+    def __init__(self, bitcoind):
+        self.bitcoind = bitcoind
         self.cur_height = None
+
+    @classmethod
+    def from_url(cls, url, testnet=False):
+        if testnet:
+            bitcoind = bitcoin.rpc.RawProxy(
+                service_url=url, service_port=18332)
+        else:
+            bitcoind = bitcoin.rpc.RawProxy(service_url=url)
+        return cls(bitcoind)
 
     def get_tx_block_height(self, txhash):
         try:
@@ -81,24 +90,28 @@ class BlockchainState(object):
     def iter_block_txs(self, height):
         block_hex = None
         try:
-            block_hex = self.bitcoind.getblock(self.bitcoind.getblockhash(height), False)
+            block_hex = self.bitcoind.getblock(
+                self.bitcoind.getblockhash(height), False)
         except bitcoin.rpc.JSONRPCException:
             pass
-        
+
         if block_hex:
             # block at once
             block = bitcoin.core.CBlock.deserialize(bitcoin.core.x(block_hex))
             block_hex = None
             for tx in block.vtx:
-                txhash = bitcoin.core.b2lx(bitcoin.serialize.Hash(tx.serialize()))
+                txhash = bitcoin.core.b2lx(
+                    bitcoin.serialize.Hash(tx.serialize()))
                 yield CTransaction.from_bitcoincore(txhash, tx, self)
         else:
-            txhashes = self.bitcoind.getblock(self.bitcoind.getblockhash(height))['tx']
+            txhashes = self.bitcoind.getblock(
+                self.bitcoind.getblockhash(height))['tx']
             for txhash in txhashes:
                 yield self.get_tx(txhash)
 
     def get_height(self):
         return self.cur_height
+
     def update(self):
         """make sure we use latest data"""
         self.cur_height = self.bitcoind.getblockcount() - 1

@@ -2,29 +2,31 @@ from logger import log
 from explorer import get_spends
 from toposort import toposorted
 
+
 class ColorDataBuilder(object):
     pass
 
+
 class ColorDataBuilderManager(object):
     """manages multiple color data builders, one per color"""
-    def __init__(self, colormap, blockchain_state, cdstore, metastore, builder_class):
+    def __init__(self, colormap, blockchain_state,
+                 cdstore, metastore, builder_class):
         self.colormap = colormap
         self.metastore = metastore
         self.blockchain_state = blockchain_state
         self.cdstore = cdstore
         self.builders = {}
         self.builder_class = builder_class
-        
+
     def get_builder(self, color_id):
         if color_id in self.builders:
             return self.builders[color_id]
         colordef = self.colormap.get_color_def(color_id)
-        builder = self.builder_class(self.cdstore,
-                                           self.blockchain_state,
-                                           colordef,
-                                           self.metastore)
+        builder = self.builder_class(
+            self.cdstore, self.blockchain_state, colordef, self.metastore)
         self.builders[color_id] = builder
         return builder
+
     def ensure_scanned_upto(self, color_id_set, block_height):
         for color_id in color_id_set:
             if color_id == 0:
@@ -44,7 +46,8 @@ class BasicColorDataBuilder(ColorDataBuilder):
         in_colorvalues = []
         empty = True
         for inp in tx.inputs:
-            val = self.cdstore.get(self.color_id, inp.outpoint.hash, inp.outpoint.n)
+            val = self.cdstore.get(
+                self.color_id, inp.outpoint.hash, inp.outpoint.n)
             in_colorvalues.append(val)
             if val:
                 empty = False
@@ -53,13 +56,16 @@ class BasicColorDataBuilder(ColorDataBuilder):
         out_colorvalues = self.colordef.run_kernel(tx, in_colorvalues)
         for o_index, val in enumerate(out_colorvalues):
             if val:
-                self.cdstore.add(self.color_id, tx.hash, o_index, val[0], val[1])
+                self.cdstore.add(
+                    self.color_id, tx.hash, o_index, val[0], val[1])
 
 
 class FullScanColorDataBuilder(BasicColorDataBuilder):
-    """color data builder based on exhaustive blockchain scan, for one specific color"""
+    """color data builder based on exhaustive blockchain scan,
+       for one specific color"""
     def __init__(self, cdstore, blockchain_state, colordef, metastore):
-        super(FullScanColorDataBuilder, self).__init__(cdstore, blockchain_state, colordef)
+        super(FullScanColorDataBuilder, self).__init__(
+            cdstore, blockchain_state, colordef)
         self.metastore = metastore
         self.cur_height = metastore.get_scan_height(self.color_id)
 
@@ -68,6 +74,7 @@ class FullScanColorDataBuilder(BasicColorDataBuilder):
             self.scan_block(i)
 
     def scan_block(self, height):
+        log("scanning block at height %s" % height)
         for tx in self.blockchain_state.iter_block_txs(height):
             self.scan_tx(tx)
         self.cur_height = height
@@ -75,7 +82,7 @@ class FullScanColorDataBuilder(BasicColorDataBuilder):
 
     def ensure_scanned_upto(self, block_height):
         if self.cur_height >= block_height:
-            pass # up-to-date
+            pass  # up-to-date
         else:
             if self.cur_height:
                 from_height = self.cur_height + 1
@@ -83,18 +90,22 @@ class FullScanColorDataBuilder(BasicColorDataBuilder):
                 # we cannot get genesis block via RPC, so we start from block 1
                 from_height = self.colordef.starting_height or 1
             self.scan_blockchain(from_height, block_height)
-            
+
 
 class AidedColorDataBuilder(FullScanColorDataBuilder):
-    """color data builder based on following output spending transactions, for one specific color"""
+    """color data builder based on following output spending transactions,
+       for one specific color"""
 
     def scan_blockchain(self, from_height, to_height):
         txo_queue = [self.colordef.genesis]
-        for cur_block_height in xrange(self.colordef.starting_height, to_height+1):
+        for cur_block_height in xrange(self.colordef.starting_height,
+                                       to_height + 1):
             # remove txs from this block from the queue
-            block_txo_queue = [txo for txo in txo_queue if txo['height'] == cur_block_height]
-            txo_queue = [txo for txo in txo_queue if txo['height'] != cur_block_height]
-            
+            block_txo_queue = [txo for txo in txo_queue
+                               if txo['height'] == cur_block_height]
+            txo_queue = [txo for txo in txo_queue
+                         if txo['height'] != cur_block_height]
+
             block_txos = {}
             while block_txo_queue:
                 txo = block_txo_queue.pop()
@@ -114,22 +125,18 @@ class AidedColorDataBuilder(FullScanColorDataBuilder):
                 block_txs[txhash] = self.blockchain_state.get_tx(txhash)
 
             def get_prev_txs(tx):
-                """all transactions from current block this transaction directly depends on"""
+                """all transactions from current block this transaction
+                   directly depends on"""
                 prev_txs = []
                 for inp in tx.inputs:
                     if inp.outpoint.hash in block_txs:
                         prev_txs.append(block_txs[inp.outpoint.hash])
                 return prev_txs
-         
+
             sorted_block_txs = toposorted(block_txs.values(), get_prev_txs)
-            
+
             for tx in sorted_block_txs:
                 self.scan_tx(tx)
-                
-        if to_height > self.cur_height:
-            self.cur_height = to_height
-            self.metastore.set_scan_height(self.color_id, self.cur_height)
-
 
 
 if __name__ == "__main__":
@@ -137,56 +144,104 @@ if __name__ == "__main__":
     import store
     import colormap as cm
     import colordata
-    import datetime
-    
-    start = datetime.datetime.now()
-    
-    blockchain_state = blockchain.BlockchainState(None, True)
+
+    blockchain_state = blockchain.BlockchainState.from_url(None, True)
 
     store_conn = store.DataStoreConnection("test-color.db")
     cdstore = store.ColorDataStore(store_conn.conn)
     metastore = store.ColorMetaStore(store_conn.conn)
 
     colormap = cm.ColorMap(metastore)
-    
-    cdbuilder = ColorDataBuilderManager(colormap, blockchain_state,
-                                cdstore, metastore,
-                                AidedColorDataBuilder)
+
+    cdbuilder = ColorDataBuilderManager(
+        colormap, blockchain_state, cdstore, metastore, AidedColorDataBuilder)
     colordata = colordata.ThickColorData(cdbuilder, blockchain_state, cdstore)
-    blue_desc = "obc:b1586cd10b32f78795b86e9a3febe58dcb59189175fad884a7f4a6623b77486e:0:46442"
-    red_desc = "obc:8f6c8751f39357cd42af97a67301127d497597ae699ad0670b4f649bd9e39abf:0:46444"
-    
+    blue_desc = "obc:" \
+        "b1586cd10b32f78795b86e9a3febe58dcb59189175fad884a7f4a6623b77486e:" \
+        "0:46442"
+    red_desc = "obc:" \
+        "8f6c8751f39357cd42af97a67301127d497597ae699ad0670b4f649bd9e39abf:" \
+        "0:46444"
 
     blue_id = colormap.resolve_color_desc(blue_desc)
     red_id = colormap.resolve_color_desc(red_desc)
-    
+
     blue_set = set([blue_id])
     red_set = set([red_id])
     br_set = blue_set | red_set
     print br_set, ("Blue", "Red")
-    
-    g = colordata.get_colorvalues
-    
-    print g(br_set, "b1586cd10b32f78795b86e9a3febe58dcb59189175fad884a7f4a6623b77486e", 0), "== 1000 Blue (blue genesis TX)"
-    print g(br_set, "8f6c8751f39357cd42af97a67301127d497597ae699ad0670b4f649bd9e39abf", 0), "== 1000 Red (red genesis TX)"
-    print g(br_set, "b1586cd10b32f78795b86e9a3febe58dcb59189175fad884a7f4a6623b77486e", 1), "== None (blue genesis TX, other output)"
-    print g(br_set, "8f6c8751f39357cd42af97a67301127d497597ae699ad0670b4f649bd9e39abf", 1), "== None (red genesis TX, other output)"
-    print g(br_set, 'c1d8d2fb75da30b7b61e109e70599c0187906e7610fe6b12c58eecc3062d1da5', 0), "== Red"
-    print g(br_set, '36af9510f65204ec5532ee62d3785584dc42a964013f4d40cfb8b94d27b30aa1', 0), "== Red"
-    print g(br_set, '3a60b70d425405f3e45f9ed93c30ca62b2a97e692f305836af38a524997dd01d',0), "== None (Random TX from blockchain)"
-    print g(br_set,'c1d8d2fb75da30b7b61e109e70599c0187906e7610fe6b12c58eecc3062d1da5',0), "== Red"
-    print g(br_set,'8f6c8751f39357cd42af97a67301127d497597ae699ad0670b4f649bd9e39abf',0), "== Red"
-    print g(br_set,'f50f29906ce306be3fc06df74cc6a4ee151053c2621af8f449b9f62d86cf0647',0), "== Blue"
-    print g(br_set,'7e40d2f414558be60481cbb976e78f2589bc6a9f04f38836c18ed3d10510dce5',0), "== Blue"
-    print g(br_set,'4b60bb49734d6e26d798d685f76a409a5360aeddfddcb48102a7c7ec07243498',0), "== Red (Two-input merging TX)"
-    print g(br_set,'342f119db7f9989f594d0f27e37bb5d652a3093f170de928b9ab7eed410f0bd1',0), "== None (Color mixing TX)"
-    print g(br_set,'bd34141daf5138f62723009666b013e2682ac75a4264f088e75dbd6083fa2dba',0), "== Blue (complex chain TX)"
-    print g(br_set,'bd34141daf5138f62723009666b013e2682ac75a4264f088e75dbd6083fa2dba',1), "== None (mining fee change output)"
-    print g(br_set,'36af9510f65204ec5532ee62d3785584dc42a964013f4d40cfb8b94d27b30aa1',0), "== Red (complex chain TX)"
-    print g(br_set,'741a53bf925510b67dc0d69f33eb2ad92e0a284a3172d4e82e2a145707935b3e',0), "== Red (complex chain TX)"
-    print g(br_set,'741a53bf925510b67dc0d69f33eb2ad92e0a284a3172d4e82e2a145707935b3e',1), "== Red (complex chain TX)"
-    
-    print "Finished in", datetime.datetime.now() - start
-    
 
-    
+    g = colordata.get_colorvalues
+
+    print g(
+        br_set,
+        "b1586cd10b32f78795b86e9a3febe58dcb59189175fad884a7f4a6623b77486e",
+        0), "== 1000 Blue (blue genesis TX)"
+    print g(
+        br_set,
+        "8f6c8751f39357cd42af97a67301127d497597ae699ad0670b4f649bd9e39abf",
+        0), "== 1000 Red (red genesis TX)"
+    print g(
+        br_set,
+        "b1586cd10b32f78795b86e9a3febe58dcb59189175fad884a7f4a6623b77486e",
+        1), "== None (blue genesis TX, other output)"
+    print g(
+        br_set,
+        "8f6c8751f39357cd42af97a67301127d497597ae699ad0670b4f649bd9e39abf",
+        1), "== None (red genesis TX, other output)"
+    print g(
+        br_set,
+        'c1d8d2fb75da30b7b61e109e70599c0187906e7610fe6b12c58eecc3062d1da5',
+        0), "== Red"
+    print g(
+        br_set,
+        '36af9510f65204ec5532ee62d3785584dc42a964013f4d40cfb8b94d27b30aa1',
+        0), "== Red"
+    print g(
+        br_set,
+        '3a60b70d425405f3e45f9ed93c30ca62b2a97e692f305836af38a524997dd01d',
+        0), "== None (Random TX from blockchain)"
+    print g(
+        br_set,
+        'c1d8d2fb75da30b7b61e109e70599c0187906e7610fe6b12c58eecc3062d1da5',
+        0), "== Red"
+    print g(
+        br_set,
+        '8f6c8751f39357cd42af97a67301127d497597ae699ad0670b4f649bd9e39abf',
+        0), "== Red"
+    print g(
+        br_set,
+        'f50f29906ce306be3fc06df74cc6a4ee151053c2621af8f449b9f62d86cf0647',
+        0), "== Blue"
+    print g(
+        br_set,
+        '7e40d2f414558be60481cbb976e78f2589bc6a9f04f38836c18ed3d10510dce5',
+        0), "== Blue"
+    print g(
+        br_set,
+        '4b60bb49734d6e26d798d685f76a409a5360aeddfddcb48102a7c7ec07243498',
+        0), "== Red (Two-input merging TX)"
+    print g(
+        br_set,
+        '342f119db7f9989f594d0f27e37bb5d652a3093f170de928b9ab7eed410f0bd1',
+        0), "== None (Color mixing TX)"
+    print g(
+        br_set,
+        'bd34141daf5138f62723009666b013e2682ac75a4264f088e75dbd6083fa2dba',
+        0), "== Blue (complex chain TX)"
+    print g(
+        br_set,
+        'bd34141daf5138f62723009666b013e2682ac75a4264f088e75dbd6083fa2dba',
+        1), "== None (mining fee change output)"
+    print g(
+        br_set,
+        '36af9510f65204ec5532ee62d3785584dc42a964013f4d40cfb8b94d27b30aa1',
+        0), "== Red (complex chain TX)"
+    print g(
+        br_set,
+        '741a53bf925510b67dc0d69f33eb2ad92e0a284a3172d4e82e2a145707935b3e',
+        0), "== Red (complex chain TX)"
+    print g(
+        br_set,
+        '741a53bf925510b67dc0d69f33eb2ad92e0a284a3172d4e82e2a145707935b3e',
+        1), "== Red (complex chain TX)"

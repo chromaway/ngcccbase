@@ -17,7 +17,6 @@ To run this demo you need:
 
  * bitcoind/Bitcoin-Qt with JSON-RPC API, running on testnet, with txindex
    (bitcoind -testnet -txindex -daemon)
- * Jeff Garzic's python-bitcoinrpc library
  * Python 2.x
  * SQLite3 library for Python
 

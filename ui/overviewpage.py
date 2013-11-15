@@ -1,41 +1,34 @@
 from PyQt4 import QtGui, uic
 
+from wallet import wallet
+
 
 class OverviewPage(QtGui.QWidget):
     def __init__(self):
         QtGui.QWidget.__init__(self)
         uic.loadUi(uic.getUiPath('overviewpage.ui'), self)
 
-    def update_btc_addresses(self, addresses):
-        currentAddress = self.get_btc_address()
-        self.cb_addresses.clear()
-        self.cb_addresses.addItems(addresses)
-        self.set_btc_address(currentAddress)
+        self.cb_monikers.currentIndexChanged.connect(self.updateWallet)
 
-    def get_btc_address(self):
-        return str(self.cb_addresses.currentText())
-
-    def set_btc_address(self, address):
-        addresses = [str(self.cb_addresses.itemText(i)) for i in range(self.cb_addresses.count())]
-        if address and address in addresses:
-            self.cb_addresses.setCurrentIndex(addresses.index(address))
-
-    def update_monikers(self, monikers):
-        currentMoniker = self.get_moniker()
-        self.cb_monikers.clear()
+    def update(self):
+        monikers = wallet.get_all_monikers()
         monikers.remove('bitcoin')
         monikers = ['bitcoin'] + monikers
-        self.cb_monikers.addItems(monikers)
-        self.set_moniker(currentMoniker)
+        comboList = self.cb_monikers
+        currentMoniker = str(comboList.currentText())
+        comboList.clear()
+        comboList.addItems(monikers)
+        if currentMoniker and currentMoniker in monikers:
+            comboList.setCurrentIndex(monikers.index(currentMoniker))
 
-    def get_moniker(self):
-        return str(self.cb_monikers.currentText())
-
-    def set_moniker(self, moniker):
-        monikers = [str(self.cb_monikers.itemText(i)) for i in range(self.cb_monikers.count())]
-        if moniker and moniker in monikers:
-            self.cb_monikers.setCurrentIndex(monikers.index(moniker))
-
-    def update_wallet(self, address, balance):
-        self.lbl_address.setText(address)
-        self.lbl_balance.setText(balance)
+    def updateWallet(self):
+        moniker = str(self.cb_monikers.currentText())
+        if moniker == '':
+            return
+        asset = wallet.get_asset_definition(moniker)
+        balance = wallet.get_balance(asset)
+        self.lbl_balance.setText(
+            '%s %s' % (asset.format_value(balance), moniker))
+        wam = wallet.model.get_address_manager()
+        addr = wam.get_some_address(asset.get_color_set()).get_address()
+        self.lbl_address.setText(addr)
