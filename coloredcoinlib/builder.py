@@ -74,7 +74,6 @@ class FullScanColorDataBuilder(BasicColorDataBuilder):
             self.scan_block(i)
 
     def scan_block(self, height):
-        log("scanning block at height %s" % height)
         for tx in self.blockchain_state.iter_block_txs(height):
             self.scan_tx(tx)
         self.cur_height = height
@@ -137,6 +136,11 @@ class AidedColorDataBuilder(FullScanColorDataBuilder):
 
             for tx in sorted_block_txs:
                 self.scan_tx(tx)
+                
+            if to_height > self.cur_height:
+                self.cur_height = to_height
+                self.metastore.set_scan_height(self.color_id, self.cur_height)
+
 
 
 if __name__ == "__main__":
@@ -144,7 +148,9 @@ if __name__ == "__main__":
     import store
     import colormap as cm
     import colordata
+    import datetime
 
+    start = datetime.datetime.now()
     blockchain_state = blockchain.BlockchainState.from_url(None, True)
 
     store_conn = store.DataStoreConnection("test-color.db")
@@ -245,3 +251,5 @@ if __name__ == "__main__":
         br_set,
         '741a53bf925510b67dc0d69f33eb2ad92e0a284a3172d4e82e2a145707935b3e',
         1), "== Red (complex chain TX)"
+        
+    print "Finished in", datetime.datetime.now() - start
