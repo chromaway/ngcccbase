@@ -94,6 +94,22 @@ class Application(object):
         parser = subparsers.add_parser('scan',
             description="Update the database of transactions (amount in each address).")
 
+        parser = subparsers.add_parser('p2p_show_orders',
+                                       description="Show p2ptrade orders")
+        parser.add_argument('moniker')
+
+        parser = subparsers.add_parser('p2p_sell',
+                                       description="sell via p2ptrade")
+        parser.add_argument('moniker')
+        parser.add_argument('value')
+        parser.add_argument('price')
+
+        parser = subparsers.add_parser('p2p_buy',
+                                       description="buy via p2ptrade")
+        parser.add_argument('moniker')
+        parser.add_argument('value')
+        parser.add_argument('price')
+
     def __getattribute__(self, name):
         if name in ['controller', 'model', 'wallet']:
             try:
@@ -248,6 +264,56 @@ class Application(object):
         """Update the database of transactions (amount in each address).
         """
         self.controller.scan_utxos()
+
+    def init_p2ptrade(self):
+        from ngcccbase.p2ptrade.ewctrl import EWalletController
+        from ngcccbase.p2ptrade.agent import EAgent
+        from ngcccbase.p2ptrade.comm import HTTPExchangeComm
+        
+        ewctrl = EWalletController(self.model)
+        config = {"offer_expiry_interval": 30,
+                  "ep_expiry_interval": 30}
+        comm = HTTPExchangeComm(config, 'http://p2ptrade.btx.udoidio.info/messages')
+        agent = EAgent(ewctrl, config, comm)
+        return agent, comm
+
+    def p2ptrade_make_offer(self, we_sell, params):
+        from ngcccbase.p2ptrade.protocol_objects import MyEOffer
+        asset = self.get_asset_definition(params['moniker'])
+        value = asset.parse_value(params['value'])
+        bitcoin = self.get_asset_definition('bitcoin')
+        price = bitcoin.parse_value(params['price'])
+        total = int(float(value)/float(asset.unit)*float(price))
+        color_desc = asset.get_color_set().color_desc_list[0]
+        sell_side = {"color_spec": color_desc, "value": value }
+        buy_side = {"color_spec": "", "value": total}
+        if we_sell:
+            return MyEOffer(None, sell_side, buy_side)
+        else:
+            return MyEOffer(None, buy_side, sell_side)
+
+    def p2ptrade_wait(self, comm):
+        #  TODO: use config/parameters
+        for _ in xrange(30):
+            comm.safe_update()
+
+    def command_p2p_show_orders(self, **kwargs):
+        agent, comm = self.init_p2ptrade()
+        comm.safe_update()
+        for offer in agent.their_offers.values():
+            print offer.get_data()
+
+    def command_p2p_sell(self, **kwargs):
+        agent, comm = self.init_p2ptrade()
+        offer = self.p2ptrade_make_offer(True, kwargs)
+        agent.register_my_offer(offer)
+        self.p2ptrade_wait(comm)
+
+    def command_p2p_buy(self, **kwargs):
+        agent, comm = self.init_p2ptrade()
+        offer = self.p2ptrade_make_offer(False, kwargs)
+        agent.register_my_offer(offer)
+        self.p2ptrade_wait(comm)
 
 
 if __name__ == "__main__":
