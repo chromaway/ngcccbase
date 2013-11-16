@@ -30,7 +30,7 @@ def construct_standard_tx(composed_tx_spec, is_test):
     for cts_txin in composed_tx_spec.get_txins():
         utxo = cts_txin.utxo
         txins.append(TxIn(utxo.get_txhash(), utxo.outindex))
-    version = 0
+    version = 1
     lock_time = 0
     return Tx(version, txins, txouts, lock_time)
     
@@ -59,6 +59,8 @@ def sign_tx(tx, utxo_list, is_test):
         txins[txin_idx] = TxIn(blank_txin.previous_hash,
                                blank_txin.previous_index,
                                txin_script)
+        if not verify_script(txin_script, txout_script, signature_hash, hash_type=hash_type):
+            raise Exception("invalid script")
     tx.txs_in = txins
 
 def deserialize(tx_data):
