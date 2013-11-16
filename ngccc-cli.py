@@ -38,9 +38,12 @@ class _ApplicationHelpFormatter(argparse.HelpFormatter):
 
 class Application(object):
     def __init__(self):
+        self.args = None
         self.parser = argparse.ArgumentParser(
             description="Next-Generation Colored Coin Client Command-line interface",
             formatter_class=_ApplicationHelpFormatter)
+
+        self.parser.add_argument("--wallet", dest="wallet_path")
 
         subparsers = self.parser.add_subparsers(title='subcommands',
             dest='command')
@@ -51,12 +54,12 @@ class Application(object):
 
         parser = subparsers.add_parser('setval',
             description="Sets a value in the configuration.")
-        parser.add_argument('key', type=self.validate_config_key)
+        parser.add_argument('key')
         parser.add_argument('value', type=self.validate_JSON_decode)
 
         parser = subparsers.add_parser('getval',
             description="Returns the value for a given key in the config.")
-        parser.add_argument('key', type=self.validate_config_key)
+        parser.add_argument('key')
 
         parser = subparsers.add_parser('dump_config',
             description="Returns a JSON dump of the current configuration.")
@@ -65,6 +68,7 @@ class Application(object):
             description="Imports a color definition.")
         parser.add_argument('moniker')
         parser.add_argument('color_desc')
+        parser.add_argument('unit', type=int)
 
         parser = subparsers.add_parser('issue',
             description="Starts a new color.")
@@ -117,7 +121,7 @@ class Application(object):
             except AttributeError:
                 self.data = data = {}
 
-                pw = PersistentWallet()
+                pw = PersistentWallet(self.args.get('wallet_path'))
                 try:
                     pw.init_model()
                 except Exception as e:
@@ -175,13 +179,14 @@ class Application(object):
 
     def start(self):
         args = vars(self.parser.parse_args())
+        self.args = args
         if 'command' in args:
             getattr(self, "command_{command}".format(**args))(**args)
 
     def command_import_config(self, **kwargs):
         """Special command for importing a JSON config.
         """
-        pw = PersistentWallet(kwargs['path'])
+        pw = PersistentWallet(kwargs.get('wallet_path'), kwargs['path'])
 
     def command_setval(self, **kwargs):
         """Sets a value in the configuration.
@@ -222,6 +227,7 @@ class Application(object):
         self.controller.add_asset_definition({
             "monikers": [kwargs['moniker']],
             "color_set": [kwargs['color_desc']],
+            "unit": kwargs['unit']
         })
 
     def command_issue(self, **kwargs):

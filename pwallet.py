@@ -14,13 +14,15 @@ class PersistentWallet(object):
     That is, it doesn't go away every time you run the program.
     """
 
-    def __init__(self, import_config=None):
+    def __init__(self, wallet_path=None, import_config=None):
         """Create a persistent wallet. If a configuration is passed
         in, put that configuration into the db by overwriting
         the relevant data, never deleting. Otherwise, load with
         the configuration from the persistent data-store.
         """
-        self.store_conn = store.DataStoreConnection("wallet.db")
+        if wallet_path is None:
+            wallet_path = "wallet.db"
+        self.store_conn = store.DataStoreConnection(wallet_path)
         self.wallet_config = store.PersistentDictStore(
             self.store_conn.conn, "wallet")
         if import_config:
