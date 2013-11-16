@@ -7,6 +7,7 @@ data-store. The actual storage is in sqlite3 db's via coloredcoinlib
 
 from wallet_model import WalletModel
 from coloredcoinlib import store
+import sqlite3
 
 
 class PersistentWallet(object):
@@ -23,6 +24,7 @@ class PersistentWallet(object):
         if wallet_path is None:
             wallet_path = "wallet.db"
         self.store_conn = store.DataStoreConnection(wallet_path)
+        self.store_conn.conn.row_factory = sqlite3.Row
         self.wallet_config = store.PersistentDictStore(
             self.store_conn.conn, "wallet")
         if import_config:
@@ -33,7 +35,8 @@ class PersistentWallet(object):
         """Associate the wallet model based on the persistent
         configuration.
         """
-        self.wallet_model = WalletModel(self.wallet_config)
+        self.wallet_model = WalletModel(self.wallet_config, 
+                                        self.store_conn)
 
     def import_config(self, config):
         """Import JSON configuration <config> into the

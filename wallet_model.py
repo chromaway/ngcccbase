@@ -536,9 +536,10 @@ class CoinQueryFactory(object):
 class WalletModel(object):
     """Represents a colored-coin wallet
     """
-    def __init__(self, config):
+    def __init__(self, config, store_conn):
         """Creates a new wallet given a configuration <config>
         """
+        self.store_conn = store_conn #  hackish!
         self.ccc = ColoredCoinContext(config)
         self.ass_def_man = AssetDefinitionManager(self, config)
         self.address_man = DWalletAddressManager(self, config)
