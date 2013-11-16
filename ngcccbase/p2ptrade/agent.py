@@ -168,3 +168,6 @@ class EAgent(object):
         except Exception as e:
             LOGERROR("got exception %s when dispatching a message", e)
             raise
+
+    def update(self):
+        self.comm.update()

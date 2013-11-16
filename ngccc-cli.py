@@ -275,7 +275,7 @@ class Application(object):
                   "ep_expiry_interval": 30}
         comm = HTTPExchangeComm(config, 'http://p2ptrade.btx.udoidio.info/messages')
         agent = EAgent(ewctrl, config, comm)
-        return agent, comm
+        return agent
 
     def p2ptrade_make_offer(self, we_sell, params):
         from ngcccbase.p2ptrade.protocol_objects import MyEOffer
@@ -292,28 +292,28 @@ class Application(object):
         else:
             return MyEOffer(None, buy_side, sell_side)
 
-    def p2ptrade_wait(self, comm):
+    def p2ptrade_wait(self, agent):
         #  TODO: use config/parameters
         for _ in xrange(30):
-            comm.safe_update()
+            agent.update()
 
     def command_p2p_show_orders(self, **kwargs):
-        agent, comm = self.init_p2ptrade()
-        comm.safe_update()
+        agent = self.init_p2ptrade()
+        agent.update()
         for offer in agent.their_offers.values():
             print offer.get_data()
 
     def command_p2p_sell(self, **kwargs):
-        agent, comm = self.init_p2ptrade()
+        agent = self.init_p2ptrade()
         offer = self.p2ptrade_make_offer(True, kwargs)
         agent.register_my_offer(offer)
-        self.p2ptrade_wait(comm)
+        self.p2ptrade_wait(agent)
 
     def command_p2p_buy(self, **kwargs):
-        agent, comm = self.init_p2ptrade()
+        agent = self.init_p2ptrade()
         offer = self.p2ptrade_make_offer(False, kwargs)
         agent.register_my_offer(offer)
-        self.p2ptrade_wait(comm)
+        self.p2ptrade_wait(agent)
 
 
 if __name__ == "__main__":
