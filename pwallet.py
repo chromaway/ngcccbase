@@ -35,8 +35,8 @@ class PersistentWallet(object):
         """Associate the wallet model based on the persistent
         configuration.
         """
-        self.wallet_model = WalletModel(self.wallet_config, 
-                                        self.store_conn)
+        self.wallet_model = WalletModel(
+            self.wallet_config, self.store_conn)
 
     def import_config(self, config):
         """Import JSON configuration <config> into the

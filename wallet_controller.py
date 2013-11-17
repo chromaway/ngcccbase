@@ -67,8 +67,8 @@ class WalletController(object):
             color_desc = ':'.join(['obc', genesis_tx_hash, '0', str(height)])
             adm = self.model.get_asset_definition_manager()
             asset = adm.add_asset_definition({"monikers": [moniker],
-                                               "color_set": [color_desc],
-                                               "unit": atoms_in_unit})
+                                              "color_set": [color_desc],
+                                              "unit": atoms_in_unit})
             wam.update_genesis_address(address, asset.get_color_set())
         else:
             raise Exception('color scheme not recognized')
@@ -103,3 +103,9 @@ class WalletController(object):
         utxo_list = cq.get_result()
         value_list = [asset.get_utxo_value(utxo) for utxo in utxo_list]
         return sum(value_list)
+
+    def get_history(self, asset):
+        """Returns the history of an asset for all addresses of that color
+        in this wallet
+        """
+        return self.model.get_history_for_asset(asset)
