@@ -144,9 +144,10 @@ class SimpleOperationalTxSpec(txspec.OperationalTxSpec):
 class RawTxSpec(object):
     """Represents a transaction which can be serialized.
     """
-    def __init__(self, model, pycoin_tx):
+    def __init__(self, model, pycoin_tx, composed_tx_spec=None):
         self.model = model
         self.pycoin_tx = pycoin_tx
+        self.composed_tx_spec = composed_tx_spec
         self.update_tx_data()
 
     def update_tx_data(self):
@@ -160,7 +161,7 @@ class RawTxSpec(object):
     def from_composed_tx_spec(cls, model, composed_tx_spec):
         testnet = model.is_testnet()
         tx = pycoin_txcons.construct_standard_tx(composed_tx_spec, testnet)
-        return cls(model, tx)
+        return cls(model, tx, composed_tx_spec)
 
     @classmethod
     def from_tx_data(cls, model, tx_data):
