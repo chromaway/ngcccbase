@@ -598,7 +598,8 @@ class WalletModel(object):
                 asset.get_color_set())}
 
         for color in asset.color_set.color_id_set:
-            colordef = self.ccc.colormap.get_color_def(color)
+            colordef = self.ccc.colormap.get_color_def(
+                color, self.ccc.blockchain_state)
             seen_hashes = {}
             for row in reversed(self.ccc.cdstore.get_all(color)):
                 # address_ledger will keep track of the net
