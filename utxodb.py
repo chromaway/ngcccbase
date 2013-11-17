@@ -35,12 +35,10 @@ class UTXOStore(DataStore):
     """Storage for Unspent Transaction Objects.
     This is done by recording utxo's in a sqlite3 database.
     """
-    def __init__(self, dbpath):
+    def __init__(self, conn):
         """Create a unspent transaction out data-store at <dbpath>.
         """
-        self.dsconn = DataStoreConnection(dbpath)
-        super(UTXOStore, self).__init__(self.dsconn.conn)
-        self.dsconn.conn.row_factory = sqlite3.Row
+        super(UTXOStore, self).__init__(conn)
         if not self.table_exists('utxo_data'):
             # create the main table and some useful indexes
             self.execute("""
@@ -181,14 +179,8 @@ class UTXO(object):
         """
         return (self.txhash, self.outindex)
 
-    def get_pycoin_coin_source(self):
-        """Returns a tuple of binary transaction hash, outindex
-        and a pycoin TxOut object. This is useful for pycoin transaction
-        construction.
-        """
-        pycoin_txout = TxOut(self.value, self.script.decode('hex'))
-        txhash_bin = self.txhash.decode('hex')[::-1]
-        return (txhash_bin, self.outindex, pycoin_txout)
+    def get_txhash(self):
+        return self.txhash.decode('hex')[::-1]
 
     def __repr__(self):
         return "%s %s %s %s" % (
@@ -241,7 +233,7 @@ class UTXOManager(object):
         else:
             fetcher_config = params.get('utxo_fetcher', {})
         self.model = model
-        self.store = UTXOStore(params.get('dbpath', "utxo.db"))
+        self.store = UTXOStore(self.model.store_conn.conn)
         self.utxo_fetcher = UTXOFetcher(fetcher_config)
 
     def get_utxos_for_address(self, address):

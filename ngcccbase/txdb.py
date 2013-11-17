@@ -59,8 +59,9 @@ class TxDataStore(DataStore):
             txid = self.add_tx(txhash, tx.get_hex_tx_data()).lastrowid
 
             for txin in tx.composed_tx_spec.txins:
-                self.execute(insert_transaction,
-                             (txin.utxo.address_rec.meat.pubkey, TXIN, txid))
+                self.execute(
+                    insert_transaction,
+                    (txin.utxo.address_rec.address.pubkey, TXIN, txid))
 
             for txout in tx.composed_tx_spec.txouts:
                 self.execute(
@@ -83,7 +84,7 @@ class TxDataStore(DataStore):
 class TxDb(object):
     def __init__(self, model, config):
         self.model = model
-        self.store = TxDataStore(self.model.utxo_man.store.conn)
+        self.store = TxDataStore(self.model.store_conn.conn)
 
     def add_tx(self, txhash, txdata, status=TX_STATUS_UNKNOWN):
         self.store.add_tx(txhash, txdata, status)

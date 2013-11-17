@@ -11,13 +11,12 @@ definitions, but it doesn't implement high-level operations
 from coloredcoinlib import blockchain, builder, store, colormap, colordata
 from ngcccbase.services.electrum import EnhancedBlockchainState
 from ngcccbase import txdb
-from meat import Address
+from address import Address, TestnetAddress, InvalidAddressError
 
 import hashlib
 import json
 import binascii
 
-import meat
 import txcons
 import utxodb
 
@@ -235,12 +234,12 @@ class AddressRecord(object):
         Useful for storage and persistence.
         """
         return {"color_set": self.color_set.get_data(),
-                "address_data": self.meat.getJSONData()}
+                "address_data": self.address.getJSONData()}
 
     def get_address(self):
         """Get the actual bitcoin address
         """
-        return self.meat.pubkey
+        return self.address.pubkey
 
 
 class DeterministicAddressRecord(AddressRecord):
@@ -260,8 +259,8 @@ class DeterministicAddressRecord(AddressRecord):
             color_string = "genesis block"
         else:
             color_string = self.color_set.get_hash_string()
-        cls = meat.TestnetAddress if kwargs.get('testnet') else meat.Address
-        self.meat = cls.fromMasterKey(
+        cls = TestnetAddress if kwargs.get('testnet') else Address
+        self.address = cls.fromMasterKey(
             kwargs['master_key'], color_string, kwargs['index'])
 
 
@@ -276,13 +275,11 @@ class LooseAddressRecord(AddressRecord):
         <address_data> consists of:
         privKey
         pubKey
-        rawPrivKey
-        rawPubKey
         """
         self.model = kwargs.get('model')
         self.color_set = ColorSet(self.model, kwargs.get('color_set'))
-        cls = meat.TestnetAddress if kwargs.get('testnet') else meat.Address
-        self.meat = cls.fromObj(kwargs['address_data'])
+        cls = TestnetAddress if kwargs.get('testnet') else Address
+        self.address = cls.fromObj(kwargs['address_data'])
 
 
 class DWalletAddressManager(object):
@@ -316,7 +313,7 @@ class DWalletAddressManager(object):
         # import the genesis addresses
         for i, color_desc_list in enumerate(self.genesis_color_sets):
             addr = self.get_genesis_address(i)
-            addr.color_set = ColorSet(self.model, color_set_data)
+            addr.color_set = ColorSet(self.model, color_desc_list)
             self.addresses.append(addr)
 
         # now import the specific color addresses
@@ -341,7 +338,7 @@ class DWalletAddressManager(object):
             try:
                 address = LooseAddressRecord(**addr_params)
                 self.addresses.append(address)
-            except meat.InvalidAddressError:
+            except InvalidAddressError:
                 address_type = "Testnet" if self.testnet else "Bitcoin"
                 #print "%s is an invalid %s address" % (
                 #    addr_params['address_data']['pubkey'], address_type)
@@ -418,15 +415,17 @@ class DWalletAddressManager(object):
         index = len(self.genesis_color_sets)
         self.genesis_color_sets.append([])
         self.update_config()
-        return self.get_genesis_address(index)
+        address = self.get_genesis_address(index)
+        address.index = index
+        return address
 
-    def update_genesis_address(self, address,  color_set):
+    def update_genesis_address(self, address, color_set):
         """Updates the genesis address <address> to have a different
         color set <color_set>.
         """
-        assert address.color_set.color_id_list == set([])
+        assert address.color_set.color_id_set == set([])
         address.color_set = color_set
-        self.genesis_color_setsp[address.index] = color_set.get_data()
+        self.genesis_color_sets[address.index] = color_set.get_data()
         self.update_config()
 
     def get_some_address(self, color_set):
@@ -441,7 +440,7 @@ class DWalletAddressManager(object):
             # reuse
             return acs[0]
         else:
-            return self.get_new_addres(color_set)
+            return self.get_new_address(color_set)
 
     def get_change_address(self, color_set):
         """Returns an address that can receive the change amount
@@ -537,15 +536,17 @@ class CoinQueryFactory(object):
 class WalletModel(object):
     """Represents a colored-coin wallet
     """
-    def __init__(self, config):
+    def __init__(self, config, store_conn):
         """Creates a new wallet given a configuration <config>
         """
+        self.store_conn = store_conn #  hackish!
         self.ccc = ColoredCoinContext(config)
         self.ass_def_man = AssetDefinitionManager(self, config)
         self.address_man = DWalletAddressManager(self, config)
         self.coin_query_factory = CoinQueryFactory(self, config)
         self.utxo_man = utxodb.UTXOManager(self, config)
         self.txdb = txdb.TxDb(self, config)
+        self.testnet = config.get('testnet', False)
         self.tx_spec_transformer = txcons.TransactionSpecTransformer(
             self, config)
 
@@ -553,6 +554,11 @@ class WalletModel(object):
         """Access method for transaction data store.
         """
         return self.txdb
+
+    def is_testnet(self):
+        """Returns True if testnet mode is enabled.
+        """
+        return self.testnet
 
     def transform_tx_spec(self, tx_spec, target_spec_kind):
         """Pass-through for TransactionSpecTransformer's transform

@@ -2,6 +2,8 @@ from ..ewctrl import EWalletController
 from ..protocol_objects import MyEOffer, EOffer
 from ..agent import EAgent
 
+import unittest
+
 class MockAddressRecord(object):
     def __init__(self, address):
         self.address = address
@@ -14,12 +16,6 @@ class MockWAM(object):
     def get_some_address(self, color_set):
         return self.get_change_address(color_set)
 
-class MockWalletController(object):
-    def __init__(self, model):
-        self.model = model
-
-    def get_model(self):
-        return self.model
 
 class MockUTXO(object):
     def __init__(self):
@@ -64,20 +60,20 @@ class MockComm(object):
     def post_message(self, message):
         print message
 
-def test():
-    model = MockModel()
-    m_ctrl = MockWalletController(model)
-    ewctrl = EWalletController(m_ctrl)
-    config = {"offer_expiry_interval": 30,
-              "ep_expiry_interval": 30}
-    agent = EAgent(ewctrl, config, MockComm())
-    agent.register_my_offer(
-        MyEOffer(None, 
-                 {"color_spec": "xxx", "value": 100},
-                 {"color_spec": "yyy", "value": 200}))
-    agent.register_their_offer(
-        EOffer('abcdef', 
-               {"color_spec": "yyy", "value": 200},
-               {"color_spec": "xxx", "value": 100}))
-    agent.update_state()
+class TestMockP2PTrade(unittest.TestCase):
+    def test_basic(self):
+        model = MockModel()
+        ewctrl = EWalletController(model)
+        config = {"offer_expiry_interval": 30,
+                  "ep_expiry_interval": 30}
+        agent = EAgent(ewctrl, config, MockComm())
+        agent.register_my_offer(
+            MyEOffer(None, 
+                     {"color_spec": "xxx", "value": 100},
+                     {"color_spec": "yyy", "value": 200}))
+        agent.register_their_offer(
+            EOffer('abcdef', 
+                   {"color_spec": "yyy", "value": 200},
+                   {"color_spec": "xxx", "value": 100}))
+        agent.update_state()
              

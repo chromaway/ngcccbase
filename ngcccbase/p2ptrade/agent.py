@@ -1,5 +1,5 @@
 import time
-from protocol_objects import MyEOffer, EOffer, MyEProposal
+from protocol_objects import MyEOffer, EOffer, MyEProposal, ForeignEProposal
 
 def LOGINFO(msg, *params):
     print msg % params
@@ -26,6 +26,7 @@ class EAgent(object):
         self.comm = comm
         self.offers_updated = False
         self.config = config
+        comm.add_agent(self)
 
     def set_active_ep(self, ep):
         if ep is None:
@@ -106,7 +107,7 @@ class EAgent(object):
         self.post_message(ep)
 
     def dispatch_exchange_proposal(self, ep_data):
-        ep = ForeignEProposal(ep_data)
+        ep = ForeignEProposal(self.ewctrl, ep_data)
         LOGINFO("ep oid:%s, pid:%s, ag:%s", ep.offer.oid, ep.pid, self)
         if self.has_active_ep():
             LOGDEBUG("has active EP")
@@ -127,14 +128,10 @@ class EAgent(object):
     def accept_exchange_proposal(self, ep):
         if self.has_active_ep():
             return
-        their_offer = ep.offer
-        my_offer = self.my_offers[offer.oid]
-        if ep.is_valid(my_offer):
-            reply_ep = ep.make_reply()
-            self.set_active_ep(reply_ep)
-            self.post_message(ep)
-        else:
-            raise Exception("ep isn't valid")
+        my_offer = self.my_offers[ep.offer.oid]
+        reply_ep = ep.accept(my_offer)
+        self.set_active_ep(reply_ep)
+        self.post_message(reply_ep)
 
     def clear_orders(self, ep):
         try:
@@ -151,14 +148,10 @@ class EAgent(object):
         LOGDEBUG("updateExchangeProposal")
         my_ep = self.active_ep
         assert my_ep and my_ep.pid == ep.pid
-        offer = my_ep.offer
-
+        my_ep.process_reply(ep)
         if isinstance(my_ep, MyEProposal):
-            my_ep.validate_and_sign(ep)
-        else:
-            # TODO: process reply
-            return
-        my_ep.broadcast()
+            self.post_message(my_ep)
+        # my_ep.broadcast()
         self.clear_orders(my_ep)
         self.set_active_ep(None)
 
@@ -166,12 +159,15 @@ class EAgent(object):
         self.comm.post_message(obj.get_data())
 
     def dispatch_message(self, content):
-        pass
-        #try:
-        #    if 'oid' in content:
-        #        o = ExchangeOffer.importTheirs(content)
-        #        self.registerTheirOffer(o)
-        #    elif 'pid' in content:
-        #        self.dispatchExchangeProposal(content)
-        #except Exception as e:
-        #    LOGERROR("got exception %s when dispatching a message", e)
+        try:
+            if 'oid' in content:
+                o = EOffer.from_data(content)
+                self.register_their_offer(o)
+            elif 'pid' in content:
+                self.dispatch_exchange_proposal(content)
+        except Exception as e:
+            LOGERROR("got exception %s when dispatching a message", e)
+            raise
+
+    def update(self):
+        self.comm.update()

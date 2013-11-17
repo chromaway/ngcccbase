@@ -6,12 +6,16 @@ import sqlite3
 
 from ngcccbase import txdb
 
-import txcons  # FIXME: will explode if not run from main directory
-               #        this is a symptom of dumping stuff in the main
-               #        directory, moving txcons into ngcccbase will
-               #        resolve this
-import utxodb  # FIXME: Same deal as txcons
-import meat    # FIXME: Same as above
+#######################################################
+# FIXME: The following imports
+#        will explode if not run from main directory
+#        this is a symptom of dumping stuff in the main
+#        directory, moving txcons into ngcccbase will
+#        resolve this
+import txcons
+import utxodb
+from address import Address
+######################################################
 
 from coloredcoinlib import txspec
 
@@ -29,8 +33,8 @@ class TestTxDataStoreInitialization(unittest.TestCase):
 
 
 class AddressRec(object):
-    def __init__(self, meat):
-        self.meat = meat
+    def __init__(self, address):
+        self.address = address
 
 
 def fake_transaction(model=None):
@@ -38,10 +42,10 @@ def fake_transaction(model=None):
         "\xe8\x00\xb8\xd4\xa1b\xb7o\x0f;\xf2\xcf\xca\xfd\x1a$\xb9\xa9"
         "\xeb\x0b\x08X\x9f}9C\xe4\x88\xfdD\x11b", curve=ecdsa.curves.SECP256k1)
 
-    address = meat.Address.from_privkey(key)
+    address = Address.fromPrivkey(key)
     script = tools.compile(
         "OP_DUP OP_HASH160 {0} OP_EQUALVERIFY OP_CHECKSIG".format(
-            address.rawPubkey[1:-4].encode("hex"))).encode("hex")
+            address.rawPubkey()[1:-4].encode("hex"))).encode("hex")
     utxo = utxodb.UTXO("D34DB33F", 0, 1, script)
     utxo.address_rec = object()
     utxo.address_rec = AddressRec(address)

@@ -1,4 +1,5 @@
 import txspec
+from collections import defaultdict
 
 
 def get_color_desc_code(color_desc):
@@ -31,6 +32,7 @@ class ColorDefinition(object):
         cdclass = cdc.cd_classes[code]
         return cdclass.from_color_desc(color_id, color_desc)
 
+genesis_output_marker = ColorDefinition(-1)
 
 class OBColorDefinition(ColorDefinition):
     """Implements order-based coloring"""
@@ -79,8 +81,8 @@ class OBColorDefinition(ColorDefinition):
         if len(targets) != 1:
             raise Exception(
                 'genesis transaction spec needs exactly one target')
-        target_addr, color_id, value = targets[0]
-        if color_id != -1:
+        target_addr, color_def, value = targets[0]
+        if color_def != genesis_output_marker:
             raise Exception(
                 'genesis transaction target should use -1 color_id')
         fee = op_tx_spec.get_required_fee(300)
@@ -95,32 +97,37 @@ class OBColorDefinition(ColorDefinition):
         return txspec.ComposedTxSpec(txins, txouts)
 
     def compose_tx_spec(self, op_tx_spec):
-        colored_targets = []
+        targets_by_color = defaultdict(list)
         uncolored_targets = []
+        # group targets by color
         for target in op_tx_spec.get_targets():
-            color_id = target[1]
-            if color_id == self.color_id:
-                colored_targets.append(target)
-            elif color_id == 0:
+            color_def = target[1]
+            if color_def is None:
                 uncolored_targets.append(target)
+            elif isinstance(color_def, OBColorDefinition):
+                targets_by_color[color_def.color_id].append(target)
             else:
-                raise Exception('ColorDef cannot work with this color_id')
-        colored_needed = sum([target[2] for target in colored_targets])
+                raise Exception('incompatible color definition')
+        # get inputs for each color
+        colored_inputs = []
+        colored_targets = []
+        for color_id, targets in targets_by_color.items():
+            needed_sum = sum([target[2] for target in targets])
+            inputs, total = op_tx_spec.select_coins(color_id, needed_sum)
+            change = total - needed_sum
+            if change > 0:
+                targets.append((op_tx_spec.get_change_addr(color_id),
+                                targets[0][1], change))
+            colored_inputs += inputs
+            colored_targets += targets
         uncolored_needed = sum([target[2] for target in uncolored_targets])
-        colored_inputs, colored_total = op_tx_spec.select_coins(
-            self.color_id, colored_needed)
-        fee = op_tx_spec.get_required_fee(750)
-        uncolored_inputs, uncolored_total = op_tx_spec.select_coins(
-            0, uncolored_needed + fee)
-        colored_change = colored_total - colored_needed
-        if colored_change > 0:
-            colored_targets.append(
-                (op_tx_spec.get_change_addr(self.color_id),
-                 self.color_id, colored_change))
+        fee = op_tx_spec.get_required_fee(250*(len(colored_inputs) + 1))
+        uncolored_inputs, uncolored_total = \
+            op_tx_spec.select_coins(0, uncolored_needed + fee)
         uncolored_change = uncolored_total - uncolored_needed - fee
         if uncolored_change > 0:
             uncolored_targets.append(
-                (op_tx_spec.get_change_addr(0), 0, uncolored_change))
+                (op_tx_spec.get_change_addr(0), None, uncolored_change))
         txins = [txspec.ComposedTxSpec.TxIn(utxo) for utxo in
                  (colored_inputs + uncolored_inputs)]
         txouts = [txspec.ComposedTxSpec.TxOut(target[2], target[0])

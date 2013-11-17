@@ -6,7 +6,7 @@ class OperationalTxSpec(object):
        (has all the necessary data)"""
     def get_targets(self):
         """returns a list of targets: tuples
-           (target_addr, color_id, colorvalue)"""
+           (target_addr, color_def, colorvalue)"""
         raise Exception('not implemented')
 
     def select_coins(self, color_id, colorvalue):
@@ -25,9 +25,9 @@ class OperationalTxSpec(object):
 
     def is_monocolor(self):
         targets = self.get_targets()
-        color_id = targets[0][1]
+        color_def = targets[0][1]
         for target in targets:
-            if color_id != target[1]:
+            if target[1] is not color_def:
                 return False
         return True
 
