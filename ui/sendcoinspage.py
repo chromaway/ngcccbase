@@ -81,8 +81,8 @@ class SendcoinsEntry(QtGui.QFrame):
 
 
 class SendcoinsPage(QtGui.QWidget):
-    def __init__(self):
-        QtGui.QWidget.__init__(self)
+    def __init__(self, parent):
+        QtGui.QWidget.__init__(self, parent)
         uic.loadUi(uic.getUiPath('sendcoinspage.ui'), self)
 
         self.btnAddRecipient.clicked.connect(self.btnAddRecipientClicked)

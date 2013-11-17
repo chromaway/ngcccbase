@@ -4,16 +4,14 @@ from wallet import wallet
 
 
 class OverviewPage(QtGui.QWidget):
-    def __init__(self):
-        QtGui.QWidget.__init__(self)
+    def __init__(self, parent):
+        QtGui.QWidget.__init__(self, parent)
         uic.loadUi(uic.getUiPath('overviewpage.ui'), self)
 
         self.cbMoniker.currentIndexChanged.connect(self.updateWallet)
 
     def update(self):
         monikers = wallet.get_all_monikers()
-        monikers.remove('bitcoin')
-        monikers = ['bitcoin'] + monikers
         comboList = self.cbMoniker
         currentMoniker = str(comboList.currentText())
         comboList.clear()

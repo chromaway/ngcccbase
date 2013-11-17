@@ -1,6 +1,13 @@
+from PyQt4 import QtCore
+
 from pwallet import PersistentWallet
 from wallet_controller import WalletController
 from wallet_model import AssetDefinition
+
+from ngcccbase.p2ptrade.ewctrl import EWalletController
+from ngcccbase.p2ptrade.agent import EAgent
+from ngcccbase.p2ptrade.comm import HTTPExchangeComm
+from ngcccbase.p2ptrade.protocol_objects import MyEOffer
 
 
 class Wallet(object):
@@ -9,6 +16,16 @@ class Wallet(object):
         self.wallet.init_model()
         self.model = self.wallet.get_model()
         self.controller = WalletController(self.wallet.get_model())
+
+        ewctrl = EWalletController(self.model)
+        config = {"offer_expiry_interval": 30,
+                  "ep_expiry_interval": 30}
+        comm = HTTPExchangeComm(config, 'http://p2ptrade.btx.udoidio.info/messages')
+        self.p2p_agent = EAgent(ewctrl, config, comm)
+
+        self.p2p_agent_refresh = QtCore.QTimer()
+        self.p2p_agent_refresh.timeout.connect(self.p2p_agent.update)
+        self.p2p_agent_refresh.setInterval(1000)
 
     def get_asset_definition(self, moniker):
         if isinstance(moniker, AssetDefinition):
@@ -21,8 +38,11 @@ class Wallet(object):
             raise Exception("asset not found")
 
     def get_all_monikers(self):
-        return [asset.get_monikers()[0] for asset in
+        monikers = [asset.get_monikers()[0] for asset in
             self.model.get_asset_definition_manager().get_all_assets()]
+        monikers.remove('bitcoin')
+        monikers = ['bitcoin'] + monikers
+        return monikers
 
     def get_balance(self, color):
         return self.controller.get_balance(self.get_asset_definition(color))
@@ -47,5 +67,19 @@ class Wallet(object):
                 item['asset'] if 'asset' in item
                     else self.get_asset_definition(item['moniker']),
                 item['value'])
+
+    def p2ptrade_make_offer(self, we_sell, params):
+        asset = self.get_asset_definition(params['moniker'])
+        value = asset.parse_value(params['value'])
+        bitcoin = self.get_asset_definition('bitcoin')
+        price = bitcoin.parse_value(params['price'])
+        total = int(float(value)/float(asset.unit)*float(price))
+        color_desc = asset.get_color_set().color_desc_list[0]
+        sell_side = {"color_spec": color_desc, "value": value }
+        buy_side = {"color_spec": "", "value": total}
+        if we_sell:
+            return MyEOffer(None, sell_side, buy_side)
+        else:
+            return MyEOffer(None, buy_side, sell_side)
 
 wallet = Wallet()

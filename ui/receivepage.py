@@ -46,8 +46,8 @@ class AddressTableModel(QtCore.QAbstractTableModel):
 
 
 class NewAddressDialog(QtGui.QDialog):
-    def __init__(self):
-        QtGui.QDialog.__init__(self)
+    def __init__(self, parent):
+        QtGui.QDialog.__init__(self, parent)
         uic.loadUi(uic.getUiPath('newaddressdialog.ui'), self)
 
         self.cbMoniker.addItems(wallet.get_all_monikers())
@@ -57,8 +57,8 @@ class NewAddressDialog(QtGui.QDialog):
 
 
 class ReceivePage(QtGui.QWidget):
-    def __init__(self):
-        QtGui.QWidget.__init__(self)
+    def __init__(self, parent):
+        QtGui.QWidget.__init__(self, parent)
         uic.loadUi(uic.getUiPath('receivepage.ui'), self)
 
         self.model = AddressTableModel(self)
@@ -107,7 +107,7 @@ class ReceivePage(QtGui.QWidget):
             self.proxyModel.setFilterFixedString(QtCore.QString(''))
 
     def btnNewClicked(self):
-        dialog = NewAddressDialog()
+        dialog = NewAddressDialog(self)
         if dialog.exec_():
             moniker = dialog.getSelectedMoniker()
             addr = wallet.get_new_address(moniker)

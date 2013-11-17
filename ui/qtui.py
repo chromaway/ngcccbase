@@ -23,19 +23,23 @@ class Application(QtGui.QApplication):
         signal.signal(signal.SIGINT, signal.SIG_DFL)
         QtGui.QApplication.__init__(self, [])
 
+        if len(wallet.get_all_addresses('bitcoin')) == 0:
+            wallet.get_new_address('bitcoin')
+        #wallet.p2p_agent_refresh.start()
+
 
 class MainWindow(QtGui.QMainWindow):
     def __init__(self):
         QtGui.QMainWindow.__init__(self)
         uic.loadUi(uic.getUiPath('ngccc.ui'), self)
 
-        self.overviewpage = OverviewPage()
+        self.overviewpage = OverviewPage(self)
         self.stackedWidget.addWidget(self.overviewpage)
-        self.sendcoinspage = SendcoinsPage()
+        self.sendcoinspage = SendcoinsPage(self)
         self.stackedWidget.addWidget(self.sendcoinspage)
-        self.receivepage = ReceivePage()
+        self.receivepage = ReceivePage(self)
         self.stackedWidget.addWidget(self.receivepage)
-        self.tradepage = TradePage()
+        self.tradepage = TradePage(self)
         self.stackedWidget.addWidget(self.tradepage)
 
         self.bindActions()
@@ -84,8 +88,6 @@ class MainWindow(QtGui.QMainWindow):
 
 class QtUI(object):
     def __init__(self):
-        if len(wallet.get_all_addresses('bitcoin')) == 0:
-            wallet.get_new_address('bitcoin')
         app = Application()
         window = MainWindow()
         window.move(QtGui.QApplication.desktop().screen().rect().center()
