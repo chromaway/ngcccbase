@@ -169,11 +169,10 @@ class RawTxSpec(object):
         return cls(model, pycoin_tx)
 
     def sign(self, utxo_list):
-        pycoin_txcons.sign_tx(self.pycoin_tx,
-                              utxo_list,                              
-                              self.model.is_testnet())
+        pycoin_txcons.sign_tx(
+            self.pycoin_tx, utxo_list, self.model.is_testnet())
         self.update_tx_data()
-    
+
     def get_tx_data(self):
         """Returns the signed transaction data.
         """
@@ -202,7 +201,7 @@ def compose_uncolored_tx(tx_spec):
             txspec.ComposedTxSpec.TxOut(
                 change, tx_spec.get_change_addr(0)))
     return txspec.ComposedTxSpec(txins, txouts)
-        
+
 
 class TransactionSpecTransformer(object):
     """An object that can transform one type of transaction into another.

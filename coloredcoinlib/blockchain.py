@@ -2,7 +2,6 @@ import bitcoin.core
 import bitcoin.serialize
 import bitcoin.rpc
 
-
 class COutpoint(object):
     def __init__(self, hash, n):
         self.hash = hash
@@ -15,8 +14,13 @@ class CTxIn(object):
 
 
 class CTxOut(object):
-    def __init__(self, value):
+    def __init__(self, value, scriptPubKey=None):
         self.value = value
+        self.raw_address = None
+
+        # extract the destination address from the scriptPubkey
+        if scriptPubKey and scriptPubKey[:3] == "\x76\xa9\x14":
+            self.raw_address = scriptPubKey[3:23]
 
 
 class CTransaction(object):
@@ -41,7 +45,7 @@ class CTransaction(object):
                                        op.n))
         tx.outputs = []
         for o in bctx.vout:
-            tx.outputs.append(CTxOut(o.nValue))
+            tx.outputs.append(CTxOut(o.nValue, o.scriptPubKey))
         return tx
 
     def ensure_input_values(self):

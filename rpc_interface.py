@@ -141,6 +141,13 @@ def scan():
     controller.scan_utxos()
 
 
+def history(self, **kwargs):
+    """print the history of transactions for this color
+    """
+    asset = self.get_asset_definition(moniker=kwargs['moniker'])
+    return self.controller.get_history(asset)
+
+
 class RPCRequestHandler(pyjsonrpc.HttpRequestHandler):
     """JSON-RPC handler for ngccc's commands.
     The command-set is identical to the console interface.
@@ -157,4 +164,5 @@ class RPCRequestHandler(pyjsonrpc.HttpRequestHandler):
         "send": send,
         "issue": issue,
         "scan": scan,
+        "history": history,
     }
