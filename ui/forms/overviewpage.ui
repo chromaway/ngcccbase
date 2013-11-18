@@ -62,7 +62,7 @@
              </font>
             </property>
             <property name="text">
-             <string>Asset/currency:</string>
+             <string>Moniker:</string>
             </property>
            </widget>
           </item>

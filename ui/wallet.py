@@ -37,6 +37,16 @@ class Wallet(object):
         else:
             raise Exception("asset not found")
 
+    def add_asset(self, params):
+        self.controller.add_asset_definition({
+            "monikers": [params['moniker']],
+            "color_set": [params['color_desc']],
+            "unit": params['unit']
+        })
+
+    def get_all_asset(self):
+        return self.wallet.wallet_config['asset_definitions']
+
     def get_all_monikers(self):
         monikers = [asset.get_monikers()[0] for asset in
             self.model.get_asset_definition_manager().get_all_assets()]

@@ -6,13 +6,13 @@ from wallet import wallet
 class AddressTableModel(QtCore.QAbstractTableModel):
     def __init__(self, parent):
         QtCore.QAbstractTableModel.__init__(self)
-        self.columns = ['Color', 'Address']
+        self.columns = ['Moniker', 'Address']
         self.addresses = []
 
-    def rowCount(self, parent):
+    def rowCount(self, parent=None):
         return len(self.addresses)
 
-    def columnCount(self, parent):
+    def columnCount(self, parent=None):
         return len(self.columns)
 
     def data(self, index, role):
@@ -88,16 +88,19 @@ class ReceivePage(QtGui.QWidget):
         selected = self.tableView.selectedIndexes()
         if not selected:
             return
+        actions = [
+            self.actionCopyAddress,
+            self.actionCopyColor,
+        ]
         menu = QtGui.QMenu()
-        menu.addAction(self.actionCopyAddress)
-        menu.addAction(self.actionCopyColor)
+        for action in actions:
+            menu.addAction(action)
         result = menu.exec_(event.globalPos())
-        if result is None:
+        if result is None or result not in actions:
             return
-        if result in [self.actionCopyColor, self.actionCopyAddress]:
-            text = str(self.proxyModel.data(selected[
-                0 if result == self.actionCopyColor else 1]).toString())
-            QtGui.QApplication.clipboard().setText(text)
+        index = selected[actions.index(result)]
+        QtGui.QApplication.clipboard().setText(
+            self.proxyModel.data(index))
 
     def chkOnlyBitcoinStateChanged(self, checked):
         if checked == QtCore.Qt.Checked:

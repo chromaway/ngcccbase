@@ -55,6 +55,7 @@
    </attribute>
    <addaction name="actionGotoOverview"/>
    <addaction name="actionGotoSendcoins"/>
+   <addaction name="actionGotoAsset"/>
    <addaction name="actionGotoReceive"/>
    <addaction name="actionP2PTrade"/>
   </widget>
@@ -130,14 +131,20 @@
     <string>Change to P2P Trade page</string>
    </property>
   </action>
-  <action name="actionRun_scan">
-   <property name="text">
-    <string>run scan</string>
-   </property>
-  </action>
   <action name="actionRescan">
    <property name="text">
     <string>rescan</string>
+   </property>
+  </action>
+  <action name="actionGotoAsset">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Asset</string>
+   </property>
+   <property name="toolTip">
+    <string>Change to Asset page</string>
    </property>
   </action>
  </widget>

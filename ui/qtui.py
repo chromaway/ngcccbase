@@ -6,6 +6,7 @@ import signal
 
 from overviewpage import OverviewPage
 from sendcoinspage import SendcoinsPage
+from assetpage import AssetPage
 from receivepage import ReceivePage
 from tradepage import TradePage
 
@@ -37,6 +38,8 @@ class MainWindow(QtGui.QMainWindow):
         self.stackedWidget.addWidget(self.overviewpage)
         self.sendcoinspage = SendcoinsPage(self)
         self.stackedWidget.addWidget(self.sendcoinspage)
+        self.assetpage = AssetPage(self)
+        self.stackedWidget.addWidget(self.assetpage)
         self.receivepage = ReceivePage(self)
         self.stackedWidget.addWidget(self.receivepage)
         self.tradepage = TradePage(self)
@@ -59,6 +62,9 @@ class MainWindow(QtGui.QMainWindow):
         self.toolbarActionGroup.addAction(self.actionGotoSendcoins)
         self.actionGotoSendcoins.triggered.connect(self.gotoSendcoinsPage)
 
+        self.toolbarActionGroup.addAction(self.actionGotoAsset)
+        self.actionGotoAsset.triggered.connect(self.gotoAssetPage)
+
         self.toolbarActionGroup.addAction(self.actionGotoReceive)
         self.actionGotoReceive.triggered.connect(self.gotoReceivePage)
 
@@ -74,6 +80,11 @@ class MainWindow(QtGui.QMainWindow):
         self.actionGotoSendcoins.setChecked(True)
         self.sendcoinspage.update()
         self.stackedWidget.setCurrentWidget(self.sendcoinspage)
+
+    def gotoAssetPage(self):
+        self.actionGotoAsset.setChecked(True)
+        self.assetpage.update()
+        self.stackedWidget.setCurrentWidget(self.assetpage)
 
     def gotoReceivePage(self):
         self.actionGotoReceive.setChecked(True)
