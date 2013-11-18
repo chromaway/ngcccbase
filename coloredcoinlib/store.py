@@ -137,13 +137,13 @@ class PersistentDictStore(DictMixin, DataStore):
 class ColorMetaStore(DataStore):
     def __init__(self, conn):
         super(ColorMetaStore, self).__init__(conn)
-        if not self.table_exists('builder_state'):
+        if not self.table_exists('scanned_block'):
             self.execute(
-                "CREATE TABLE builder_state "
-                "(color_id INTEGER, height INTEGER)")
+                "CREATE TABLE scanned_block "
+                "(color_id INTEGER, blockhash TEXT)")
             self.execute(
-                "CREATE UNIQUE INDEX builder_state_idx "
-                "on builder_state(color_id)")
+                "CREATE UNIQUE INDEX scanned_block_idx "
+                "on scanned_block(color_id, blockhash)")
         if not self.table_exists('color_map'):
             self.execute(
                 "CREATE TABLE color_map (color_id INTEGER PRIMARY KEY "
@@ -151,16 +151,18 @@ class ColorMetaStore(DataStore):
             self.execute(
                 "CREATE UNIQUE INDEX color_map_idx ON color_map(color_desc)")
 
-    def get_scan_height(self, color_id):
+    def did_scan(self, color_id, blockhash):
         return unwrap1(
             self.execute(
-                "SELECT height FROM builder_state WHERE color_id = ?",
-                (color_id, )).fetchone())
+                "SELECT 1 FROM scanned_block WHERE "
+                "color_id = ? AND blockhash = ?",
+                (color_id, blockhash)).fetchone())
 
-    def set_scan_height(self, color_id, height):
+    def set_as_scanned(self, color_id, blockhash):
         self.execute(
-            "INSERT OR REPLACE INTO builder_state VALUES (?, ?)",
-            (color_id, height))
+            "INSERT INTO scanned_block (color_id, blockhash) "
+            "VALUES (?, ?)",
+            (color_id, blockhash))
 
     def resolve_color_desc(self, color_desc, auto_add):
         q = "SELECT color_id FROM color_map WHERE color_desc = ?"

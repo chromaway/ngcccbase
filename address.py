@@ -128,6 +128,10 @@ class Address:
 
         return cls(pubkey, privkey)
 
+    @classmethod
+    def rawPubkeyToAddress(cls, raw):
+        return b2a_hashed_base58(cls.PUBLIC_KEY_PREFIX + raw)
+
     def getJSONData(self):
         """Returns a dict that can later be plugged into
         the fromObj method for later retrieval of an Address.
@@ -150,7 +154,7 @@ if __name__ == "__main__":
     address = Address.new(test_key)
     print address.pubkey
     rawPubkey = Address.PUBLIC_KEY_PREFIX + hash160(
-            "\x04" + address.rawPubkey())
+        "\x04" + address.rawPubkey())
     print b2a_hashed_base58(rawPubkey)
     assert address.privkey \
         == "5JZB2s2RCtRUunKiqMbb6rAj3Z7TkJwa8zknL1cfTFpWoQArd6n", \

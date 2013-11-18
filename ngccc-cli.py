@@ -25,7 +25,8 @@ class _ApplicationHelpFormatter(argparse.HelpFormatter):
             argparse.HelpFormatter.add_argument(self, action)
 
     def _format_subparsers(self, action):
-        max_action_width = max([len(x) for x in action._name_parser_map.keys()])
+        max_action_width = max(
+            [len(x) for x in action._name_parser_map.keys()])
 
         parts = []
         for name, subaction in action._name_parser_map.items():
@@ -36,80 +37,94 @@ class _ApplicationHelpFormatter(argparse.HelpFormatter):
 
         return '\n'.join(parts)
 
+
 class Application(object):
     def __init__(self):
         self.args = None
         self.parser = argparse.ArgumentParser(
-            description="Next-Generation Colored Coin Client Command-line interface",
+            description="Next-Generation Colored Coin Client "
+            "Command-line interface",
             formatter_class=_ApplicationHelpFormatter)
 
         self.parser.add_argument("--wallet", dest="wallet_path")
 
-        subparsers = self.parser.add_subparsers(title='subcommands',
-            dest='command')
+        subparsers = self.parser.add_subparsers(
+            title='subcommands', dest='command')
 
-        parser = subparsers.add_parser('import_config',
-            description="Import json config.")
+        parser = subparsers.add_parser(
+            'import_config', description="Import json config.")
         parser.add_argument('path', type=self.validate_import_config_path)
 
-        parser = subparsers.add_parser('setval',
-            description="Sets a value in the configuration.")
+        parser = subparsers.add_parser(
+            'setval', description="Sets a value in the configuration.")
         parser.add_argument('key')
         parser.add_argument('value', type=self.validate_JSON_decode)
 
-        parser = subparsers.add_parser('getval',
-            description="Returns the value for a given key in the config.")
+        parser = subparsers.add_parser(
+            'getval', description=
+            "Returns the value for a given key in the config.")
         parser.add_argument('key')
 
-        parser = subparsers.add_parser('dump_config',
-            description="Returns a JSON dump of the current configuration.")
+        parser = subparsers.add_parser(
+            'dump_config', description=
+            "Returns a JSON dump of the current configuration.")
 
-        parser = subparsers.add_parser('addasset',
-            description="Imports a color definition.")
+        parser = subparsers.add_parser(
+            'addasset', description="Imports a color definition.")
         parser.add_argument('moniker')
         parser.add_argument('color_desc')
         parser.add_argument('unit', type=int)
 
-        parser = subparsers.add_parser('issue',
-            description="Starts a new color.")
+        parser = subparsers.add_parser(
+            'issue', description="Starts a new color.")
         parser.add_argument('moniker')
         parser.add_argument('coloring_scheme')
         parser.add_argument('units', type=int)
         parser.add_argument('atoms', type=int)
 
-        parser = subparsers.add_parser('newaddr',
-            description="Creates a new bitcoin address for a given asset/color.")
+        parser = subparsers.add_parser(
+            'newaddr', description=
+            "Creates a new bitcoin address for a given asset/color.")
         parser.add_argument('moniker')
 
-        parser = subparsers.add_parser('alladdresses',
-            description="Lists all addresses for a given asset/color.")
+        parser = subparsers.add_parser(
+            'alladdresses', description=
+            "Lists all addresses for a given asset/color.")
         parser.add_argument('moniker')
 
-        parser = subparsers.add_parser('balance',
-            description="Returns the balance in Satoshi for a particular asset/color.")
+        parser = subparsers.add_parser(
+            'balance', description=
+            "Returns the balance in Satoshi for a particular asset/color.")
         parser.add_argument('moniker')
 
-        parser = subparsers.add_parser('send',
-            description="Send some amount of an asset/color to an address.")
+        parser = subparsers.add_parser(
+            'send', description=
+            "Send some amount of an asset/color to an address.")
         parser.add_argument('moniker')
         parser.add_argument('address')
         parser.add_argument('value')
 
-        parser = subparsers.add_parser('scan',
-            description="Update the database of transactions (amount in each address).")
+        parser = subparsers.add_parser(
+            'scan', description=
+            "Update the database of transactions (amount in each address).")
 
-        parser = subparsers.add_parser('p2p_show_orders',
-                                       description="Show p2ptrade orders")
+        parser = subparsers.add_parser(
+            'history', description="Shows the history of transactions "
+            "for a particular asset/color in your wallet.")
         parser.add_argument('moniker')
 
-        parser = subparsers.add_parser('p2p_sell',
-                                       description="sell via p2ptrade")
+        parser = subparsers.add_parser(
+            'p2p_show_orders', description="Show p2ptrade orders")
+        parser.add_argument('moniker')
+
+        parser = subparsers.add_parser(
+            'p2p_sell', description="sell via p2ptrade")
         parser.add_argument('moniker')
         parser.add_argument('value')
         parser.add_argument('price')
 
-        parser = subparsers.add_parser('p2p_buy',
-                                       description="buy via p2ptrade")
+        parser = subparsers.add_parser(
+            'p2p_buy', description="buy via p2ptrade")
         parser.add_argument('moniker')
         parser.add_argument('value')
         parser.add_argument('price')
@@ -130,11 +145,11 @@ class Application(object):
                 wallet_model = pw.get_model()
 
                 data.update({
-                    'controller': WalletController(wallet_model) \
-                                    if wallet_model else None,
+                    'controller': WalletController(wallet_model)
+                    if wallet_model else None,
                     'wallet': pw,
                     'model': wallet_model if pw else None,
-                })
+                    })
             return data[name]
         return object.__getattribute__(self, name)
 
@@ -150,7 +165,7 @@ class Application(object):
             raise Exception("asset not found")
 
     def validate_import_config_path(self, path):
-        return self.validate_JSON_decode(self.validate_file_read())
+        return self.validate_JSON_decode(self.validate_file_read(path))
 
     def validate_file_read(self, path):
         try:
@@ -235,8 +250,9 @@ class Application(object):
         a name of <moniker> with <units> per share and <atoms>
         total shares.
         """
-        self.controller.issue_coins(kwargs['moniker'],
-            kwargs['coloring_scheme'], kwargs['units'], kwargs['atoms'])
+        self.controller.issue_coins(
+            kwargs['moniker'], kwargs['coloring_scheme'],
+            kwargs['units'], kwargs['atoms'])
 
     def command_newaddr(self, **kwargs):
         """Creates a new bitcoin address for a given asset/color.
@@ -271,15 +287,24 @@ class Application(object):
         """
         self.controller.scan_utxos()
 
+    def command_history(self, **kwargs):
+        """print the history of transactions for this color
+        """
+        asset = self.get_asset_definition(moniker=kwargs['moniker'])
+        history = self.controller.get_history(asset)
+        for row in history:
+            print "%s %s %s" % (row[0], row[1], row[2])
+
     def init_p2ptrade(self):
         from ngcccbase.p2ptrade.ewctrl import EWalletController
         from ngcccbase.p2ptrade.agent import EAgent
         from ngcccbase.p2ptrade.comm import HTTPExchangeComm
-        
+
         ewctrl = EWalletController(self.model)
         config = {"offer_expiry_interval": 30,
                   "ep_expiry_interval": 30}
-        comm = HTTPExchangeComm(config, 'http://p2ptrade.btx.udoidio.info/messages')
+        comm = HTTPExchangeComm(
+            config, 'http://p2ptrade.btx.udoidio.info/messages')
         agent = EAgent(ewctrl, config, comm)
         return agent
 
@@ -291,7 +316,7 @@ class Application(object):
         price = bitcoin.parse_value(params['price'])
         total = int(float(value)/float(asset.unit)*float(price))
         color_desc = asset.get_color_set().color_desc_list[0]
-        sell_side = {"color_spec": color_desc, "value": value }
+        sell_side = {"color_spec": color_desc, "value": value}
         buy_side = {"color_spec": "", "value": total}
         if we_sell:
             return MyEOffer(None, sell_side, buy_side)

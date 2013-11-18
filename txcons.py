@@ -83,7 +83,8 @@ class SimpleOperationalTxSpec(txspec.OperationalTxSpec):
         in Satoshi worth of colored coins.
         """
         if not isinstance(color_id, colordef.ColorDefinition):
-            cdef = self.model.get_color_map().get_color_def(color_id)
+            cdef = self.model.get_color_map().get_color_def(
+                color_id, self.model.ccc.blockchain_state)
         else:
             cdef = color_id
         self.targets.append((target_addr, cdef, colorvalue))
@@ -169,11 +170,10 @@ class RawTxSpec(object):
         return cls(model, pycoin_tx)
 
     def sign(self, utxo_list):
-        pycoin_txcons.sign_tx(self.pycoin_tx,
-                              utxo_list,                              
-                              self.model.is_testnet())
+        pycoin_txcons.sign_tx(
+            self.pycoin_tx, utxo_list, self.model.is_testnet())
         self.update_tx_data()
-    
+
     def get_tx_data(self):
         """Returns the signed transaction data.
         """
@@ -202,7 +202,7 @@ def compose_uncolored_tx(tx_spec):
             txspec.ComposedTxSpec.TxOut(
                 change, tx_spec.get_change_addr(0)))
     return txspec.ComposedTxSpec(txins, txouts)
-        
+
 
 class TransactionSpecTransformer(object):
     """An object that can transform one type of transaction into another.
