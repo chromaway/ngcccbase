@@ -1,5 +1,6 @@
 import time
 import binascii
+from txcons import RawTxSpec
 
 def make_random_id():
     import os
@@ -64,9 +65,10 @@ class MyEOffer(EOffer):
 
 
 class ETxSpec(object):
-    def __init__(self, inputs, targets):
+    def __init__(self, inputs, targets, my_utxo_list=None):
         self.inputs = inputs
         self.targets = targets
+        self.my_utxo_list = my_utxo_list
 
     def get_data(self):
         return {"inputs": self.inputs,
@@ -96,16 +98,26 @@ class MyEProposal(EProposal):
         if not orig_offer.matches(my_offer):
             raise Exception("offers are incongruent")
         self.etx_spec = ewctrl.make_etx_spec(self.offer.B, self.offer.A)
+        self.etx_data = None
 
     def get_data(self):
         res = super(MyEProposal, self).get_data()
-        res["etx_spec"] = self.etx_spec.get_data()
+        if self.etx_data:
+            res["etx_data"] = self.etx_data
+        else:
+            res["etx_spec"] = self.etx_spec.get_data()
         return res
 
+    def process_reply(self, reply_ep):
+        rtxs = RawTxSpec.from_tx_data(self.ewctrl.model,
+                                      reply_ep.etx_data.decode('hex'))
+        rtxs.sign(self.etx_spec.my_utxo_list)
+        self.etx_data = rtxs.get_hex_tx_data()
 
-class ReplyEProposal(EProposal):
+
+class MyReplyEProposal(EProposal):
     def __init__(self, ewctrl, foreign_ep, my_offer):
-        super(ReplyEProposal, self).__init__(foreign_ep.pid,
+        super(MyReplyEProposal, self).__init__(foreign_ep.pid,
                                              ewctrl,
                                              foreign_ep.offer)
         self.my_offer = my_offer
@@ -114,9 +126,12 @@ class ReplyEProposal(EProposal):
                                             my_offer.B)
         
     def get_data(self):
-        data = super(ReplyEProposal, self).get_data()
+        data = super(MyReplyEProposal, self).get_data()
         data['etx_data'] = self.tx.get_hex_tx_data()
         return data
+
+    def process_reply(self, reply_ep):
+        pass
         
 
 class ForeignEProposal(EProposal):
@@ -133,4 +148,4 @@ class ForeignEProposal(EProposal):
             raise Exception("incompatible offer")
         if not self.etx_spec:
             raise Exception("need etx_spec")
-        return ReplyEProposal(self.ewctrl, self, my_offer)
+        return MyReplyEProposal(self.ewctrl, self, my_offer)

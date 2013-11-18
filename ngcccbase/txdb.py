@@ -84,7 +84,7 @@ class TxDataStore(DataStore):
 class TxDb(object):
     def __init__(self, model, config):
         self.model = model
-        self.store = TxDataStore(self.model.utxo_man.store.conn)
+        self.store = TxDataStore(self.model.store_conn.conn)
 
     def add_tx(self, txhash, txdata, status=TX_STATUS_UNKNOWN):
         self.store.add_tx(txhash, txdata, status)

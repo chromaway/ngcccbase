@@ -21,18 +21,18 @@ class ColorDataBuilderManager(object):
     def get_builder(self, color_id):
         if color_id in self.builders:
             return self.builders[color_id]
-        colordef = self.colormap.get_color_def(color_id)
+        colordef = self.colormap.get_color_def(color_id, self.blockchain_state)
         builder = self.builder_class(
             self.cdstore, self.blockchain_state, colordef, self.metastore)
         self.builders[color_id] = builder
         return builder
 
-    def ensure_scanned_upto(self, color_id_set, block_height):
+    def ensure_scanned_upto(self, color_id_set, blockhash):
         for color_id in color_id_set:
             if color_id == 0:
                 continue
             builder = self.get_builder(color_id)
-            builder.ensure_scanned_upto(block_height)
+            builder.ensure_scanned_upto(blockhash)
 
 
 class BasicColorDataBuilder(ColorDataBuilder):
@@ -67,43 +67,50 @@ class FullScanColorDataBuilder(BasicColorDataBuilder):
         super(FullScanColorDataBuilder, self).__init__(
             cdstore, blockchain_state, colordef)
         self.metastore = metastore
-        self.cur_height = metastore.get_scan_height(self.color_id)
 
-    def scan_blockchain(self, from_height, to_height):
-        for i in xrange(from_height, to_height + 1):
-            self.scan_block(i)
-
-    def scan_block(self, height):
-        for tx in self.blockchain_state.iter_block_txs(height):
+    def scan_block(self, blockhash):
+        height = self.blockchain_state.get_block_height(blockhash)
+        print "scanning block %s at %s" % (blockhash, height)
+        for tx in self.blockchain_state.iter_block_txs(blockhash):
             self.scan_tx(tx)
-        self.cur_height = height
-        self.metastore.set_scan_height(self.color_id, self.cur_height)
+        self.metastore.set_as_scanned(self.color_id, blockhash)
 
-    def ensure_scanned_upto(self, block_height):
-        if self.cur_height >= block_height:
-            pass  # up-to-date
-        else:
-            if self.cur_height:
-                from_height = self.cur_height + 1
-            else:
-                # we cannot get genesis block via RPC, so we start from block 1
-                from_height = self.colordef.starting_height or 1
-            self.scan_blockchain(from_height, block_height)
+    def scan_blockchain(self, blocklist):
+        for blockhash in blocklist:
+            self.scan_block(blockhash)
+
+    def ensure_scanned_upto(self, final_blockhash):
+        if self.metastore.did_scan(self.color_id, final_blockhash):
+            return
+        min_height = self.colordef.genesis['height']
+
+        # start from the final_blockhash and go backwards to build up
+        #  the list of blocks to scan
+        blockhash = final_blockhash
+        blocklist = []
+        while not self.metastore.did_scan(self.color_id, blockhash):
+            blocklist.insert(0, blockhash)
+            blockhash = self.blockchain_state.get_previous_blockhash(
+                blockhash)
+            height = self.blockchain_state.get_block_height(blockhash)
+            if height < min_height:
+                break
+
+        self.scan_blockchain(blocklist)
 
 
 class AidedColorDataBuilder(FullScanColorDataBuilder):
     """color data builder based on following output spending transactions,
        for one specific color"""
 
-    def scan_blockchain(self, from_height, to_height):
+    def scan_blockchain(self, blocklist):
         txo_queue = [self.colordef.genesis]
-        for cur_block_height in xrange(self.colordef.starting_height,
-                                       to_height + 1):
+        for blockhash in blocklist:
             # remove txs from this block from the queue
             block_txo_queue = [txo for txo in txo_queue
-                               if txo['height'] == cur_block_height]
+                               if txo['blockhash'] == blockhash]
             txo_queue = [txo for txo in txo_queue
-                         if txo['height'] != cur_block_height]
+                         if txo['blockhash'] != blockhash]
 
             block_txos = {}
             while block_txo_queue:
@@ -114,7 +121,7 @@ class AidedColorDataBuilder(FullScanColorDataBuilder):
                 block_txos[txo['txhash']] = txo
                 spends = get_spends(txo['txhash'], self.blockchain_state)
                 for stxo in spends:
-                    if stxo['height'] == cur_block_height:
+                    if stxo['blockhash'] == blockhash:
                         block_txo_queue.append(stxo)
                     else:
                         txo_queue.append(stxo)

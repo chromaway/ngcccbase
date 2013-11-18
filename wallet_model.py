@@ -536,15 +536,17 @@ class CoinQueryFactory(object):
 class WalletModel(object):
     """Represents a colored-coin wallet
     """
-    def __init__(self, config):
+    def __init__(self, config, store_conn):
         """Creates a new wallet given a configuration <config>
         """
+        self.store_conn = store_conn  # hackish!
         self.ccc = ColoredCoinContext(config)
         self.ass_def_man = AssetDefinitionManager(self, config)
         self.address_man = DWalletAddressManager(self, config)
         self.coin_query_factory = CoinQueryFactory(self, config)
         self.utxo_man = utxodb.UTXOManager(self, config)
         self.txdb = txdb.TxDb(self, config)
+        self.testnet = config.get('testnet', False)
         self.tx_spec_transformer = txcons.TransactionSpecTransformer(
             self, config)
 
@@ -552,6 +554,11 @@ class WalletModel(object):
         """Access method for transaction data store.
         """
         return self.txdb
+
+    def is_testnet(self):
+        """Returns True if testnet mode is enabled.
+        """
+        return self.testnet
 
     def transform_tx_spec(self, tx_spec, target_spec_kind):
         """Pass-through for TransactionSpecTransformer's transform
@@ -577,6 +584,62 @@ class WalletModel(object):
         """Access method for address manager
         """
         return self.address_man
+
+    def get_history_for_asset(self, asset):
+        """Returns the history of how an address got its coins.
+        """
+        klass = TestnetAddress if self.testnet else Address
+
+        history = []
+
+        address_lookup = {
+            a.get_address(): 1 for a in
+            self.address_man.get_addresses_for_color_set(
+                asset.get_color_set())}
+
+        for color in asset.color_set.color_id_set:
+            colordef = self.ccc.colormap.get_color_def(
+                color, self.ccc.blockchain_state)
+            seen_hashes = {}
+            for row in reversed(self.ccc.cdstore.get_all(color)):
+                # address_ledger will keep track of the net
+                #  affect on an address
+                address_ledger = {}
+                appended = 0
+                txhash = row[0]
+                if seen_hashes.get(txhash):
+                    continue
+                seen_hashes[txhash] = 1
+                tx = self.ccc.blockchain_state.get_tx(txhash)
+                for output in tx.outputs:
+                    # find out where it went into
+                    address = klass.rawPubkeyToAddress(output.raw_address)
+
+                    if address_lookup.get(address):
+                        address_ledger[address] = \
+                            address_ledger.get(address, 0) + output.value
+
+                for input in tx.inputs:
+                    # find the hash referred to by the input
+                    outpoint = input.outpoint
+                    intx = self.ccc.blockchain_state.get_tx(outpoint.hash)
+                    output = intx.outputs[outpoint.n]
+                    address = klass.rawPubkeyToAddress(output.raw_address)
+                    if address_lookup.get(address):
+                        address_ledger[address] = \
+                            address_ledger.get(address, 0) - output.value
+
+                for address, value in address_ledger.items():
+                    if value < 0:
+                        history.append(["sent", -value, address])
+                    elif txhash == colordef.genesis['txhash']:
+                        history.append(["issued", value, address])
+                    else:
+                        history.append(["received", value, address])
+
+                if len(address_ledger) == 0:
+                    history.append(["unknown", txhash, ""])
+        return history
 
     def get_color_map(self):
         """Access method for ColoredCoinContext's colormap

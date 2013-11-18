@@ -37,7 +37,7 @@ Components
 Dependencies
 ------------
 
-These dependencies must be installed on your machine:
+These dependencies must be installed on your machine for the QT client:
 
 * [PyQt4](http://pyqt.sourceforge.net/Docs/PyQt4/installation.html) is used to make the GUI.
 * [SIP](http://pyqt.sourceforge.net/Docs/sip4/installation.html) is a dependency for PyQT4.
@@ -64,7 +64,7 @@ Assumptions
 Instructions
 
  * Install bitcoind ex. `sudo apt-get install bitcoind` (or use whatever package manager for your linux distro)
- * Install PyQt4 and SIP ex. `sudo apt-get install python-qt4 python-sip` (or use whatever package manager for your linux distro)
+ * Install PyQt4 and SIP ex. `sudo apt-get install python-qt4 python-sip` (or use whatever package manager for your linux distro). This is only if you want to play with the QT client.
  * Create a python virtualenv to work in ex. `cd $YOUR_PROJECT_DIRECTORY/env/ && virtualenv ngcccbase`
  * Activate the virtualenv ex. `source $YOUR_PROJECT_DIRECTORY/env/ngcccbase/bin/activate`
  * Change to your project directory ex. cd `$YOUR_PROJECT_DIRECTORY`
@@ -120,4 +120,4 @@ To financially support this project you can donate to this Bitcoin address: 1uEf
 Sponsors
 --------
 
-A big thank you to the following sponsors of this project.
+A big thank you to the following sponsors of this project. They can be seen at the colored coins [home page](http://coloredcoins.org).

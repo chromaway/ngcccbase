@@ -4,15 +4,22 @@ from ..agent import EAgent
 
 import unittest
 
-class EchoExchangeComm:
+class MockComm(object):
     def __init__(self):
         self.agents = []
+        self.peers = []
     def add_agent(self, agent):
         self.agents.append(agent)
+    def add_peer(self, peer):
+        self.peers.append(peer)
     def post_message(self, content):
         print content
-        for a in self.agents:
-            a.dispatch_message(content)
+        for peer in self.peers:
+            peer.process_message(content)
+    def process_message(self, content):
+        for agent in self.agents:
+            agent.dispatch_message(content)
+
 
 class TestRealP2PTrade(unittest.TestCase):
 
@@ -26,9 +33,12 @@ class TestRealP2PTrade(unittest.TestCase):
         ewctrl = EWalletController(self.pwallet.get_model())
         config = {"offer_expiry_interval": 30,
                   "ep_expiry_interval": 30}
-        comm = EchoExchangeComm()
-        agent1 = EAgent(ewctrl, config, comm)
-        agent2 = EAgent(ewctrl, config, comm)
+        comm1 = MockComm()
+        comm2 = MockComm()
+        comm1.add_peer(comm2)
+        comm2.add_peer(comm1)
+        agent1 = EAgent(ewctrl, config, comm1)
+        agent2 = EAgent(ewctrl, config, comm2)
 
         frobla_color_desc = "obc:cc8e64cef1a880f5132e73b5a1f52a72565c92afa8ec36c445c635fe37b372fd:0:263370"
         foo_color_desc = "obc:caff27b3fe0a826b776906aceafecac7bb34af16971b8bd790170329309391ac:0:265577"

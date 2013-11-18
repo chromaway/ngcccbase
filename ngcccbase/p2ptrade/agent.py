@@ -131,7 +131,7 @@ class EAgent(object):
         my_offer = self.my_offers[ep.offer.oid]
         reply_ep = ep.accept(my_offer)
         self.set_active_ep(reply_ep)
-        self.post_message(ep)
+        self.post_message(reply_ep)
 
     def clear_orders(self, ep):
         try:
@@ -148,14 +148,10 @@ class EAgent(object):
         LOGDEBUG("updateExchangeProposal")
         my_ep = self.active_ep
         assert my_ep and my_ep.pid == ep.pid
-        offer = my_ep.offer
-
+        my_ep.process_reply(ep)
         if isinstance(my_ep, MyEProposal):
-            my_ep.validate_and_sign(ep)
-        else:
-            # TODO: process reply
-            return
-        my_ep.broadcast()
+            self.post_message(my_ep)
+        # my_ep.broadcast()
         self.clear_orders(my_ep)
         self.set_active_ep(None)
 
@@ -172,3 +168,6 @@ class EAgent(object):
         except Exception as e:
             LOGERROR("got exception %s when dispatching a message", e)
             raise
+
+    def update(self):
+        self.comm.update()
