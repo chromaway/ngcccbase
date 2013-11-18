@@ -1,3 +1,7 @@
+"""
+Data structures to model bitcoin blockchain objects.
+"""
+
 import bitcoin.core
 import bitcoin.serialize
 import bitcoin.rpc
@@ -61,6 +65,8 @@ class CTransaction(object):
 
 
 class BlockchainState(object):
+    """ Represents a blockchain state, using bitcoin-RPC to
+    obtain information of transactions, addresses, and blocks. """
     def __init__(self, bitcoind):
         self.bitcoind = bitcoind
 
@@ -83,7 +89,8 @@ class BlockchainState(object):
     def get_tx_blockhash(self, txhash):
         try:
             raw = self.bitcoind.getrawtransaction(txhash, 1)
-        except:
+        except Exception, e:
+            print e
             return None
         return raw.get('blockhash', None)
 
