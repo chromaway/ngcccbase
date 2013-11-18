@@ -2,6 +2,7 @@ from colordef import ColorDefinition
 
 
 class ColorMap(object):
+    """ Manages and obtains color definitions """
     def __init__(self, metastore):
         self.metastore = metastore
         self.colordefs = {}
@@ -19,6 +20,7 @@ class ColorMap(object):
             return self.metastore.resolve_color_desc(color_desc, auto_add)
 
     def get_color_def(self, color_id_or_desc, blockchain_state):
+        """ Finds a color definition given an id or description """
         if color_id_or_desc == 0:
             return None
         color_id = color_id_or_desc

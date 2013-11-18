@@ -1,7 +1,7 @@
 
 def toposorted(graph, parents):
     """
-    Returns vertices of a DAG in topological order.
+    Returns vertices of a directed acyclic graph in topological order.
 
     Arguments:
     graph -- vetices of a graph to be toposorted

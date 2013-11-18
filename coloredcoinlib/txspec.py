@@ -1,4 +1,4 @@
-# transaction specification language
+""" Transaction specification language """
 
 
 class OperationalTxSpec(object):

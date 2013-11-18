@@ -1,3 +1,5 @@
+""" Color data builder objects"""
+
 from logger import log
 from explorer import get_spends
 from toposort import toposorted
