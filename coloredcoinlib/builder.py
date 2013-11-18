@@ -106,6 +106,10 @@ class AidedColorDataBuilder(FullScanColorDataBuilder):
     def scan_blockchain(self, blocklist):
         txo_queue = [self.colordef.genesis]
         for blockhash in blocklist:
+            if self.metastore.did_scan(self.color_id, blockhash):
+                continue
+            height = self.blockchain_state.get_block_height(blockhash)
+            print "scanning block %s at %s" % (blockhash, height)
             # remove txs from this block from the queue
             block_txo_queue = [txo for txo in txo_queue
                                if txo['blockhash'] == blockhash]
