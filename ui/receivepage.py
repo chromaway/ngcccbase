@@ -1,48 +1,15 @@
 from PyQt4 import QtCore, QtGui, uic
 
 from wallet import wallet
+from tablemodel import AbstractTableModel
 
 
-class AddressTableModel(QtCore.QAbstractTableModel):
-    def __init__(self, parent):
-        QtCore.QAbstractTableModel.__init__(self)
-        self.columns = ['Moniker', 'Address']
-        self.addresses = []
-
-    def rowCount(self, parent=None):
-        return len(self.addresses)
-
-    def columnCount(self, parent=None):
-        return len(self.columns)
-
-    def data(self, index, role):
-        if index.isValid() and role == QtCore.Qt.DisplayRole:
-            return QtCore.QVariant(self.addresses[index.row()][index.column()])
-        return QtCore.QVariant()
-
-    def headerData(self, section, orientation, role):
-        if orientation == QtCore.Qt.Horizontal \
-                and role == QtCore.Qt.DisplayRole:
-            return QtCore.QVariant(self.columns[section])
-        return QtCore.QVariant()
-
-    def addRow(self, row):
-        index = len(self.addresses)
-        self.beginInsertRows(QtCore.QModelIndex(), index, index)
-        self.addresses.append(row)
-        self.endInsertRows()
-
-    def removeRows(self, row, count, parent=None):
-        self.beginRemoveRows(QtCore.QModelIndex(), row, row+count-1)
-        for _ in range(row, row+count):
-            self.addresses.pop(row)
-        self.endRemoveRows()
-
-    def updateData(self):
-        self.removeRows(0, len(self.addresses))
-        for moniker in wallet.get_all_monikers():
-            for address in wallet.get_all_addresses(moniker):
-                self.addRow([moniker, address])
+class AddressTableModel(AbstractTableModel):
+    _columns = ['Moniker', 'Address']
+    _alignment = [
+        QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter,
+        QtCore.Qt.AlignCenter | QtCore.Qt.AlignVCenter,
+    ]
 
 
 class NewAddressDialog(QtGui.QDialog):
@@ -82,7 +49,10 @@ class ReceivePage(QtGui.QWidget):
             self.tableViewSelectionChanged)
 
     def update(self):
-        self.model.updateData()
+        self.model.removeRows(0, self.model.rowCount())
+        for moniker in wallet.get_all_monikers():
+            for address in wallet.get_all_addresses(moniker):
+                self.model.addRow([moniker, address])
 
     def contextMenuEvent(self, event):
         selected = self.tableView.selectedIndexes()

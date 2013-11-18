@@ -25,6 +25,5 @@ class OverviewPage(QtGui.QWidget):
             return
         asset = wallet.get_asset_definition(moniker)
         balance = wallet.get_balance(asset)
-        currency = 'BTC' if moniker == 'bitcoin' else moniker
         self.lblBalance.setText(
-            '%s %s' % (asset.format_value(balance), currency))
+            '%s %s' % (asset.format_value(balance), moniker))

@@ -1,5 +1,3 @@
-from PyQt4 import QtCore
-
 from pwallet import PersistentWallet
 from wallet_controller import WalletController
 from wallet_model import AssetDefinition
@@ -16,16 +14,6 @@ class Wallet(object):
         self.wallet.init_model()
         self.model = self.wallet.get_model()
         self.controller = WalletController(self.wallet.get_model())
-
-        ewctrl = EWalletController(self.model)
-        config = {"offer_expiry_interval": 30,
-                  "ep_expiry_interval": 30}
-        comm = HTTPExchangeComm(config, 'http://p2ptrade.btx.udoidio.info/messages')
-        self.p2p_agent = EAgent(ewctrl, config, comm)
-
-        self.p2p_agent_refresh = QtCore.QTimer()
-        self.p2p_agent_refresh.timeout.connect(self.p2p_agent.update)
-        self.p2p_agent_refresh.setInterval(1000)
 
     def get_asset_definition(self, moniker):
         if isinstance(moniker, AssetDefinition):
@@ -77,6 +65,13 @@ class Wallet(object):
                 item['asset'] if 'asset' in item
                     else self.get_asset_definition(item['moniker']),
                 item['value'])
+
+    def p2ptrade_init(self):
+        ewctrl = EWalletController(self.model)
+        config = {"offer_expiry_interval": 30,
+                  "ep_expiry_interval": 30}
+        comm = HTTPExchangeComm(config, 'http://p2ptrade.btx.udoidio.info/messages')
+        self.p2p_agent = EAgent(ewctrl, config, comm)
 
     def p2ptrade_make_offer(self, we_sell, params):
         asset = self.get_asset_definition(params['moniker'])

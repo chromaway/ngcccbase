@@ -47,7 +47,8 @@ class MainWindow(QtGui.QMainWindow):
 
         self.bindActions()
 
-        self.gotoOverviewPage()
+        #self.gotoOverviewPage()
+        self.gotoP2PTradePage()
 
     def bindActions(self):
         self.actionRescan.triggered.connect(wallet.scan)

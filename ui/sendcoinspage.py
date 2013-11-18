@@ -37,8 +37,6 @@ class SendcoinsEntry(QtGui.QFrame):
             asset = wallet.get_asset_definition(moniker)
             balance = wallet.get_balance(moniker)
             self.edtAmount.setMaximum(balance)
-            if moniker == 'bitcoin':
-                moniker = 'BTC'
             self.lblAvailaleBalance.setText(
                 '%s %s' % (asset.format_value(balance), moniker))
 

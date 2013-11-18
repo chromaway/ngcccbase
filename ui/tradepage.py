@@ -1,50 +1,15 @@
 from PyQt4 import QtCore, QtGui, uic
 
 from wallet import wallet
-from createofferdialog import CreateOfferDialog
+from tablemodel import AbstractTableModel
 
 
-class OffersTableModel(QtCore.QAbstractTableModel):
-    def __init__(self, parent):
-        QtCore.QAbstractTableModel.__init__(self)
-        self.columns = ['oid', 'A.value', 'A.colorid', 'B.value', 'B.colorid']
-        self.offers = []
-
-    def rowCount(self, parent=None):
-        return len(self.offers)
-
-    def columnCount(self, parent=None):
-        return len(self.columns)
-
-    def data(self, index, role):
-        if index.isValid() and role == QtCore.Qt.DisplayRole:
-            return QtCore.QVariant(self.offers[index.row()][index.column()])
-        return QtCore.QVariant()
-
-    def headerData(self, section, orientation, role):
-        if orientation == QtCore.Qt.Horizontal \
-                and role == QtCore.Qt.DisplayRole:
-            return QtCore.QVariant(self.columns[section])
-        return QtCore.QVariant()
-
-    def addRow(self, row):
-        index = len(self.offers)
-        self.beginInsertRows(QtCore.QModelIndex(), index, index)
-        self.offers.append(row)
-        self.endInsertRows()
-
-    def removeRows(self, row, count, parent=None):
-        self.beginRemoveRows(QtCore.QModelIndex(), row, row+count-1)
-        for _ in range(row, row+count):
-            self.offers.pop(row)
-        self.endRemoveRows()
-
-    def updateData(self):
-        wallet.p2p_agent.update()
-        self.removeRows(0, len(self.offers))
-        for offer in wallet.p2p_agent.their_offers.values():
-            d = offer.get_data()
-            self.addRow([d['oid'], d['A']['value'], d['A'].get('colorid', None), d['B']['value'], d['B'].get('colorid')])
+class OffersTableModel(AbstractTableModel):
+    _columns = ['Quantity', 'Price']
+    _alignment = [
+        QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter,
+        QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter,
+    ]
 
 
 class TradePage(QtGui.QWidget):
@@ -52,30 +17,145 @@ class TradePage(QtGui.QWidget):
         QtGui.QWidget.__init__(self, parent)
         uic.loadUi(uic.getUiPath('tradepage.ui'), self)
 
-        self.model = OffersTableModel(self)
-        self.proxyModel = QtGui.QSortFilterProxyModel(self)
-        self.proxyModel.setSourceModel(self.model)
-        self.proxyModel.setDynamicSortFilter(True)
-        self.proxyModel.setSortCaseSensitivity(QtCore.Qt.CaseInsensitive)
-        self.proxyModel.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
+        wallet.p2ptrade_init()
 
-        self.tableView.setModel(self.proxyModel)
-        self.tableView.sortByColumn(0, QtCore.Qt.AscendingOrder)
-        for i in xrange(self.model.columnCount()):
-            self.tableView.horizontalHeader().setResizeMode(
-                i, QtGui.QHeaderView.ResizeToContents)
+        self.modelBuy = OffersTableModel()
+        self.proxyModelBuy = QtGui.QSortFilterProxyModel(self)
+        self.proxyModelBuy.setSourceModel(self.modelBuy)
+        self.proxyModelBuy.setDynamicSortFilter(True)
+        self.proxyModelBuy.setSortCaseSensitivity(QtCore.Qt.CaseInsensitive)
+        self.proxyModelBuy.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
 
-        self.btnCreateSell.clicked.connect(self.get_create_offer_func(True))
-        self.btnCreateBuy.clicked.connect(self.get_create_offer_func(False))
+        self.tvBuy.setModel(self.proxyModelBuy)
+        self.tvBuy.sortByColumn(0, QtCore.Qt.AscendingOrder)
+        self.tvBuy.horizontalHeader().setResizeMode(
+            0, QtGui.QHeaderView.Stretch)
+        self.tvBuy.horizontalHeader().setResizeMode(
+            1, QtGui.QHeaderView.ResizeToContents)
+
+        self.modelSell = OffersTableModel()
+        self.proxyModelSell = QtGui.QSortFilterProxyModel(self)
+        self.proxyModelSell.setSourceModel(self.modelSell)
+        self.proxyModelSell.setDynamicSortFilter(True)
+        self.proxyModelSell.setSortCaseSensitivity(QtCore.Qt.CaseInsensitive)
+        self.proxyModelSell.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
+
+        self.tvSell.setModel(self.proxyModelSell)
+        self.tvSell.sortByColumn(0, QtCore.Qt.AscendingOrder)
+        self.tvSell.horizontalHeader().setResizeMode(
+            0, QtGui.QHeaderView.Stretch)
+        self.tvSell.horizontalHeader().setResizeMode(
+            1, QtGui.QHeaderView.ResizeToContents)
+
+        self.cbMoniker.currentIndexChanged.connect(self.cbMonikerIndexChanged)
+
+        for wname in ['edtBuyUnits', 'edtBuyPrice', 'edtSellUnits', 'edtSellPrice']:
+            getattr(self, wname).focusInEvent = \
+                lambda e, name=wname: getattr(self, name).setStyleSheet('')
+
+        self.edtBuyUnits.textChanged.connect(self.lblBuyTotalChange)
+        self.edtBuyPrice.textChanged.connect(self.lblBuyTotalChange)
+        self.btnBuy.clicked.connect(self.btnBuyClicked)
+
+        self.edtSellUnits.textChanged.connect(self.lblSellTotalChange)
+        self.edtSellPrice.textChanged.connect(self.lblSellTotalChange)
+        self.btnSell.clicked.connect(self.btnSellClicked)
 
     def update(self):
-        self.model.updateData()
+        monikers = wallet.get_all_monikers()
+        comboList = self.cbMoniker
+        currentMoniker = str(comboList.currentText())
+        comboList.clear()
+        comboList.addItems(monikers)
+        if currentMoniker and currentMoniker in monikers:
+            comboList.setCurrentIndex(monikers.index(currentMoniker))
 
-    def get_create_offer_func(self, sell):
-        def func():
-            dialog = CreateOfferDialog(self, sell)
-            if dialog.exec_():
-                offer = wallet.p2ptrade_make_offer(sell, dialog.get_data())
-                wallet.p2p_agent.register_my_offer(offer)
-            self.update()
-        return func
+        wallet.p2p_agent.update()
+        self.modelBuy.removeRows(0, self.modelBuy.rowCount())
+        self.modelSell.removeRows(0, self.modelSell.rowCount())
+        for offer in wallet.p2p_agent.their_offers.values():
+            data = offer.get_data()
+            #from pprint import pprint
+            #pprint(data)
+            #print
+
+    def cbMonikerIndexChanged(self):
+        moniker = str(self.cbMoniker.currentText())
+        if moniker == '':
+            return
+        asset = wallet.get_asset_definition(moniker)
+        balance = wallet.get_balance(asset)
+        self.lblSell.setText('Sell %s' % moniker)
+        self.lblSellAvailable.setText(
+            '(Available: %s %s | Units: %s)' % (asset.format_value(balance), moniker, balance))
+        asset = wallet.get_asset_definition('bitcoin')
+        balance = wallet.get_balance(asset)
+        self.lblBuy.setText('Buy %s' % moniker)
+        self.lblBuyAvailable.setText(
+            '(Available: %s BTC | Units: %s)' % (asset.format_value(balance), balance))
+
+    def lblBuyTotalChange(self):
+        self.lblBuyTotal.setText('')
+        if self.edtBuyUnits.text().toInt()[1] \
+                and self.edtBuyPrice.text().toFloat()[1]:
+            total = self.edtBuyUnits.text().toInt()[0]*self.edtBuyPrice.text().toFloat()[0]
+            if total > wallet.get_balance('bitcoin'):
+                tpl = '<font color=\"#FF3838\">%s bitcoin</font>'
+            else:
+                tpl = '%s bitcoin'
+            self.lblBuyTotal.setText(tpl % total)
+
+    def btnBuyClicked(self):
+        valid = True
+        if not self.edtBuyUnits.text().toInt()[1]:
+            self.edtBuyUnits.setStyleSheet('background:#FF8080')
+            valid = False
+        if not self.edtBuyPrice.text().toFloat()[1]:
+            self.edtBuyPrice.setStyleSheet('background:#FF8080')
+            valid = False
+        if not valid:
+            return
+        total = self.edtBuyUnits.text().toInt()[0]*self.edtBuyPrice.text().toFloat()[0]
+        if total > wallet.get_balance('bitcoin'):
+            return
+        offer = wallet.p2ptrade_make_offer(False, {
+            'moniker': str(self.cbMoniker.currentText()),
+            'value': self.edtBuyUnits.text().toInt()[0],
+            'price': self.edtBuyPrice.text().toFloat()[0],
+        })
+        wallet.p2p_agent.register_my_offer(offer)
+        self.update()
+
+    def lblSellTotalChange(self):
+        self.lblSellTotal.setText('')
+        if self.edtSellUnits.text().toInt()[1] \
+                and self.edtSellPrice.text().toFloat()[1]:
+            total = self.edtSellUnits.text().toInt()[0]*self.edtSellPrice.text().toFloat()[0]
+            moniker = str(self.cbMoniker.currentText())
+            if total > wallet.get_balance(moniker):
+                tpl = '<font color=\"#FF3838\">%s %s</font>'
+            else:
+                tpl = '%s %s'
+            self.lblSellTotal.setText(tpl % (total, moniker))
+
+    def btnSellClicked(self):
+        valid = True
+        if not self.edtSellUnits.text().toInt()[1]:
+            self.edtSellUnits.setStyleSheet('background:#FF8080')
+            valid = False
+        if not self.edtSellPrice.text().toFloat()[1]:
+            self.edtSellPrice.setStyleSheet('background:#FF8080')
+            valid = False
+        if not valid:
+            return
+        total = self.edtSellUnits.text().toInt()[0]*self.edtSellPrice.text().toFloat()[0]
+        moniker = str(self.cbMoniker.currentText())
+        if total > wallet.get_balance(moniker):
+            return
+        offer = wallet.p2ptrade_make_offer(True, {
+            'moniker': moniker,
+            'value': self.edtBuyUnits.text().toInt()[0],
+            'price': self.edtBuyPrice.text().toFloat()[0],
+        })
+        wallet.p2p_agent.register_my_offer(offer)
+        self.update()

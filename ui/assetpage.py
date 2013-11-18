@@ -1,6 +1,7 @@
 from PyQt4 import QtCore, QtGui, uic
 
 from wallet import wallet
+from tablemodel import AbstractTableModel
 
 
 class AddAssetDialog(QtGui.QDialog):
@@ -39,53 +40,13 @@ class AddAssetDialog(QtGui.QDialog):
         }
 
 
-class AssetTableModel(QtCore.QAbstractTableModel):
-    def __init__(self, parent):
-        QtCore.QAbstractTableModel.__init__(self, parent)
-        self._columns = ['Moniker', 'Color set', 'Unit']
-        self._alignment = [
-            QtCore.Qt.AlignCenter | QtCore.Qt.AlignVCenter,
-            QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter,
-            QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter
-        ]
-        self._data = []
-
-    def rowCount(self, parent=None):
-        return len(self._data)
-
-    def columnCount(self, parent=None):
-        return len(self._columns)
-
-    def data(self, index, role):
-        if role == QtCore.Qt.TextAlignmentRole:
-            return self._alignment[index.column()]
-        if index.isValid() and role == QtCore.Qt.DisplayRole:
-            return QtCore.QVariant(self._data[index.row()][index.column()])
-        return QtCore.QVariant()
-
-    def headerData(self, section, orientation, role):
-        if orientation == QtCore.Qt.Horizontal \
-                and role == QtCore.Qt.DisplayRole:
-            return QtCore.QVariant(self._columns[section])
-        return QtCore.QVariant()
-
-    def addRow(self, row):
-        index = len(self._data)
-        self.beginInsertRows(QtCore.QModelIndex(), index, index)
-        self._data.append(row)
-        self.endInsertRows()
-
-    def removeRows(self, row, count, parent=None):
-        self.beginRemoveRows(QtCore.QModelIndex(), row, row+count-1)
-        for _ in range(row, row+count):
-            self._data.pop(row)
-        self.endRemoveRows()
-
-    def updateData(self):
-        self.removeRows(0, len(self._data))
-        for asset in wallet.get_all_asset():
-            self.addRow(
-                [asset['monikers'][0], asset['color_set'][0], asset['unit']])
+class AssetTableModel(AbstractTableModel):
+    _columns = ['Moniker', 'Color set', 'Unit']
+    _alignment = [
+        QtCore.Qt.AlignCenter | QtCore.Qt.AlignVCenter,
+        QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter,
+        QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter,
+    ]
 
 
 class AssetPage(QtGui.QWidget):
@@ -112,7 +73,10 @@ class AssetPage(QtGui.QWidget):
         self.btnAddAsset.clicked.connect(self.btnAddAssetClicked)
 
     def update(self):
-        self.model.updateData()
+        self.model.removeRows(0, self.model.rowCount())
+        for asset in wallet.get_all_asset():
+            self.model.addRow(
+                [asset['monikers'][0], asset['color_set'][0], asset['unit']])
 
     def contextMenuEvent(self, event):
         selected = self.tableView.selectedIndexes()
