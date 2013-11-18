@@ -165,7 +165,7 @@ class Application(object):
             raise Exception("asset not found")
 
     def validate_import_config_path(self, path):
-        return self.validate_JSON_decode(self.validate_file_read())
+        return self.validate_JSON_decode(self.validate_file_read(path))
 
     def validate_file_read(self, path):
         try:

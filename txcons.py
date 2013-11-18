@@ -83,7 +83,8 @@ class SimpleOperationalTxSpec(txspec.OperationalTxSpec):
         in Satoshi worth of colored coins.
         """
         if not isinstance(color_id, colordef.ColorDefinition):
-            cdef = self.model.get_color_map().get_color_def(color_id)
+            cdef = self.model.get_color_map().get_color_def(
+                color_id, self.model.ccc.blockchain_state)
         else:
             cdef = color_id
         self.targets.append((target_addr, cdef, colorvalue))

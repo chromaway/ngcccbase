@@ -13,5 +13,5 @@ def get_spends(tx, blockchain_state):
         ret.append(
             {'txhash': tx_hash,
              'outindex': output_n,
-             'height': blockchain_state.get_tx_block_height(tx_hash)[0]})
+             'blockhash': blockchain_state.get_tx_blockhash(tx_hash)[0]})
     return ret

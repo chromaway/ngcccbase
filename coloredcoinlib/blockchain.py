@@ -63,7 +63,6 @@ class CTransaction(object):
 class BlockchainState(object):
     def __init__(self, bitcoind):
         self.bitcoind = bitcoind
-        self.cur_height = None
 
     @classmethod
     def from_url(cls, url, testnet=False):
@@ -74,16 +73,23 @@ class BlockchainState(object):
             bitcoind = bitcoin.rpc.RawProxy(service_url=url)
         return cls(bitcoind)
 
-    def get_tx_block_height(self, txhash):
+    def get_block_height(self, blockhash):
+        block_data = self.bitcoind.getblock(blockhash)
+        if block_data:
+            return block_data.get('height', None)
+        else:
+            return None
+
+    def get_tx_blockhash(self, txhash):
         try:
             raw = self.bitcoind.getrawtransaction(txhash, 1)
         except:
-            return (None, False)
-        if 'blockhash' in raw:
-            block_data = self.bitcoind.getblock(raw['blockhash'])
-            return (block_data['height'], False)
-        else:
-            return (None, True)
+            return None
+        return raw.get('blockhash', None)
+
+    def get_previous_blockhash(self, blockhash):
+        block_data = self.bitcoind.getblock(blockhash)
+        return block_data['previousblockhash']
 
     def get_tx(self, txhash):
         txhex = self.bitcoind.getrawtransaction(txhash, 0)
@@ -91,11 +97,10 @@ class BlockchainState(object):
         tx = bitcoin.core.CTransaction.deserialize(txbin)
         return CTransaction.from_bitcoincore(txhash, tx, self)
 
-    def iter_block_txs(self, height):
+    def iter_block_txs(self, blockhash):
         block_hex = None
         try:
-            block_hex = self.bitcoind.getblock(
-                self.bitcoind.getblockhash(height), False)
+            block_hex = self.bitcoind.getblock(blockhash, False)
         except bitcoin.rpc.JSONRPCException:
             pass
 
@@ -108,14 +113,6 @@ class BlockchainState(object):
                     bitcoin.serialize.Hash(tx.serialize()))
                 yield CTransaction.from_bitcoincore(txhash, tx, self)
         else:
-            txhashes = self.bitcoind.getblock(
-                self.bitcoind.getblockhash(height))['tx']
+            txhashes = self.bitcoind.getblock(blockhash)['tx']
             for txhash in txhashes:
                 yield self.get_tx(txhash)
-
-    def get_height(self):
-        return self.cur_height
-
-    def update(self):
-        """make sure we use latest data"""
-        self.cur_height = self.bitcoind.getblockcount() - 1

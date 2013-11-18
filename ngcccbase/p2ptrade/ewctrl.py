@@ -33,12 +33,14 @@ class OperationalETxSpec(txspec.OperationalTxSpec):
         colormap = self.model.get_color_map()
         for tgt_spec in etx_spec.targets:
             tgt_color_id = list(self.ewctrl.resolve_color_spec(tgt_spec[1]).color_id_set)[0]
-            tgt_color_def = colormap.get_color_def(tgt_color_id)
+            tgt_color_def = colormap.get_color_def(
+                tgt_color_id, self.model.ccc.blockchain_state)
             self.targets.append((tgt_spec[0], tgt_color_def, tgt_spec[2]))
         their_color_set = self.ewctrl.resolve_color_spec(their['color_spec'])
         wam = self.model.get_address_manager()
         their_color_id =  list(their_color_set.color_id_set)[0]
-        their_color_def = colormap.get_color_def(their_color_id)
+        their_color_def = colormap.get_color_def(
+            their_color_id, self.model.ccc.blockchain_state)
         self.targets.append(
             (wam.get_change_address(their_color_set).get_address(), their_color_def,
              their['value']))

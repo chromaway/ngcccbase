@@ -11,7 +11,6 @@ class ColorDefinition(object):
 
     def __init__(self, color_id):
         self.color_id = color_id
-        self.starting_height = None
 
     def is_special_tx(self, tx):
         return False
@@ -27,10 +26,13 @@ class ColorDefinition(object):
         ColorDefinition.cd_classes[code] = clAss
 
     @classmethod
-    def from_color_desc(cdc, color_id, color_desc):
+    def from_color_desc(cdc, color_id, color_desc, blockchain_state):
         code = get_color_desc_code(color_desc)
         cdclass = cdc.cd_classes[code]
-        return cdclass.from_color_desc(color_id, color_desc)
+        return cdclass.from_color_desc(color_id, color_desc, blockchain_state)
+
+    def __repr__(self):
+        return "%s" % self.color_id
 
 genesis_output_marker = ColorDefinition(-1)
 
@@ -41,7 +43,11 @@ class OBColorDefinition(ColorDefinition):
     def __init__(self, color_id, genesis):
         super(OBColorDefinition, self).__init__(color_id)
         self.genesis = genesis
-        self.starting_height = genesis['height']
+
+    def __repr__(self):
+        return "%s:%s:%s:%s" % (
+            self.class_code, self.genesis['txhash'], self.genesis['outindex'],
+            self.genesis['height'])
 
     def is_special_tx(self, tx):
         return (tx.hash == self.genesis['txhash'])
@@ -135,12 +141,15 @@ class OBColorDefinition(ColorDefinition):
         return txspec.ComposedTxSpec(txins, txouts)
 
     @classmethod
-    def from_color_desc(cdc, color_id, color_desc):
+    def from_color_desc(cdc, color_id, color_desc, blockchain_state):
         code, txhash, outindex, height = color_desc.split(':')
+
         if (code != cdc.class_code):
             raise Exception('wrong color code in from_color_desc')
+        blockhash = blockchain_state.get_tx_blockhash(txhash)
         genesis = {'txhash': txhash,
                    'height': int(height),
+                   'blockhash': blockhash,
                    'outindex': int(outindex)}
         return cdc(color_id, genesis)
 
