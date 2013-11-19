@@ -1,4 +1,11 @@
-class ThickColorData(object):
+""" Color data representation objects."""
+
+class ColorData(object):
+    """Base color data class"""
+    pass
+
+class ThickColorData(ColorData):
+    """ Color data which needs access to the whole blockchain state"""
     def __init__(self, cdbuilder_manager, blockchain_state, cdstore):
         self.cdbuilder_manager = cdbuilder_manager
         self.blockchain_state = blockchain_state

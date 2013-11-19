@@ -6,7 +6,8 @@ The colored coin toolkit. Current version is just a basic demo.
 Contributors:
 
  * Alex Mizrahi <alex.mizrahi@gmail.com>
- * Victor ***
+ * Victor Knyazhin
+ * Manuel Araoz <manuelaraoz@gmail.com>
 
 License: GNU AGPL v.3 (see LICENSE)
 
@@ -20,6 +21,6 @@ To run this demo you need:
  * Python 2.x
  * SQLite3 library for Python
 
-Edit test.py to change connection parameters, run `python test.py`, Ctrl-C when bored.
+Edit test.py to change connection parameters, and run `python test.py`
 Transactions are stored in color.db
  

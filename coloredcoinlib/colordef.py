@@ -1,3 +1,5 @@
+""" Color definition schemes """
+
 import txspec
 from collections import defaultdict
 
@@ -7,6 +9,9 @@ def get_color_desc_code(color_desc):
 
 
 class ColorDefinition(object):
+    """ Represents a color definition scheme.
+    This means how color exists and is transferred
+    in the blockchain"""
     cd_classes = {}
 
     def __init__(self, color_id):
@@ -16,6 +21,8 @@ class ColorDefinition(object):
         return False
 
     def run_kernel(self, tx, in_colorvalues):
+        """ Applies color scheme to a certain transaction
+        to obtain outputs' color values. """
         out_colorvalues = []
         for _ in tx.outputs:
             out_colorvalues.append(None)
@@ -37,7 +44,7 @@ class ColorDefinition(object):
 genesis_output_marker = ColorDefinition(-1)
 
 class OBColorDefinition(ColorDefinition):
-    """Implements order-based coloring"""
+    """Implements order-based coloring scheme"""
     class_code = 'obc'
 
     def __init__(self, color_id, genesis):
@@ -127,7 +134,7 @@ class OBColorDefinition(ColorDefinition):
             colored_inputs += inputs
             colored_targets += targets
         uncolored_needed = sum([target[2] for target in uncolored_targets])
-        fee = op_tx_spec.get_required_fee(250*(len(colored_inputs) + 1))
+        fee = op_tx_spec.get_required_fee(250 * (len(colored_inputs) + 1))
         uncolored_inputs, uncolored_total = \
             op_tx_spec.select_coins(0, uncolored_needed + fee)
         uncolored_change = uncolored_total - uncolored_needed - fee
@@ -142,6 +149,8 @@ class OBColorDefinition(ColorDefinition):
 
     @classmethod
     def from_color_desc(cdc, color_id, color_desc, blockchain_state):
+        """ Create a color definition given a 
+        description string and the blockchain state"""
         code, txhash, outindex, height = color_desc.split(':')
 
         if (code != cdc.class_code):

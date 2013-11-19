@@ -1,3 +1,5 @@
+""" sqlite3 implementation of storage for color data """
+
 import sqlite3
 
 from UserDict import DictMixin
@@ -5,6 +7,7 @@ import cPickle as pickle
 
 
 class DataStoreConnection(object):
+    """ A database connection """
     def __init__(self, path):
         self.path = path
         self.conn = sqlite3.connect(path)
@@ -16,6 +19,8 @@ class DataStoreConnection(object):
 
 
 class DataStore(object):
+    """ Represents a database and allows it's
+    manipulation via queries."""
     def __init__(self, conn):
         self.conn = conn
 
@@ -42,6 +47,7 @@ def unwrap1(val):
 
 
 class ColorDataStore(DataStore):
+    """ A DataStore for color data storage. """
     def __init__(self, conn, tablename='colordata'):
         super(ColorDataStore, self).__init__(conn)
         self.tablename = tablename
@@ -85,6 +91,8 @@ class ColorDataStore(DataStore):
 
 
 class PersistentDictStore(DictMixin, DataStore):
+    """ Persistent dict object """
+    
     def __init__(self, conn, dictname):
         super(PersistentDictStore, self).__init__(conn)
         conn.text_factory = str
@@ -135,6 +143,9 @@ class PersistentDictStore(DictMixin, DataStore):
 
 
 class ColorMetaStore(DataStore):
+    """ A DataStore containing meta-information
+    on a coloring scheme, like color ids, how much
+    of the blockchain was scanned, etc."""
     def __init__(self, conn):
         super(ColorMetaStore, self).__init__(conn)
         if not self.table_exists('scanned_block'):

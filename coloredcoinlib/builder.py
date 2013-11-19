@@ -1,3 +1,5 @@
+""" Color data builder objects"""
+
 from logger import log
 from explorer import get_spends
 from toposort import toposorted
@@ -8,7 +10,7 @@ class ColorDataBuilder(object):
 
 
 class ColorDataBuilderManager(object):
-    """manages multiple color data builders, one per color"""
+    """Manages multiple color data builders, one per color"""
     def __init__(self, colormap, blockchain_state,
                  cdstore, metastore, builder_class):
         self.colormap = colormap
@@ -28,6 +30,7 @@ class ColorDataBuilderManager(object):
         return builder
 
     def ensure_scanned_upto(self, color_id_set, blockhash):
+        """ Ensure color data is available up to a given block"""
         for color_id in color_id_set:
             if color_id == 0:
                 continue
@@ -36,6 +39,7 @@ class ColorDataBuilderManager(object):
 
 
 class BasicColorDataBuilder(ColorDataBuilder):
+    """ Base class for color data builder algorithms"""
     def __init__(self, cdstore, blockchain_state, colordef):
         self.cdstore = cdstore
         self.blockchain_state = blockchain_state
@@ -43,6 +47,7 @@ class BasicColorDataBuilder(ColorDataBuilder):
         self.color_id = colordef.color_id
 
     def scan_tx(self, tx):
+        """ Scan transaction to obtain color data for its outputs. """
         in_colorvalues = []
         empty = True
         for inp in tx.inputs:
@@ -61,7 +66,7 @@ class BasicColorDataBuilder(ColorDataBuilder):
 
 
 class FullScanColorDataBuilder(BasicColorDataBuilder):
-    """color data builder based on exhaustive blockchain scan,
+    """Color data builder based on exhaustive blockchain scan,
        for one specific color"""
     def __init__(self, cdstore, blockchain_state, colordef, metastore):
         super(FullScanColorDataBuilder, self).__init__(
@@ -100,8 +105,8 @@ class FullScanColorDataBuilder(BasicColorDataBuilder):
 
 
 class AidedColorDataBuilder(FullScanColorDataBuilder):
-    """color data builder based on following output spending transactions,
-       for one specific color"""
+    """Color data builder based on following output spending transactions
+        from the color's genesis transaction output, for one specific color"""
 
     def scan_blockchain(self, blocklist):
         txo_queue = [self.colordef.genesis]
@@ -143,6 +148,7 @@ class AidedColorDataBuilder(FullScanColorDataBuilder):
 
             for tx in sorted_block_txs:
                 self.scan_tx(tx)
+            
 
 
 if __name__ == "__main__":
@@ -150,7 +156,9 @@ if __name__ == "__main__":
     import store
     import colormap as cm
     import colordata
+    import datetime
 
+    start = datetime.datetime.now()
     blockchain_state = blockchain.BlockchainState.from_url(None, True)
 
     store_conn = store.DataStoreConnection("test-color.db")
@@ -251,3 +259,5 @@ if __name__ == "__main__":
         br_set,
         '741a53bf925510b67dc0d69f33eb2ad92e0a284a3172d4e82e2a145707935b3e',
         1), "== Red (complex chain TX)"
+        
+    print "Finished in", datetime.datetime.now() - start
