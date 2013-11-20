@@ -70,7 +70,8 @@ class Wallet(object):
         ewctrl = EWalletController(self.model)
         config = {"offer_expiry_interval": 30,
                   "ep_expiry_interval": 30}
-        comm = HTTPExchangeComm(config, 'http://p2ptrade.btx.udoidio.info/messages')
+        comm = HTTPExchangeComm(
+            config, 'http://p2ptrade.btx.udoidio.info/messages')
         self.p2p_agent = EAgent(ewctrl, config, comm)
 
     def p2ptrade_make_offer(self, we_sell, params):
@@ -80,7 +81,7 @@ class Wallet(object):
         price = bitcoin.parse_value(params['price'])
         total = int(float(value)/float(asset.unit)*float(price))
         color_desc = asset.get_color_set().color_desc_list[0]
-        sell_side = {"color_spec": color_desc, "value": value }
+        sell_side = {"color_spec": color_desc, "value": value}
         buy_side = {"color_spec": "", "value": total}
         if we_sell:
             return MyEOffer(None, sell_side, buy_side)

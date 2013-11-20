@@ -112,12 +112,12 @@
             <item>
              <widget class="QLabel" name="label_4">
               <property name="text">
-               <string>Units:</string>
+               <string>Quantity:</string>
               </property>
              </widget>
             </item>
             <item>
-             <widget class="QLineEdit" name="edtBuyUnits">
+             <widget class="QLineEdit" name="edtBuyQuantity">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                 <horstretch>0</horstretch>
@@ -168,7 +168,7 @@
             <item>
              <widget class="QLabel" name="label_2">
               <property name="text">
-               <string>Price/unit:</string>
+               <string>Price:</string>
               </property>
              </widget>
             </item>
@@ -291,12 +291,12 @@
             <item>
              <widget class="QLabel" name="label_3">
               <property name="text">
-               <string>Units:</string>
+               <string>Quantity:</string>
               </property>
              </widget>
             </item>
             <item>
-             <widget class="QLineEdit" name="edtSellUnits">
+             <widget class="QLineEdit" name="edtSellQuantity">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                 <horstretch>0</horstretch>
@@ -347,7 +347,7 @@
             <item>
              <widget class="QLabel" name="label_6">
               <property name="text">
-               <string>Price/unit:</string>
+               <string>Price:</string>
               </property>
              </widget>
             </item>
@@ -427,11 +427,11 @@
  </widget>
  <tabstops>
   <tabstop>cbMoniker</tabstop>
-  <tabstop>edtBuyUnits</tabstop>
+  <tabstop>edtBuyQuantity</tabstop>
   <tabstop>edtBuyPrice</tabstop>
   <tabstop>btnBuy</tabstop>
   <tabstop>tvBuy</tabstop>
-  <tabstop>edtSellUnits</tabstop>
+  <tabstop>edtSellQuantity</tabstop>
   <tabstop>edtSellPrice</tabstop>
   <tabstop>btnSell</tabstop>
   <tabstop>tvSell</tabstop>
