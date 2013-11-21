@@ -23,10 +23,10 @@ class NewAddressDialog(QtGui.QDialog):
         return str(self.cbMoniker.currentText())
 
 
-class ReceivePage(QtGui.QWidget):
+class AddressesPage(QtGui.QWidget):
     def __init__(self, parent):
         QtGui.QWidget.__init__(self, parent)
-        uic.loadUi(uic.getUiPath('receivepage.ui'), self)
+        uic.loadUi(uic.getUiPath('addressespage.ui'), self)
 
         self.model = AddressTableModel(self)
         self.proxyModel = QtGui.QSortFilterProxyModel(self)

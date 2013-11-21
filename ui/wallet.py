@@ -41,6 +41,11 @@ class Wallet(object):
     def get_all_asset(self):
         return self.wallet.wallet_config['asset_definitions']
 
+    def issue(self, params):
+        self.controller.issue_coins(
+            params['moniker'], params['coloring_scheme'],
+            params['units'], params['amount'])
+
     def get_all_monikers(self):
         monikers = [asset.get_monikers()[0] for asset in
             self.model.get_asset_definition_manager().get_all_assets()]
