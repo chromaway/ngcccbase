@@ -1,4 +1,4 @@
-from colordef import ColorDefinition
+from colordef import ColorDefinition, UNCOLORED_MARKER
 
 
 class ColorMap(object):
@@ -22,7 +22,7 @@ class ColorMap(object):
     def get_color_def(self, color_id_or_desc):
         """ Finds a color definition given an id or description """
         if color_id_or_desc == 0:
-            return None
+            return UNCOLORED_MARKER
         color_id = color_id_or_desc
         color_desc = None
         if not isinstance(color_id, (int, long)):
