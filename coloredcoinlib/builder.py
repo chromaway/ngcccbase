@@ -56,7 +56,7 @@ class BasicColorDataBuilder(ColorDataBuilder):
             in_colorvalues.append(val)
             if val:
                 empty = False
-        if empty and not self.colordef.is_genesis(tx):
+        if empty and not self.colordef.is_special_tx(tx):
             return
         out_colorvalues = self.colordef.run_kernel(tx, in_colorvalues)
         for o_index, val in enumerate(out_colorvalues):
