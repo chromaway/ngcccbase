@@ -112,6 +112,7 @@ class MyEProposal(EProposal):
         rtxs = RawTxSpec.from_tx_data(self.ewctrl.model,
                                       reply_ep.etx_data.decode('hex'))
         rtxs.sign(self.etx_spec.my_utxo_list)
+        self.ewctrl.publish_tx(rtxs) # TODO: ???
         self.etx_data = rtxs.get_hex_tx_data()
 
 
@@ -131,7 +132,9 @@ class MyReplyEProposal(EProposal):
         return data
 
     def process_reply(self, reply_ep):
-        pass
+        rtxs = RawTxSpec.from_tx_data(self.ewctrl.model,
+                                      reply_ep.etx_data.decode('hex'))
+        self.ewctrl.publish_tx(rtxs) # TODO: ???
         
 
 class ForeignEProposal(EProposal):

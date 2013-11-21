@@ -73,7 +73,7 @@ class Wallet(object):
                 item['value'])
 
     def p2ptrade_init(self):
-        ewctrl = EWalletController(self.model)
+        ewctrl = EWalletController(self.model, self.controller)
         config = {"offer_expiry_interval": 30,
                   "ep_expiry_interval": 30}
         comm = HTTPExchangeComm(

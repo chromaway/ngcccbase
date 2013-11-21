@@ -75,8 +75,12 @@ class OperationalETxSpec(txspec.OperationalTxSpec):
 
 
 class EWalletController(object):
-    def __init__(self, model):
+    def __init__(self, model, wctrl):
         self.model = model
+        self.wctrl = wctrl
+
+    def publish_tx(self, raw_tx):
+        return self.wctrl.publish_tx(raw_tx)
 
     def resolve_color_spec(self, color_spec):
         colormap = self.model.get_color_map()

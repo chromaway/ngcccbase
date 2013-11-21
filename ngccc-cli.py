@@ -298,7 +298,7 @@ class Application(object):
         from ngcccbase.p2ptrade.agent import EAgent
         from ngcccbase.p2ptrade.comm import HTTPExchangeComm
 
-        ewctrl = EWalletController(self.model)
+        ewctrl = EWalletController(self.model, self.controller)
         config = {"offer_expiry_interval": 30,
                   "ep_expiry_interval": 30}
         comm = HTTPExchangeComm(
