@@ -486,12 +486,23 @@ class ColoredCoinContext(object):
         params = config.get('ccc', {})
         self.testnet = config.get('testnet', False)
 
-        if self.testnet:
-            self.blockchain_state = blockchain.BlockchainState.from_url(
-                None, self.testnet)
-        else:
-            self.blockchain_state = EnhancedBlockchainState(
-                "btc.it-zone.org", 50001)
+        self.blockchain_state = blockchain.BlockchainState.from_url(
+            None, self.testnet)
+
+        if not self.testnet:
+            ok = False
+            try:
+                # try fetching transaction from the second block of 
+                # the bitcoin blockchain to see whether txindex works
+                self.blockchain_state.bitcoind.getrawtransaction(
+                    "9b0fc92260312ce44e74ef369f5c66bbb85848f2eddd5a7a1cde251e54ccfdd5")
+                ok = True
+            except Exception as e:
+                pass
+            if not ok:
+                # use Electrum to request transactions
+                self.blockchain_state = EnhancedBlockchainState(
+                    "btc.it-zone.org", 50001)
 
         self.store_conn = store.DataStoreConnection(
             params.get("color.db", "color.db"))
