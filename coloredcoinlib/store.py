@@ -8,13 +8,15 @@ import cPickle as pickle
 
 class DataStoreConnection(object):
     """ A database connection """
-    def __init__(self, path):
+    def __init__(self, path, autocommit=False):
         self.path = path
         self.conn = sqlite3.connect(path)
-        self.conn.isolation_level = None
+        if autocommit:
+            self.conn.isolation_level = None
 
     def __del__(self):
         if self.conn:
+            self.conn.commit()
             self.conn.close()
 
 
@@ -34,6 +36,9 @@ class DataStore(object):
         cur = self.conn.cursor()
         cur.execute(statement, params)
         return cur
+
+    def sync(self):
+        self.conn.commit()
 
     def transaction(self):
         return self.conn
@@ -182,6 +187,7 @@ class ColorMetaStore(DataStore):
             self.execute(
                 "INSERT INTO color_map(color_id, color_desc) VALUES (NULL, ?)",
                 (color_desc,))
+            self.sync()
             res = self.execute(q, (color_desc, )).fetchone()
         return unwrap1(res)
 

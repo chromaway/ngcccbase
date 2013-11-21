@@ -76,13 +76,17 @@ class FullScanColorDataBuilder(BasicColorDataBuilder):
             self.colordef.genesis['height'])
 
     def scan_block(self, blockhash):
+        log("scan block %s", blockhash)
         for tx in self.blockchain_state.iter_block_txs(blockhash):
             self.scan_tx(tx)
         self.metastore.set_as_scanned(self.color_id, blockhash)
 
     def scan_blockchain(self, blocklist):
-        for i, blockhash in enumerate(blocklist):
-            self.scan_block(blockhash)
+        with self.cdstore.transaction():
+            for i, blockhash in enumerate(blocklist):
+                self.scan_block(blockhash)
+                if i % 25 == 0: # sync each 25 blocks
+                    self.cdstore.sync()
 
     def ensure_scanned_upto(self, final_blockhash):
         if self.metastore.did_scan(self.color_id, final_blockhash):
@@ -93,6 +97,7 @@ class FullScanColorDataBuilder(BasicColorDataBuilder):
         blockhash = final_blockhash
         blocklist = []
         while not self.metastore.did_scan(self.color_id, blockhash):
+            log("recon block %s", blockhash)
             blocklist.insert(0, blockhash)
             blockhash = self.blockchain_state.get_previous_blockhash(
                 blockhash)

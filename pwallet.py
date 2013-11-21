@@ -23,7 +23,7 @@ class PersistentWallet(object):
         """
         if wallet_path is None:
             wallet_path = "wallet.db"
-        self.store_conn = store.DataStoreConnection(wallet_path)
+        self.store_conn = store.DataStoreConnection(wallet_path, True)
         self.store_conn.conn.row_factory = sqlite3.Row
         self.wallet_config = store.PersistentDictStore(
             self.store_conn.conn, "wallet")
