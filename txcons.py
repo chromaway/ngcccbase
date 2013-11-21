@@ -116,8 +116,14 @@ class SimpleOperationalTxSpec(txspec.OperationalTxSpec):
         in Satoshi that we'll be spending from our wallet.
         """
         color_id = color_def.color_id
-        if not (color_def == colordef.UNCOLORED_MARKER
-                or self.asset.get_color_set().has_color_id(color_id)):
+        get_colorvalue = None
+
+        if color_def == colordef.UNCOLORED_MARKER:
+            get_colorvalue = lambda utxo: utxo.value
+        elif self.asset and \
+                self.asset.get_color_set().has_color_id(color_id):
+            get_colorvalue = self.asset.get_colorvalue
+        else:
             raise Exception("wrong color id requested")
         cq = self.model.make_coin_query({"color_id_set": set([color_id])})
         utxo_list = cq.get_result()
@@ -127,11 +133,11 @@ class SimpleOperationalTxSpec(txspec.OperationalTxSpec):
         if colorvalue == 0:
             raise Exception('cannot select 0 coins')
         for utxo in utxo_list:
-            ssum += self.asset.get_colorvalue(utxo)
+            ssum += get_colorvalue(utxo)
             selection.append(utxo)
             if ssum >= colorvalue:
                 return selection, ssum
-        raise Exception('not enough coins to reach the target')
+        raise Exception('not enough coins: %s requested, %s found' % (colorvalue, ssum))
 
     def get_required_fee(self, tx_size):
         """Given a transaction that is of size <tx_size>,
