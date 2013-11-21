@@ -242,7 +242,7 @@ class TransactionSpecTransformer(object):
             obc_color_def = None
             for target in op_tx_spec.get_targets():
                 color_def = target[1]
-                if color_def is None:
+                if color_def is colordef.UNCOLORED_MARKER:
                     continue
                 if isinstance(color_def, colordef.OBColorDefinition):
                     obc_color_def = color_def

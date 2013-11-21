@@ -12,7 +12,8 @@ class OperationalETxSpec(txspec.OperationalTxSpec):
     def get_targets(self):
         return self.targets
 
-    def get_change_addr(self, color_id):
+    def get_change_addr(self, color_def):
+        color_id = color_def.color_id
         cs = ColorSet.from_color_ids(self.model, [color_id])
         wam = self.model.get_address_manager()
         return wam.get_change_address(cs).get_address()
@@ -46,7 +47,8 @@ class OperationalETxSpec(txspec.OperationalTxSpec):
     def get_required_fee(self, tx_size):
         return 10000  # TODO
 
-    def select_coins(self, color_id, value):
+    def select_coins(self, color_def, value):
+        color_id = color_def.color_id
         if color_id in self.inputs:
             c_inputs = self.inputs[color_id]
             tv = sum([inp[0] for inp in c_inputs])
@@ -64,6 +66,7 @@ class OperationalETxSpec(txspec.OperationalTxSpec):
             if value == 0:
                 raise Exception('cannot select 0 coins')
             for utxo in utxo_list:
+                # TODO: use colorvalue!
                 ssum += utxo.value
                 selection.append(utxo)
             if ssum >= value:
