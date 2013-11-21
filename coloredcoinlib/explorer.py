@@ -4,8 +4,9 @@ import json
 
 BASE_URL = "http://explorer.tumak.cz"
 
+
 def get_spends(tx, blockchain_state):
-    """ Returns transactions which spend outputs from a given transaction 
+    """ Returns transactions which spend outputs from a given transaction
     """
     url = 'http://explorer.tumak.cz/spends/%s' % tx
     response = urllib2.urlopen(url)

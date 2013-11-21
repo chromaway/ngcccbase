@@ -1,8 +1,10 @@
 """ Color data representation objects."""
 
+
 class ColorData(object):
     """Base color data class"""
     pass
+
 
 class ThickColorData(ColorData):
     """ Color data which needs access to the whole blockchain state"""

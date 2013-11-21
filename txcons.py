@@ -59,8 +59,7 @@ class BasicTxSpec(object):
         """
         if not self.is_monoasset():
             return False
-        asset = self.targets[0][1]
-        return asset.get_color_list().color_id_set == set([0])
+        return asset.color_def == colordef.UNCOLORED_MARKER
 
 
 class SimpleOperationalTxSpec(txspec.OperationalTxSpec):
@@ -77,17 +76,16 @@ class SimpleOperationalTxSpec(txspec.OperationalTxSpec):
         self.targets = []
         self.asset = asset
 
-    def add_target(self, target_addr, color_id, colorvalue):
+    def add_target(self, target_addr, color_def, colorvalue):
         """Add a receiving address <target_addr> for the transaction
-        that will send color <color_id> an amount <colorvalue>
+        that will send color <color_def> an amount <colorvalue>
         in Satoshi worth of colored coins.
         """
-        if not isinstance(color_id, colordef.ColorDefinition):
-            cdef = self.model.get_color_map().get_color_def(
-                color_id, self.model.ccc.blockchain_state)
-        else:
-            cdef = color_id
-        self.targets.append((target_addr, cdef, colorvalue))
+        if color_def is None:
+            raise Exception("No defined color when adding a target")
+        if isinstance(color_def, int):
+            raise Exception("Integer for color when adding a target")
+        self.targets.append((target_addr, color_def, colorvalue))
 
     def get_targets(self):
         """Get a list of (receiving address, color_id, colorvalue)
@@ -95,14 +93,15 @@ class SimpleOperationalTxSpec(txspec.OperationalTxSpec):
         """
         return self.targets
 
-    def get_change_addr(self, color_id):
+    def get_change_addr(self, color_def):
         """Get an address associated with color <color_id>
         that is in the current wallet for receiving change.
         """
+        color_id = color_def.color_id
         from wallet_model import ColorSet
         wam = self.model.get_address_manager()
         color_set = None
-        if color_id == 0:
+        if color_def == colordef.UNCOLORED_MARKER:
             color_set = ColorSet.from_color_ids(self.model, [0])
         elif self.asset.get_color_set().has_color_id(color_id):
             color_set = self.asset.get_color_set()
@@ -111,26 +110,26 @@ class SimpleOperationalTxSpec(txspec.OperationalTxSpec):
         aw = wam.get_change_address(color_set)
         return aw.get_address()
 
-    def select_coins(self, color_id, value):
+    def select_coins(self, color_def, colorvalue):
         """Return a list of utxos and sum that corresponds to
-        the colored coins identified by <color_id> of amount <value>
-        in Satoshi that be spending from our wallet.
+        the colored coins identified by <color_def> of amount <colorvalue>
+        in Satoshi that we'll be spending from our wallet.
         """
-        if not ((color_id == 0)
+        color_id = color_def.color_id
+        if not (color_def == colordef.UNCOLORED_MARKER
                 or self.asset.get_color_set().has_color_id(color_id)):
             raise Exception("wrong color id requested")
-        color_id_set = set([color_id])
-        cq = self.model.make_coin_query({"color_id_set": color_id_set})
+        cq = self.model.make_coin_query({"color_id_set": set([color_id])})
         utxo_list = cq.get_result()
 
         ssum = 0
         selection = []
-        if value == 0:
+        if colorvalue == 0:
             raise Exception('cannot select 0 coins')
         for utxo in utxo_list:
-            ssum += utxo.value
+            ssum += color_def.satoshi_to_color(utxo.value)
             selection.append(utxo)
-            if ssum >= value:
+            if ssum >= colorvalue:
                 return selection, ssum
         raise Exception('not enough coins to reach the target')
 
@@ -190,7 +189,8 @@ def compose_uncolored_tx(tx_spec):
     targets = tx_spec.get_targets()
     ttotal = sum([target[2] for target in targets])
     fee = tx_spec.get_required_fee(500)
-    sel_utxos, sum_sel_coins = tx_spec.select_coins(0, ttotal + fee)
+    sel_utxos, sum_sel_coins = tx_spec.select_coins(colordef.UNCOLORED_MARKER,
+                                                    ttotal + fee)
     txins = [txspec.ComposedTxSpec.TxIn(utxo)
              for utxo in sel_utxos]
     change = sum_sel_coins - ttotal - fee
@@ -200,7 +200,7 @@ def compose_uncolored_tx(tx_spec):
     if change > 0:
         txouts.append(
             txspec.ComposedTxSpec.TxOut(
-                change, tx_spec.get_change_addr(0)))
+                change, tx_spec.get_change_addr(colordef.UNCOLORED_MARKER)))
     return txspec.ComposedTxSpec(txins, txouts)
 
 
@@ -227,7 +227,7 @@ class TransactionSpecTransformer(object):
         """
         if op_tx_spec.is_monocolor():
             color_def = op_tx_spec.get_targets()[0][1]
-            if color_def is None:
+            if color_def == colordef.UNCOLORED_MARKER:
                 return compose_uncolored_tx
             else:
                 return color_def.compose_tx_spec

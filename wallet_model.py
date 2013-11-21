@@ -8,7 +8,8 @@ definitions, but it doesn't implement high-level operations
 (those are implemented in controller).
 """
 
-from coloredcoinlib import blockchain, builder, store, colormap, colordata
+from coloredcoinlib import (blockchain, builder, store, colormap,
+                            colordata, colordef)
 from ngcccbase.services.electrum import EnhancedBlockchainState
 from ngcccbase import txdb
 from address import Address, TestnetAddress, InvalidAddressError
@@ -37,8 +38,16 @@ class ColorSet(object):
         self.color_desc_list = color_desc_list
         self.color_id_set = set()
         colormap = model.get_color_map()
+        self.color_def = None
         for color_desc in color_desc_list:
-            self.color_id_set.add(colormap.resolve_color_desc(color_desc))
+            color_id = colormap.resolve_color_desc(color_desc)
+            self.color_id_set.add(color_id)
+            if not self.color_def:
+                self.color_def = colormap.get_color_def(
+                    color_id, model.ccc.blockchain_state
+                    )
+        if not self.color_def:
+            self.color_def = colordef.UNCOLORED_MARKER
 
     def get_data(self):
         """Returns a list of strings that describe the colors.
@@ -107,10 +116,11 @@ class AssetDefinition(object):
         """
         return self.color_set
 
-    def get_utxo_value(self, utxo):
-        """ return asset value for a given utxo"""
-        #  TODO: user colorvalues
-        return utxo.value
+    def get_colorvalue(self, utxo):
+        """ return colorvalue for a given utxo"""
+        if self.color_set.color_def is None:
+            raise Exception("No color defined")
+        return self.color_set.color_def.satoshi_to_color(utxo.value)
 
     def make_operational_tx_spec(self, tx_spec):
         """Given a <tx_spec> of type BasicTxSpec, return
@@ -121,9 +131,11 @@ class AssetDefinition(object):
             raise Exception('tx spec type not supported')
         op_tx_spec = txcons.SimpleOperationalTxSpec(self.model, self)
         color_id = list(self.color_set.color_id_set)[0]
+        color_def = self.model.ccc.colormap.get_color_def(
+            color_id, self.model.ccc.blockchain_state)
         for target in tx_spec.targets:
             # TODO: translate colorvalues
-            op_tx_spec.add_target(target[0], color_id, target[2])
+            op_tx_spec.add_target(target[0], color_def, target[2])
         return op_tx_spec
 
     def parse_value(self, portion):
@@ -492,10 +504,11 @@ class ColoredCoinContext(object):
         if not self.testnet:
             ok = False
             try:
-                # try fetching transaction from the second block of 
+                # try fetching transaction from the second block of
                 # the bitcoin blockchain to see whether txindex works
                 self.blockchain_state.bitcoind.getrawtransaction(
-                    "9b0fc92260312ce44e74ef369f5c66bbb85848f2eddd5a7a1cde251e54ccfdd5")
+                    "9b0fc92260312ce44e74ef369f5c66bbb85848f2eddd5"
+                    "a7a1cde251e54ccfdd5")
                 ok = True
             except Exception as e:
                 pass
@@ -535,8 +548,8 @@ class CoinQueryFactory(object):
         color_set = query.get('color_set')
         if not color_set:
             if 'color_id_set' in query:
-                color_set = ColorSet.from_color_ids(self.model,
-                                                    query['color_id_set'])
+                color_set = ColorSet.from_color_ids(
+                    self.model, query['color_id_set'])
             elif 'asset' in query:
                 color_set = query['asset'].get_color_set()
             else:
@@ -612,12 +625,14 @@ class WalletModel(object):
             colordef = self.ccc.colormap.get_color_def(
                 color, self.ccc.blockchain_state)
             seen_hashes = {}
-            for row in reversed(self.ccc.cdstore.get_all(color)):
+            for row in self.ccc.cdstore.get_all(color):
                 # address_ledger will keep track of the net
                 #  affect on an address
                 address_ledger = {}
                 appended = 0
                 txhash = row[0]
+                blockhash = self.ccc.blockchain_state.get_tx_blockhash(txhash)
+                height = self.ccc.blockchain_state.get_block_height(blockhash)
                 if seen_hashes.get(txhash):
                     continue
                 seen_hashes[txhash] = 1
@@ -628,7 +643,8 @@ class WalletModel(object):
 
                     if address_lookup.get(address):
                         address_ledger[address] = \
-                            address_ledger.get(address, 0) + output.value
+                            address_ledger.get(address, 0) \
+                            + colordef.satoshi_to_color(output.value)
 
                 for input in tx.inputs:
                     # find the hash referred to by the input
@@ -638,19 +654,30 @@ class WalletModel(object):
                     address = klass.rawPubkeyToAddress(output.raw_address)
                     if address_lookup.get(address):
                         address_ledger[address] = \
-                            address_ledger.get(address, 0) - output.value
+                            address_ledger.get(address, 0) \
+                            - colordef.satoshi_to_color(output.value)
 
                 for address, value in address_ledger.items():
+                    item = {'address': address, 'height': height}
                     if value < 0:
-                        history.append(["sent", -value, address])
+                        item['action'] = 'sent'
+                        item['value'] = -value
                     elif txhash == colordef.genesis['txhash']:
-                        history.append(["issued", value, address])
+                        item['action'] = 'issued'
+                        item['value'] = value
                     else:
-                        history.append(["received", value, address])
+                        item['action'] = 'received'
+                        item['value'] = value
+                    history.append(item)
 
                 if len(address_ledger) == 0:
-                    history.append(["unknown", txhash, ""])
-        return history
+                    item = {
+                        'address': txhash, 'height': height,
+                        'action': 'unknown', 'value': -1}
+                    history.append(item)
+        # sort by height (date order)
+        return sorted(history, cmp=lambda a, b: a['height'] - b['height']
+                      or cmp(b['action'], a['action']))
 
     def get_color_map(self):
         """Access method for ColoredCoinContext's colormap

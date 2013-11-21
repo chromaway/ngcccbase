@@ -56,7 +56,7 @@ class BasicColorDataBuilder(ColorDataBuilder):
             in_colorvalues.append(val)
             if val:
                 empty = False
-        if empty and not (self.colordef.is_special_tx(tx)):
+        if empty and not self.colordef.is_genesis(tx):
             return
         out_colorvalues = self.colordef.run_kernel(tx, in_colorvalues)
         for o_index, val in enumerate(out_colorvalues):
@@ -152,7 +152,6 @@ class AidedColorDataBuilder(FullScanColorDataBuilder):
 
             for tx in sorted_block_txs:
                 self.scan_tx(tx)
-            
 
 
 if __name__ == "__main__":
@@ -263,5 +262,5 @@ if __name__ == "__main__":
         br_set,
         '741a53bf925510b67dc0d69f33eb2ad92e0a284a3172d4e82e2a145707935b3e',
         1), "== Red (complex chain TX)"
-        
+
     print "Finished in", datetime.datetime.now() - start

@@ -9,14 +9,14 @@ class OperationalTxSpec(object):
            (target_addr, color_def, colorvalue)"""
         raise Exception('not implemented')
 
-    def select_coins(self, color_id, colorvalue):
-        """returns a list of UTXO objects with color_id
-           which have at least the colorvalue"""
+    def select_coins(self, color_def, colorvalue):
+        """returns a list of UTXO objects with color defined in color_def
+           whose colorvalue sums have at least the colorvalue"""
         raise Exception('not implemented')
 
-    def get_change_addr(self, color_id):
+    def get_change_addr(self, color_def):
         """returns an address which can be used as
-           a change for this color_id"""
+           a change for this color_def"""
         raise Exception('not implemented')
 
     def get_required_fee(self, tx_size):
@@ -26,7 +26,7 @@ class OperationalTxSpec(object):
     def is_monocolor(self):
         targets = self.get_targets()
         color_def = targets[0][1]
-        for target in targets:
+        for target in targets[1:]:
             if target[1] is not color_def:
                 return False
         return True
