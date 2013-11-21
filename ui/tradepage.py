@@ -122,30 +122,31 @@ class TradePage(QtGui.QWidget):
 
     def lblBuyTotalChange(self):
         self.lblBuyTotal.setText('')
-        if self.edtBuyQuantity.text().toFloat()[1] \
-                and self.edtBuyPrice.text().toFloat()[1]:
-            value = self.edtBuyQuantity.text().toFloat()[0]
+        if self.edtBuyQuantity.text().toDouble()[1] \
+                and self.edtBuyPrice.text().toDouble()[1]:
+            value = self.edtBuyQuantity.text().toDouble()[0]
             bitcoin = wallet.get_asset_definition('bitcoin')
             price = bitcoin.parse_value(
-                self.edtBuyPrice.text().toFloat()[0])
+                self.edtBuyPrice.text().toDouble()[0])
+            print price
             total = value*price
             self.lblBuyTotal.setText('%s bitcoin' % bitcoin.format_value(total))
 
     def btnBuyClicked(self):
         valid = True
-        if not self.edtBuyQuantity.text().toFloat()[1]:
+        if not self.edtBuyQuantity.text().toDouble()[1]:
             self.edtBuyQuantity.setStyleSheet('background:#FF8080')
             valid = False
-        if not self.edtBuyPrice.text().toFloat()[1]:
+        if not self.edtBuyPrice.text().toDouble()[1]:
             self.edtBuyPrice.setStyleSheet('background:#FF8080')
             valid = False
         if not valid:
             return
         moniker = str(self.cbMoniker.currentText())
         asset = wallet.get_asset_definition(moniker)
-        value = self.edtBuyQuantity.text().toFloat()[0]
+        value = self.edtBuyQuantity.text().toDouble()[0]
         bitcoin = wallet.get_asset_definition('bitcoin')
-        price = self.edtBuyPrice.text().toFloat()[0]
+        price = self.edtBuyPrice.text().toDouble()[0]
         delta = wallet.get_balance(bitcoin) - value*bitcoin.parse_value(price)
         if delta < 0:
             message = 'The transaction amount exceeds the balance by %s bitcoin' % \
@@ -164,30 +165,30 @@ class TradePage(QtGui.QWidget):
 
     def lblSellTotalChange(self):
         self.lblSellTotal.setText('')
-        if self.edtSellQuantity.text().toFloat()[1] \
-                and self.edtSellPrice.text().toFloat()[1]:
-            value = self.edtSellQuantity.text().toFloat()[0]
+        if self.edtSellQuantity.text().toDouble()[1] \
+                and self.edtSellPrice.text().toDouble()[1]:
+            value = self.edtSellQuantity.text().toDouble()[0]
             bitcoin = wallet.get_asset_definition('bitcoin')
             price = bitcoin.parse_value(
-                self.edtSellPrice.text().toFloat()[0])
+                self.edtSellPrice.text().toDouble()[0])
             total = value*price
             self.lblSellTotal.setText('%s bitcoin' % bitcoin.format_value(total))
 
     def btnSellClicked(self):
         valid = True
-        if not self.edtSellQuantity.text().toFloat()[1]:
+        if not self.edtSellQuantity.text().toDouble()[1]:
             self.edtSellQuantity.setStyleSheet('background:#FF8080')
             valid = False
-        if not self.edtSellPrice.text().toFloat()[1]:
+        if not self.edtSellPrice.text().toDouble()[1]:
             self.edtSellPrice.setStyleSheet('background:#FF8080')
             valid = False
         if not valid:
             return
         moniker = str(self.cbMoniker.currentText())
         asset = wallet.get_asset_definition(moniker)
-        value = self.edtSellQuantity.text().toFloat()[0]
+        value = self.edtSellQuantity.text().toDouble()[0]
         bitcoin = wallet.get_asset_definition('bitcoin')
-        price = self.edtSellPrice.text().toFloat()[0]
+        price = self.edtSellPrice.text().toDouble()[0]
         delta = wallet.get_balance(asset) - asset.parse_value(value)
         if delta < 0:
             message = 'The transaction amount exceeds the balance by %s %s' % \

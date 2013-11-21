@@ -40,6 +40,67 @@ class AddAssetDialog(QtGui.QDialog):
         }
 
 
+class IssueCoinsDialog(QtGui.QDialog):
+    def __init__(self, parent):
+        QtGui.QDialog.__init__(self, parent)
+        uic.loadUi(uic.getUiPath('issuedialog.ui'), self)
+
+        self.cbScheme.addItem('obc')
+
+        for wname in ['edtMoniker', 'edtAmount', 'edtUnits']:
+            getattr(self, wname).focusInEvent = \
+                lambda e, name=wname: getattr(self, name).setStyleSheet('')
+
+        self.edtAmount.textChanged.connect(self.changeTotalBTC)
+        self.edtUnits.textChanged.connect(self.changeTotalBTC)
+
+        self.availableBTC = wallet.get_balance('bitcoin')
+        self.lblTotalBTC.setToolTip('Available: %s bitcoin' % \
+            wallet.get_asset_definition('bitcoin').format_value(self.availableBTC))
+
+    def changeTotalBTC(self):
+        amount = self.edtAmount.text().toInt()
+        units = self.edtUnits.text().toInt()
+        if amount[1] and units[1]:
+            need = amount[0] * units[0]
+            text = '%s bitcoin' % \
+                wallet.get_asset_definition('bitcoin').format_value(need)
+            if need > self.availableBTC:
+                text = '<font color="#FF3838">%s</font>' % text
+            self.lblTotalBTC.setText(text)
+
+    def isValid(self):
+        a = bool(self.edtMoniker.text())
+        if not a:
+            self.edtMoniker.setStyleSheet('background:#FF8080')
+
+        b = self.edtAmount.text().toInt()
+        if not b[1]:
+            self.edtAmount.setStyleSheet('background:#FF8080')
+
+        c = self.edtUnits.text().toInt()
+        if not c[1]:
+            self.edtUnits.setStyleSheet('background:#FF8080')
+
+        d = False
+        if b[1] and c[1] and b[0]*c[0] <= self.availableBTC:
+            d = True
+
+        return all([a, b, c, d])
+
+    def accept(self):
+        if self.isValid():
+            QtGui.QDialog.accept(self)
+
+    def get_data(self):
+        return {
+            'moniker': str(self.edtMoniker.text()),
+            'coloring_scheme': str(self.cbScheme.currentText()),
+            'amount': self.edtAmount.text().toInt()[0],
+            'units': self.edtUnits.text().toInt()[0],
+        }
+
+
 class AssetTableModel(AbstractTableModel):
     _columns = ['Moniker', 'Color set', 'Unit']
     _alignment = [
@@ -70,7 +131,8 @@ class AssetPage(QtGui.QWidget):
         self.tableView.horizontalHeader().setResizeMode(
             2, QtGui.QHeaderView.ResizeToContents)
 
-        self.btnAddAsset.clicked.connect(self.btnAddAssetClicked)
+        self.btnAddExistingAsset.clicked.connect(self.btnAddExistingAssetClicked)
+        self.btnAddNewAsset.clicked.connect(self.btnAddNewAssetClicked)
 
     def update(self):
         self.model.removeRows(0, self.model.rowCount())
@@ -97,19 +159,26 @@ class AssetPage(QtGui.QWidget):
         QtGui.QApplication.clipboard().setText(
             self.proxyModel.data(index).toString())
 
-    def btnAddAssetClicked(self):
+    def selectRowByMoniker(self, moniker):
+        moniker = QtCore.QString(moniker)
+        for row in xrange(self.proxyModel.rowCount()):
+            index = self.proxyModel.index(row, 0)
+            if self.proxyModel.data(index).toString() == moniker:
+                self.tableView.selectRow(row)
+                break
+
+    def btnAddExistingAssetClicked(self):
         dialog = AddAssetDialog(self)
         if dialog.exec_():
             data = dialog.get_data()
             wallet.add_asset(data)
             self.update()
-            data = [data['moniker'], data['color_desc'], str(data['unit'])]
-            for row in xrange(self.proxyModel.rowCount()):
-                valid = True
-                for column in xrange(3):
-                    index = self.proxyModel.index(row, column)
-                    if str(self.proxyModel.data(index).toString()) != data[column]:
-                        valid = False
-                if valid:
-                    self.tableView.selectRow(row)
-                    break
+            self.selectRowByMoniker(data['moniker'])
+
+    def btnAddNewAssetClicked(self):
+        dialog = IssueCoinsDialog(self)
+        if dialog.exec_():
+            data = dialog.get_data()
+            wallet.issue(data)
+            self.update()
+            self.selectRowByMoniker(data['moniker'])

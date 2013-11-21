@@ -44,9 +44,20 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
-      <widget class="QPushButton" name="btnAddAsset">
+      <widget class="QPushButton" name="btnAddExistingAsset">
        <property name="text">
-        <string>Add asset</string>
+        <string>Add existing asset</string>
+       </property>
+       <property name="icon">
+        <iconset>
+         <normaloff>../icons/add.png</normaloff>../icons/add.png</iconset>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btnAddNewAsset">
+       <property name="text">
+        <string>Issue new asset</string>
        </property>
        <property name="icon">
         <iconset>

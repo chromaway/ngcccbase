@@ -7,7 +7,7 @@ import signal
 from overviewpage import OverviewPage
 from sendcoinspage import SendcoinsPage
 from assetpage import AssetPage
-from receivepage import ReceivePage
+from addressespage import AddressesPage
 from tradepage import TradePage
 
 from wallet import wallet
@@ -40,15 +40,14 @@ class MainWindow(QtGui.QMainWindow):
         self.stackedWidget.addWidget(self.sendcoinspage)
         self.assetpage = AssetPage(self)
         self.stackedWidget.addWidget(self.assetpage)
-        self.receivepage = ReceivePage(self)
-        self.stackedWidget.addWidget(self.receivepage)
+        self.addressespage = AddressesPage(self)
+        self.stackedWidget.addWidget(self.addressespage)
         self.tradepage = TradePage(self)
         self.stackedWidget.addWidget(self.tradepage)
 
         self.bindActions()
 
-        #self.gotoOverviewPage()
-        self.gotoP2PTradePage()
+        self.gotoOverviewPage()
 
     def bindActions(self):
         self.actionRescan.triggered.connect(wallet.scan)
@@ -66,8 +65,8 @@ class MainWindow(QtGui.QMainWindow):
         self.toolbarActionGroup.addAction(self.actionGotoAsset)
         self.actionGotoAsset.triggered.connect(self.gotoAssetPage)
 
-        self.toolbarActionGroup.addAction(self.actionGotoReceive)
-        self.actionGotoReceive.triggered.connect(self.gotoReceivePage)
+        self.toolbarActionGroup.addAction(self.actionGotoAddresses)
+        self.actionGotoAddresses.triggered.connect(self.gotoAddressesPage)
 
         self.toolbarActionGroup.addAction(self.actionP2PTrade)
         self.actionP2PTrade.triggered.connect(self.gotoP2PTradePage)
@@ -87,10 +86,10 @@ class MainWindow(QtGui.QMainWindow):
         self.assetpage.update()
         self.stackedWidget.setCurrentWidget(self.assetpage)
 
-    def gotoReceivePage(self):
-        self.actionGotoReceive.setChecked(True)
-        self.receivepage.update()
-        self.stackedWidget.setCurrentWidget(self.receivepage)
+    def gotoAddressesPage(self):
+        self.actionGotoAddresses.setChecked(True)
+        self.addressespage.update()
+        self.stackedWidget.setCurrentWidget(self.addressespage)
 
     def gotoP2PTradePage(self):
         self.actionP2PTrade.setChecked(True)
