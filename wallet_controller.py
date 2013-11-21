@@ -6,7 +6,7 @@ Executes high level tasks such as get balance
  (tasks that require more complex logic) [verification needed]
 """
 
-from coloredcoinlib.colordef import OBColorDefinition, genesis_output_marker
+from coloredcoinlib.colordef import ColorDefinition, GENESIS_OUTPUT_MARKER
 from wallet_model import ColorSet
 from txcons import BasicTxSpec, SimpleOperationalTxSpec
 
@@ -18,6 +18,7 @@ class WalletController(object):
         """Given a wallet model <model>, create a wallet controller.
         """
         self.model = model
+        self.debug = False
 
     def publish_tx(self, signed_tx_spec):
         """Given a signed transaction <signed_tx_spec>, publish the transaction
@@ -37,13 +38,21 @@ class WalletController(object):
         """
         self.model.utxo_man.update_all()
 
-    def send_coins(self, target_addr, asset, value):
+    def send_coins(self, asset, target_addrs, colorvalues):
         """Sends coins to address <target_addr> of asset/color <asset>
-        of amount <value> Satoshis.
+        of amount <colorvalue> Satoshis.
         """
         tx_spec = BasicTxSpec(self.model)
-        tx_spec.add_target(target_addr, asset, value)
+        for target_addr, colorvalue in zip(target_addrs, colorvalues):
+            tx_spec.add_target(target_addr, asset, colorvalue)
         signed_tx_spec = self.model.transform_tx_spec(tx_spec, 'signed')
+        if self.debug:
+            print "In:"
+            for txin in signed_tx_spec.composed_tx_spec.txins:
+                print txin.utxo.value
+            print "Out:"
+            for txout in signed_tx_spec.composed_tx_spec.txouts:
+                print txout.value
         self.publish_tx(signed_tx_spec)
 
     def issue_coins(self, moniker, pck, units, atoms_in_unit):
@@ -51,27 +60,27 @@ class WalletController(object):
         <pck> with <units> per share and <atoms_in_unit> total.
         """
 
-        if pck == 'obc':
-            total = units * atoms_in_unit
-            op_tx_spec = SimpleOperationalTxSpec(self.model, None)
-            wam = self.model.get_address_manager()
-            address = wam.get_new_genesis_address()
-            op_tx_spec.add_target(address.get_address(),
-                                  genesis_output_marker, total)
-            genesis_ctxs = OBColorDefinition.compose_genesis_tx_spec(
-                op_tx_spec)
-            genesis_tx = self.model.transform_tx_spec(genesis_ctxs, 'signed')
-            height = self.model.ccc.blockchain_state.bitcoind.getblockcount() \
-                - 1
-            genesis_tx_hash = self.publish_tx(genesis_tx)
-            color_desc = ':'.join(['obc', genesis_tx_hash, '0', str(height)])
-            adm = self.model.get_asset_definition_manager()
-            asset = adm.add_asset_definition({"monikers": [moniker],
-                                              "color_set": [color_desc],
-                                              "unit": atoms_in_unit})
-            wam.update_genesis_address(address, asset.get_color_set())
-        else:
-            raise Exception('color scheme not recognized')
+        color_definition_cls = ColorDefinition.get_color_def_cls_for_code(pck)
+        if not color_definition_cls:
+            raise Exception('color scheme %s not recognized' % pck)
+
+        total = units * atoms_in_unit
+        op_tx_spec = SimpleOperationalTxSpec(self.model, None)
+        wam = self.model.get_address_manager()
+        address = wam.get_new_genesis_address()
+        op_tx_spec.add_target(
+            address.get_address(), GENESIS_OUTPUT_MARKER, total)
+        genesis_ctxs = color_definition_cls.compose_genesis_tx_spec(op_tx_spec)
+        genesis_tx = self.model.transform_tx_spec(genesis_ctxs, 'signed')
+        height = self.model.ccc.blockchain_state.bitcoind.getblockcount() \
+            - 1
+        genesis_tx_hash = self.publish_tx(genesis_tx)
+        color_desc = ':'.join([pck, genesis_tx_hash, '0', str(height)])
+        adm = self.model.get_asset_definition_manager()
+        asset = adm.add_asset_definition({"monikers": [moniker],
+                                          "color_set": [color_desc],
+                                          "unit": atoms_in_unit})
+        wam.update_genesis_address(address, asset.get_color_set())
 
     def get_new_address(self, asset):
         """Given an asset/color <asset>, create a new bitcoin address
@@ -101,11 +110,14 @@ class WalletController(object):
         """
         cq = self.model.make_coin_query({"asset": asset})
         utxo_list = cq.get_result()
-        value_list = [asset.get_utxo_value(utxo) for utxo in utxo_list]
+        value_list = [asset.get_colorvalue(utxo) for utxo in utxo_list]
         return sum(value_list)
 
     def get_history(self, asset):
         """Returns the history of an asset for all addresses of that color
         in this wallet
         """
+        # update everything first
+        self.scan_utxos()
+        self.get_balance(asset)
         return self.model.get_history_for_asset(asset)

@@ -92,7 +92,7 @@ class ColorDataStore(DataStore):
 
 class PersistentDictStore(DictMixin, DataStore):
     """ Persistent dict object """
-    
+
     def __init__(self, conn, dictname):
         super(PersistentDictStore, self).__init__(conn)
         conn.text_factory = str

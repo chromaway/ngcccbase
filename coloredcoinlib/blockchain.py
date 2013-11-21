@@ -6,6 +6,7 @@ import bitcoin.core
 import bitcoin.serialize
 import bitcoin.rpc
 
+
 class COutpoint(object):
     def __init__(self, hash, n):
         self.hash = hash

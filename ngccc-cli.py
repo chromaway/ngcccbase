@@ -137,10 +137,7 @@ class Application(object):
                 self.data = data = {}
 
                 pw = PersistentWallet(self.args.get('wallet_path'))
-                try:
-                    pw.init_model()
-                except Exception as e:
-                    print "failed to initialize wallet model: %s" % e
+                pw.init_model()
 
                 wallet_model = pw.get_model()
 
@@ -280,7 +277,7 @@ class Application(object):
         """
         asset = self.get_asset_definition(kwargs['moniker'])
         value = asset.parse_value(kwargs['value'])
-        self.controller.send_coins(kwargs['address'], asset, value)
+        self.controller.send_coins(asset, [kwargs['address']], [value])
 
     def command_scan(self, **kwargs):
         """Update the database of transactions (amount in each address).
@@ -292,8 +289,9 @@ class Application(object):
         """
         asset = self.get_asset_definition(moniker=kwargs['moniker'])
         history = self.controller.get_history(asset)
-        for row in history:
-            print "%s %s %s" % (row[0], row[1], row[2])
+        for item in history:
+            print "%s %s %s" % (
+                item['action'], item['value'], item['address'])
 
     def init_p2ptrade(self):
         from ngcccbase.p2ptrade.ewctrl import EWalletController

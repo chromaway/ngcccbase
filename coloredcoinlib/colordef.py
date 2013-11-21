@@ -13,11 +13,12 @@ class ColorDefinition(object):
     This means how color exists and is transferred
     in the blockchain"""
     cd_classes = {}
+    CLASS_CODE = None
 
     def __init__(self, color_id):
         self.color_id = color_id
 
-    def is_special_tx(self, tx):
+    def is_genesis(self, tx):
         return False
 
     def run_kernel(self, tx, in_colorvalues):
@@ -28,25 +29,42 @@ class ColorDefinition(object):
             out_colorvalues.append(None)
         return out_colorvalues
 
-    @staticmethod
-    def register_color_def_class(code, clAss):
-        ColorDefinition.cd_classes[code] = clAss
+    @classmethod
+    def satoshi_to_color(cls, satoshivalue):
+        return satoshivalue
 
     @classmethod
-    def from_color_desc(cdc, color_id, color_desc, blockchain_state):
+    def color_to_satoshi(cls, colorvalue):
+        return colorvalue
+
+    @classmethod
+    def get_class_code(cls):
+        return cls.CLASS_CODE
+
+    @staticmethod
+    def register_color_def_class(cdclass):
+        ColorDefinition.cd_classes[cdclass.get_class_code()] = cdclass
+
+    @classmethod
+    def from_color_desc(cls, color_id, color_desc, blockchain_state):
         code = get_color_desc_code(color_desc)
-        cdclass = cdc.cd_classes[code]
+        cdclass = cls.cd_classes[code]
         return cdclass.from_color_desc(color_id, color_desc, blockchain_state)
+
+    @classmethod
+    def get_color_def_cls_for_code(cls, code):
+        return cls.cd_classes.get(code, None)
 
     def __repr__(self):
         return "%s" % self.color_id
 
-genesis_output_marker = ColorDefinition(-1)
+GENESIS_OUTPUT_MARKER = ColorDefinition(-1)
+UNCOLORED_MARKER = ColorDefinition(0)
 
 
 class OBColorDefinition(ColorDefinition):
     """Implements order-based coloring scheme"""
-    class_code = 'obc'
+    CLASS_CODE = 'obc'
 
     def __init__(self, color_id, genesis):
         super(OBColorDefinition, self).__init__(color_id)
@@ -54,11 +72,11 @@ class OBColorDefinition(ColorDefinition):
 
     def __repr__(self):
         return "%s:%s:%s:%s" % (
-            self.class_code, self.genesis['txhash'], self.genesis['outindex'],
+            self.CLASS_CODE, self.genesis['txhash'], self.genesis['outindex'],
             self.genesis['height'])
 
-    def is_special_tx(self, tx):
-        return (tx.hash == self.genesis['txhash'])
+    def is_genesis(self, tx):
+        return tx.hash == self.genesis['txhash']
 
     def run_kernel(self, tx, in_colorvalues):
         out_colorvalues = []
@@ -96,14 +114,15 @@ class OBColorDefinition(ColorDefinition):
             raise Exception(
                 'genesis transaction spec needs exactly one target')
         target_addr, color_def, value = targets[0]
-        if color_def != genesis_output_marker:
+        if color_def != GENESIS_OUTPUT_MARKER:
             raise Exception(
                 'genesis transaction target should use -1 color_id')
         fee = op_tx_spec.get_required_fee(300)
-        inputs, total = op_tx_spec.select_coins(0, fee + value)
+        inputs, total = op_tx_spec.select_coins(UNCOLORED_MARKER, fee + value)
         change = total - fee - value
         if change > 0:
-            targets.append((op_tx_spec.get_change_addr(0), 0, change))
+            targets.append((op_tx_spec.get_change_addr(UNCOLORED_MARKER),
+                            UNCOLORED_MARKER, change))
         txins = [txspec.ComposedTxSpec.TxIn(utxo)
                  for utxo in inputs]
         txouts = [txspec.ComposedTxSpec.TxOut(target[2], target[0])
@@ -116,7 +135,7 @@ class OBColorDefinition(ColorDefinition):
         # group targets by color
         for target in op_tx_spec.get_targets():
             color_def = target[1]
-            if color_def is None:
+            if color_def == UNCOLORED_MARKER:
                 uncolored_targets.append(target)
             elif isinstance(color_def, OBColorDefinition):
                 targets_by_color[color_def.color_id].append(target)
@@ -126,22 +145,24 @@ class OBColorDefinition(ColorDefinition):
         colored_inputs = []
         colored_targets = []
         for color_id, targets in targets_by_color.items():
+            color_def = targets[0][1]
             needed_sum = sum([target[2] for target in targets])
-            inputs, total = op_tx_spec.select_coins(color_id, needed_sum)
+            inputs, total = op_tx_spec.select_coins(color_def, needed_sum)
             change = total - needed_sum
             if change > 0:
-                targets.append((op_tx_spec.get_change_addr(color_id),
-                                targets[0][1], change))
+                targets.append((op_tx_spec.get_change_addr(color_def),
+                                color_def, change))
             colored_inputs += inputs
             colored_targets += targets
         uncolored_needed = sum([target[2] for target in uncolored_targets])
         fee = op_tx_spec.get_required_fee(250 * (len(colored_inputs) + 1))
         uncolored_inputs, uncolored_total = \
-            op_tx_spec.select_coins(0, uncolored_needed + fee)
+            op_tx_spec.select_coins(UNCOLORED_MARKER, uncolored_needed + fee)
         uncolored_change = uncolored_total - uncolored_needed - fee
         if uncolored_change > 0:
             uncolored_targets.append(
-                (op_tx_spec.get_change_addr(0), None, uncolored_change))
+                (op_tx_spec.get_change_addr(UNCOLORED_MARKER),
+                 None, uncolored_change))
         txins = [txspec.ComposedTxSpec.TxIn(utxo) for utxo in
                  (colored_inputs + uncolored_inputs)]
         txouts = [txspec.ComposedTxSpec.TxOut(target[2], target[0])
@@ -149,28 +170,37 @@ class OBColorDefinition(ColorDefinition):
         return txspec.ComposedTxSpec(txins, txouts)
 
     @classmethod
-    def from_color_desc(cdc, color_id, color_desc, blockchain_state):
+    def from_color_desc(cls, color_id, color_desc, blockchain_state):
         """ Create a color definition given a
         description string and the blockchain state"""
         code, txhash, outindex, height = color_desc.split(':')
 
-        if (code != cdc.class_code):
+        if (code != cls.CLASS_CODE):
             raise Exception('wrong color code in from_color_desc')
         blockhash = blockchain_state.get_tx_blockhash(txhash)
         genesis = {'txhash': txhash,
                    'height': int(height),
                    'blockhash': blockhash,
                    'outindex': int(outindex)}
-        return cdc(color_id, genesis)
+        return cls(color_id, genesis)
 
 
 class POBColorDefinition(ColorDefinition):
 
+    CLASS_CODE = 'pobc'
     PADDING = 10000
 
     def __init__(self, color_id, genesis):
         super(POBColorDefinition, self).__init__(color_id)
         self.genesis = genesis
+
+    def __repr__(self):
+        return "%s:%s:%s:%s" % (
+            self.CLASS_CODE, self.genesis['txhash'], self.genesis['outindex'],
+            self.genesis['height'])
+
+    def is_genesis(self, tx):
+        return tx.hash == self.genesis['txhash']
 
     def run_kernel(self, tx, in_colorvalues):
         """Computes the output colorvalues
@@ -180,29 +210,33 @@ class POBColorDefinition(ColorDefinition):
         #  than constructing segments
         input_running_sums = []
         running_sum = 0
+        tx.ensure_input_values()
         for element in tx.inputs:
-            if element.value <= self.PADDING:
+            colorvalue = self.satoshi_to_color(element.value)
+            if colorvalue <= 0:
                 break
-            running_sum += element.value - self.PADDING
+            running_sum += colorvalue
             input_running_sums.append(running_sum)
 
         output_running_sums = []
         running_sum = 0
         for element in tx.outputs:
-            if element.value <= self.PADDING:
+            colorvalue = self.satoshi_to_color(element.value)
+            if colorvalue <= 0:
                 break
-            running_sum += element.value - self.PADDING
+            running_sum += colorvalue
             output_running_sums.append(running_sum)
 
         # default is that every output has a null colorvalue
         out_colorvalues = [None for i in output_running_sums]
 
         # see if this is a genesis transaction
-        if tx.hash == self.genesis['txhash']:
+        if self.is_genesis(tx):
             # adjust the single genesis index to have the right value
             #  and return it
             i = self.genesis['outindex']
-            out_colorvalues[i] = tx.outputs[i].value - self.PADDING
+            out_colorvalues[i] = (self.satoshi_to_color(tx.outputs[i].value),
+                                  '')
             return out_colorvalues
 
         # determine if the in_colorvalues are well-formed:
@@ -258,12 +292,115 @@ class POBColorDefinition(ColorDefinition):
         # calculate what the color value at that point is
         for i in range(output_color_start, output_color_end + 1):
             previous_sum = 0 if i == 0 else output_running_sums[i - 1]
-            out_colorvalues[i] = output_running_sums[i] - previous_sum
+            out_colorvalues[i] = (output_running_sums[i] - previous_sum, '')
 
         return out_colorvalues
 
-ColorDefinition.register_color_def_class(
-    OBColorDefinition.class_code, OBColorDefinition)
+    @classmethod
+    def satoshi_to_color(cls, satoshivalue):
+        return satoshivalue - cls.PADDING
+
+    @classmethod
+    def color_to_satoshi(cls, colorvalue):
+        return colorvalue + cls.PADDING
+
+    @classmethod
+    def compose_genesis_tx_spec(cls, op_tx_spec):
+        targets = op_tx_spec.get_targets()[:]
+        if len(targets) != 1:
+            raise Exception(
+                'genesis transaction spec needs exactly one target')
+        target_addr, color_def, colorvalue = targets[0]
+        if color_def != GENESIS_OUTPUT_MARKER:
+            raise Exception(
+                'genesis transaction target should use -1 color_id')
+        fee = op_tx_spec.get_required_fee(300)
+        satoshivalue = cls.color_to_satoshi(colorvalue)
+        # select uncolored coins to create the genesis
+        inputs, total = op_tx_spec.select_coins(
+            UNCOLORED_MARKER, fee + satoshivalue)
+        change = total - fee - satoshivalue
+        txouts = [
+            txspec.ComposedTxSpec.TxOut(satoshivalue, target_addr)]
+        if change > 0:
+            txouts.append(
+                txspec.ComposedTxSpec.TxOut(
+                    change, op_tx_spec.get_change_addr(UNCOLORED_MARKER)))
+
+        txins = [txspec.ComposedTxSpec.TxIn(utxo)
+                 for utxo in inputs]
+        return txspec.ComposedTxSpec(txins, txouts)
+
+    def compose_tx_spec(self, op_tx_spec):
+        # group targets by color
+        targets_by_color = defaultdict(list)
+        for target in op_tx_spec.get_targets():
+            color_def = target[1]
+            targets_by_color[color_def.color_id].append(target)
+        uncolored_targets = targets_by_color.pop(UNCOLORED_MARKER.color_id, [])
+
+        # get inputs for each color
+        colored_inputs = []
+        colored_targets = []
+        for color_id, targets in targets_by_color.items():
+            color_def = targets[0][1]
+            needed_sum = sum([target[2] for target in targets])
+            inputs, total = op_tx_spec.select_coins(color_def, needed_sum)
+            change = total - needed_sum
+            if change > 0:
+                targets.append((op_tx_spec.get_change_addr(color_def),
+                                color_def, change))
+            colored_inputs += inputs
+            colored_targets += targets
+
+        # we also need some amount of extra "uncolored" coins
+        # for padding purposes, possibly
+        padding_needed = (len(colored_targets) - len(colored_inputs)) \
+            * self.PADDING
+        uncolored_needed = sum([target[2] for target in uncolored_targets]) \
+            + padding_needed
+        fee = op_tx_spec.get_required_fee(250 * (len(colored_inputs) + 1))
+        amount_needed = uncolored_needed + fee
+        if amount_needed == 0:
+            uncolored_change = 0
+            uncolored_inputs = []
+        else:
+            uncolored_inputs, uncolored_total = \
+                op_tx_spec.select_coins(UNCOLORED_MARKER, amount_needed)
+            uncolored_change = uncolored_total - amount_needed
+        if uncolored_change > 0:
+            uncolored_targets.append(
+                (op_tx_spec.get_change_addr(UNCOLORED_MARKER),
+                 None, uncolored_change))
+
+        # compose the TxIn and TxOut elements
+        txins = [txspec.ComposedTxSpec.TxIn(utxo) for utxo in
+                 (colored_inputs + uncolored_inputs)]
+        txouts = [
+            txspec.ComposedTxSpec.TxOut(
+                self.color_to_satoshi(target[2]), target[0])
+            for target in colored_targets]
+        txouts += [txspec.ComposedTxSpec.TxOut(target[2], target[0])
+                   for target in uncolored_targets]
+        return txspec.ComposedTxSpec(txins, txouts)
+
+    @classmethod
+    def from_color_desc(cls, color_id, color_desc, blockchain_state):
+        """ Create a color definition given a
+        description string and the blockchain state"""
+        code, txhash, outindex, height = color_desc.split(':')
+
+        if (code != cls.CLASS_CODE):
+            raise Exception('wrong color code in from_color_desc')
+        blockhash = blockchain_state.get_tx_blockhash(txhash)
+        genesis = {'txhash': txhash,
+                   'height': int(height),
+                   'blockhash': blockhash,
+                   'outindex': int(outindex)}
+        return cls(color_id, genesis)
+
+ColorDefinition.register_color_def_class(OBColorDefinition)
+ColorDefinition.register_color_def_class(POBColorDefinition)
 
 if __name__ == "__main__":
     # test the POBC color kernel
@@ -277,12 +414,15 @@ if __name__ == "__main__":
             self.inputs = [MockTXElement(i) for i in inputs]
             self.outputs = [MockTXElement(i) for i in outputs]
 
+        def ensure_input_values(self):
+            pass
+
     pobc = POBColorDefinition(
         "testcolor", {'txhash': 'genesis', 'outindex': 0})
 
     def test(inputs, outputs, in_colorvalue, txhash="not genesis"):
         tx = MockTX(txhash, inputs, outputs)
-        return pobc.run_kernel(tx, in_colorvalue)
+        return [i and i[0] for i in pobc.run_kernel(tx, in_colorvalue)]
 
     # genesis
     assert test([10001], [10001], [1], "genesis") == [1]
@@ -302,7 +442,8 @@ if __name__ == "__main__":
     assert test([10001, 10002, 10003, 50000], [10001, 10005, 50000],
                 [None, 2, 3, None]) == [None, 5, None]
     # ignore below-padding values
-    assert test([10001, 10002, 10003, 50000, 100, 20000], [10001, 10005, 100, 70000, 100],
+    assert test([10001, 10002, 10003, 50000, 100, 20000],
+                [10001, 10005, 100, 70000, 100],
                 [None, 2, 3, None]) == [None, 5]
     # color values don't add up the same
     assert test([10001, 10002, 10003, 10001, 50000], [10001, 10005, 50001],
