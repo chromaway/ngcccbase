@@ -19,7 +19,7 @@ class ColorMap(object):
         else:
             return self.metastore.resolve_color_desc(color_desc, auto_add)
 
-    def get_color_def(self, color_id_or_desc, blockchain_state):
+    def get_color_def(self, color_id_or_desc):
         """ Finds a color definition given an id or description """
         if color_id_or_desc == 0:
             return None
@@ -35,6 +35,6 @@ class ColorMap(object):
             if not color_desc:
                 raise Exception("color id not found")
         cd = ColorDefinition.from_color_desc(
-            color_id, color_desc, blockchain_state)
+            color_id, color_desc)
         self.colordefs[color_id] = cd
         return cd

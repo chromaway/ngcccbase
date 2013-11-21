@@ -38,10 +38,10 @@ class ColorDefinition(object):
         ColorDefinition.cd_classes[cdclass.get_class_code()] = cdclass
 
     @classmethod
-    def from_color_desc(cls, color_id, color_desc, blockchain_state):
+    def from_color_desc(cls, color_id, color_desc):
         code = get_color_desc_code(color_desc)
         cdclass = cls.cd_classes[code]
-        return cdclass.from_color_desc(color_id, color_desc, blockchain_state)
+        return cdclass.from_color_desc(color_id, color_desc)
 
     @classmethod
     def get_color_def_cls_for_code(cls, code):
@@ -162,17 +162,14 @@ class OBColorDefinition(ColorDefinition):
         return txspec.ComposedTxSpec(txins, txouts)
 
     @classmethod
-    def from_color_desc(cls, color_id, color_desc, blockchain_state):
+    def from_color_desc(cls, color_id, color_desc):
         """ Create a color definition given a
         description string and the blockchain state"""
         code, txhash, outindex, height = color_desc.split(':')
-
         if (code != cls.CLASS_CODE):
             raise Exception('wrong color code in from_color_desc')
-        blockhash = blockchain_state.get_tx_blockhash(txhash)
         genesis = {'txhash': txhash,
                    'height': int(height),
-                   'blockhash': blockhash,
                    'outindex': int(outindex)}
         return cls(color_id, genesis)
 
@@ -379,17 +376,14 @@ class POBColorDefinition(ColorDefinition):
         return txspec.ComposedTxSpec(txins, txouts)
 
     @classmethod
-    def from_color_desc(cls, color_id, color_desc, blockchain_state):
+    def from_color_desc(cls, color_id, color_desc):
         """ Create a color definition given a
         description string and the blockchain state"""
         code, txhash, outindex, height = color_desc.split(':')
-
         if (code != cls.CLASS_CODE):
             raise Exception('wrong color code in from_color_desc')
-        blockhash = blockchain_state.get_tx_blockhash(txhash)
         genesis = {'txhash': txhash,
                    'height': int(height),
-                   'blockhash': blockhash,
                    'outindex': int(outindex)}
         return cls(color_id, genesis)
 

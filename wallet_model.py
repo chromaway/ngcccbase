@@ -132,8 +132,7 @@ class AssetDefinition(object):
             raise Exception('tx spec type not supported')
         op_tx_spec = txcons.SimpleOperationalTxSpec(self.model, self)
         color_id = list(self.color_set.color_id_set)[0]
-        color_def = self.model.ccc.colormap.get_color_def(
-            color_id, self.model.ccc.blockchain_state)
+        color_def = self.model.ccc.colormap.get_color_def(color_id)
         for target in tx_spec.targets:
             # TODO: translate colorvalues
             op_tx_spec.add_target(target[0], color_def, target[2])
@@ -623,8 +622,7 @@ class WalletModel(object):
                 asset.get_color_set())}
 
         for color in asset.color_set.color_id_set:
-            colordef = self.ccc.colormap.get_color_def(
-                color, self.ccc.blockchain_state)
+            colordef = self.ccc.colormap.get_color_def(color)
             seen_hashes = {}
             for row in self.ccc.cdstore.get_all(color):
                 # address_ledger will keep track of the net

@@ -23,7 +23,7 @@ class ColorDataBuilderManager(object):
     def get_builder(self, color_id):
         if color_id in self.builders:
             return self.builders[color_id]
-        colordef = self.colormap.get_color_def(color_id, self.blockchain_state)
+        colordef = self.colormap.get_color_def(color_id)
         builder = self.builder_class(
             self.cdstore, self.blockchain_state, colordef, self.metastore)
         self.builders[color_id] = builder
@@ -72,6 +72,8 @@ class FullScanColorDataBuilder(BasicColorDataBuilder):
         super(FullScanColorDataBuilder, self).__init__(
             cdstore, blockchain_state, colordef)
         self.metastore = metastore
+        self.genesis_blockhash = self.blockchain_state.get_blockhash_at_height(
+            self.colordef.genesis['height'])
 
     def scan_block(self, blockhash):
         for tx in self.blockchain_state.iter_block_txs(blockhash):
@@ -87,9 +89,6 @@ class FullScanColorDataBuilder(BasicColorDataBuilder):
         if self.metastore.did_scan(self.color_id, final_blockhash):
             return
 
-        genesis_blockhash = self.blockchain_state.get_blockhash_at_height(
-            self.colordef.genesis['height'])
-
         # start from the final_blockhash and go backwards to build up
         #  the list of blocks to scan
         blockhash = final_blockhash
@@ -99,7 +98,7 @@ class FullScanColorDataBuilder(BasicColorDataBuilder):
             blockhash = self.blockchain_state.get_previous_blockhash(
                 blockhash)
             print blockhash
-            if blockhash == genesis_blockhash:
+            if blockhash == self.genesis_blockhash:
                 break
             # this doesn't work correctly if genesis block 
             # was orphanned since we started, but there is no
