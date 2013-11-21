@@ -38,16 +38,12 @@ class ColorSet(object):
         self.color_desc_list = color_desc_list
         self.color_id_set = set()
         colormap = model.get_color_map()
-        self.color_def = None
         for color_desc in color_desc_list:
             color_id = colormap.resolve_color_desc(color_desc)
             self.color_id_set.add(color_id)
-            if not self.color_def:
-                self.color_def = colormap.get_color_def(
-                    color_id, model.ccc.blockchain_state
-                    )
-        if not self.color_def:
-            self.color_def = colordef.UNCOLORED_MARKER
+
+    def uncolored_only(self):
+        return self.color_id_set == set([0])
 
     def get_data(self):
         """Returns a list of strings that describe the colors.
@@ -118,9 +114,14 @@ class AssetDefinition(object):
 
     def get_colorvalue(self, utxo):
         """ return colorvalue for a given utxo"""
-        if self.color_set.color_def is None:
-            raise Exception("No color defined")
-        return self.color_set.color_def.satoshi_to_color(utxo.value)
+        if self.color_set.uncolored_only():
+            return utxo.value
+        else:
+            if utxo.colorvalues:
+                for cv in utxo.colorvalues:
+                    if cv[0] in self.color_set.color_id_set:
+                        return cv[1]
+            raise Exception("cannot get colorvalue for UTXO: no colorvalues available")
 
     def make_operational_tx_spec(self, tx_spec):
         """Given a <tx_spec> of type BasicTxSpec, return
@@ -631,6 +632,7 @@ class WalletModel(object):
                 address_ledger = {}
                 appended = 0
                 txhash = row[0]
+                colorvalue = row[2]
                 blockhash = self.ccc.blockchain_state.get_tx_blockhash(txhash)
                 height = self.ccc.blockchain_state.get_block_height(blockhash)
                 if seen_hashes.get(txhash):
@@ -644,7 +646,7 @@ class WalletModel(object):
                     if address_lookup.get(address):
                         address_ledger[address] = \
                             address_ledger.get(address, 0) \
-                            + colordef.satoshi_to_color(output.value)
+                            + colorvalue
 
                 for input in tx.inputs:
                     # find the hash referred to by the input
@@ -655,7 +657,7 @@ class WalletModel(object):
                     if address_lookup.get(address):
                         address_ledger[address] = \
                             address_ledger.get(address, 0) \
-                            - colordef.satoshi_to_color(output.value)
+                            - colorvalue
 
                 for address, value in address_ledger.items():
                     item = {'address': address, 'height': height}

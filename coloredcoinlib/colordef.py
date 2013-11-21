@@ -18,7 +18,7 @@ class ColorDefinition(object):
     def __init__(self, color_id):
         self.color_id = color_id
 
-    def is_genesis(self, tx):
+    def is_special_tx(self, tx):
         return False
 
     def run_kernel(self, tx, in_colorvalues):
@@ -28,14 +28,6 @@ class ColorDefinition(object):
         for _ in tx.outputs:
             out_colorvalues.append(None)
         return out_colorvalues
-
-    @classmethod
-    def satoshi_to_color(cls, satoshivalue):
-        return satoshivalue
-
-    @classmethod
-    def color_to_satoshi(cls, colorvalue):
-        return colorvalue
 
     @classmethod
     def get_class_code(cls):
@@ -75,7 +67,7 @@ class OBColorDefinition(ColorDefinition):
             self.CLASS_CODE, self.genesis['txhash'], self.genesis['outindex'],
             self.genesis['height'])
 
-    def is_genesis(self, tx):
+    def is_special_tx(self, tx):
         return tx.hash == self.genesis['txhash']
 
     def run_kernel(self, tx, in_colorvalues):
@@ -199,12 +191,14 @@ class POBColorDefinition(ColorDefinition):
             self.CLASS_CODE, self.genesis['txhash'], self.genesis['outindex'],
             self.genesis['height'])
 
-    def is_genesis(self, tx):
+    def is_special_tx(self, tx):
         return tx.hash == self.genesis['txhash']
 
     def run_kernel(self, tx, in_colorvalues):
         """Computes the output colorvalues
         """
+
+        is_genesis = (tx.hash == self.genesis['txhash'])
 
         # it turns out having a running sum in an array is easier
         #  than constructing segments
@@ -231,7 +225,7 @@ class POBColorDefinition(ColorDefinition):
         out_colorvalues = [None for i in output_running_sums]
 
         # see if this is a genesis transaction
-        if self.is_genesis(tx):
+        if is_genesis:
             # adjust the single genesis index to have the right value
             #  and return it
             i = self.genesis['outindex']
@@ -297,11 +291,11 @@ class POBColorDefinition(ColorDefinition):
         return out_colorvalues
 
     @classmethod
-    def satoshi_to_color(cls, satoshivalue):
+    def satoshi_to_color(self, satoshivalue):
         return satoshivalue - cls.PADDING
 
     @classmethod
-    def color_to_satoshi(cls, colorvalue):
+    def color_to_satoshi(self, colorvalue):
         return colorvalue + cls.PADDING
 
     @classmethod

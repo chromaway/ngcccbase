@@ -127,7 +127,7 @@ class SimpleOperationalTxSpec(txspec.OperationalTxSpec):
         if colorvalue == 0:
             raise Exception('cannot select 0 coins')
         for utxo in utxo_list:
-            ssum += color_def.satoshi_to_color(utxo.value)
+            ssum += self.asset.get_colorvalue(utxo)
             selection.append(utxo)
             if ssum >= colorvalue:
                 return selection, ssum
