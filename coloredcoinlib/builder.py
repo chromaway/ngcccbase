@@ -81,8 +81,7 @@ class FullScanColorDataBuilder(BasicColorDataBuilder):
         self.metastore.set_as_scanned(self.color_id, blockhash)
 
     def scan_blockchain(self, blocklist):
-        for blockhash in blocklist:
-            print blockhash
+        for i, blockhash in enumerate(blocklist):
             self.scan_block(blockhash)
 
     def ensure_scanned_upto(self, final_blockhash):
@@ -97,7 +96,6 @@ class FullScanColorDataBuilder(BasicColorDataBuilder):
             blocklist.insert(0, blockhash)
             blockhash = self.blockchain_state.get_previous_blockhash(
                 blockhash)
-            print blockhash
             if blockhash == self.genesis_blockhash:
                 break
             # this doesn't work correctly if genesis block 

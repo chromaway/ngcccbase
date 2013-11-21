@@ -86,8 +86,8 @@ class BlockchainState(object):
     def get_previous_blockhash(self, blockhash):
         block_data = self.bitcoind.getblock(blockhash, False)
         # deserialize only header for speed
-        bh = bitcoin.core.CBlockHeader(block_data.decode('hex'))
-        return bh.hashPrevBlock[:-1].encode('hex')
+        bh = bitcoin.core.CBlockHeader.deserialize(block_data.decode('hex'))
+        return bh.hashPrevBlock[::-1].encode('hex')
 
     def get_tx_blockhash(self, txhash):
         try:
@@ -96,10 +96,6 @@ class BlockchainState(object):
             print txhash, e
             return None
         return raw.get('blockhash', None)
-
-    def get_previous_blockhash(self, blockhash):
-        block_data = self.bitcoind.getblock(blockhash)
-        return block_data['previousblockhash']
 
     def get_tx(self, txhash):
         txhex = self.bitcoind.getrawtransaction(txhash, 0)
