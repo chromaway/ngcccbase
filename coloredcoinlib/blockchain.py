@@ -80,18 +80,20 @@ class BlockchainState(object):
             bitcoind = bitcoin.rpc.RawProxy(service_url=url)
         return cls(bitcoind)
 
-    def get_block_height(self, blockhash):
-        block_data = self.bitcoind.getblock(blockhash)
-        if block_data:
-            return block_data.get('height', None)
-        else:
-            return None
+    def get_blockhash_at_height(self, height):
+        return self.bitcoind.getblockhash(height)
+
+    def get_previous_blockhash(self, blockhash):
+        block_data = self.bitcoind.getblock(blockhash, False)
+        # deserialize only header for speed
+        bh = bitcoin.core.CBlockHeader(block_data.decode('hex'))
+        return bh.hashPrevBlock[:-1].encode('hex')
 
     def get_tx_blockhash(self, txhash):
         try:
             raw = self.bitcoind.getrawtransaction(txhash, 1)
         except Exception, e:
-            print e
+            print txhash, e
             return None
         return raw.get('blockhash', None)
 

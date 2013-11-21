@@ -74,20 +74,21 @@ class FullScanColorDataBuilder(BasicColorDataBuilder):
         self.metastore = metastore
 
     def scan_block(self, blockhash):
-        height = self.blockchain_state.get_block_height(blockhash)
-        print "scanning block %s at %s" % (blockhash, height)
         for tx in self.blockchain_state.iter_block_txs(blockhash):
             self.scan_tx(tx)
         self.metastore.set_as_scanned(self.color_id, blockhash)
 
     def scan_blockchain(self, blocklist):
         for blockhash in blocklist:
+            print blockhash
             self.scan_block(blockhash)
 
     def ensure_scanned_upto(self, final_blockhash):
         if self.metastore.did_scan(self.color_id, final_blockhash):
             return
-        min_height = self.colordef.genesis['height']
+
+        genesis_blockhash = self.blockchain_state.get_blockhash_at_height(
+            self.colordef.genesis['height'])
 
         # start from the final_blockhash and go backwards to build up
         #  the list of blocks to scan
@@ -97,9 +98,15 @@ class FullScanColorDataBuilder(BasicColorDataBuilder):
             blocklist.insert(0, blockhash)
             blockhash = self.blockchain_state.get_previous_blockhash(
                 blockhash)
-            height = self.blockchain_state.get_block_height(blockhash)
-            if height < min_height:
+            print blockhash
+            if blockhash == genesis_blockhash:
                 break
+            # this doesn't work correctly if genesis block 
+            # was orphanned since we started, but there is no
+            # fast way to find block height, so it's better
+            # to have this theoretic problem than to 
+            # slow down the whole application significantly
+            # TODO: some sanity check?
 
         self.scan_blockchain(blocklist)
 
@@ -113,8 +120,6 @@ class AidedColorDataBuilder(FullScanColorDataBuilder):
         for blockhash in blocklist:
             if self.metastore.did_scan(self.color_id, blockhash):
                 continue
-            height = self.blockchain_state.get_block_height(blockhash)
-            print "scanning block %s at %s" % (blockhash, height)
             # remove txs from this block from the queue
             block_txo_queue = [txo for txo in txo_queue
                                if txo['blockhash'] == blockhash]
