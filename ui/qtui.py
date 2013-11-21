@@ -6,7 +6,11 @@ import signal
 
 from overviewpage import OverviewPage
 from sendcoinspage import SendcoinsPage
+from assetpage import AssetPage
 from receivepage import ReceivePage
+from tradepage import TradePage
+
+from wallet import wallet
 
 
 def getUiPath(ui_name):
@@ -20,24 +24,34 @@ class Application(QtGui.QApplication):
         signal.signal(signal.SIGINT, signal.SIG_DFL)
         QtGui.QApplication.__init__(self, [])
 
+        if len(wallet.get_all_addresses('bitcoin')) == 0:
+            wallet.get_new_address('bitcoin')
+        #wallet.p2p_agent_refresh.start()
+
 
 class MainWindow(QtGui.QMainWindow):
     def __init__(self):
         QtGui.QMainWindow.__init__(self)
         uic.loadUi(uic.getUiPath('ngccc.ui'), self)
 
-        self.overviewpage = OverviewPage()
+        self.overviewpage = OverviewPage(self)
         self.stackedWidget.addWidget(self.overviewpage)
-        self.sendcoinspage = SendcoinsPage()
+        self.sendcoinspage = SendcoinsPage(self)
         self.stackedWidget.addWidget(self.sendcoinspage)
-        self.receivepage = ReceivePage()
+        self.assetpage = AssetPage(self)
+        self.stackedWidget.addWidget(self.assetpage)
+        self.receivepage = ReceivePage(self)
         self.stackedWidget.addWidget(self.receivepage)
+        self.tradepage = TradePage(self)
+        self.stackedWidget.addWidget(self.tradepage)
 
         self.bindActions()
 
-        self.gotoOverviewPage()
+        #self.gotoOverviewPage()
+        self.gotoP2PTradePage()
 
     def bindActions(self):
+        self.actionRescan.triggered.connect(wallet.scan)
         self.actionExit.triggered.connect(
             lambda: QtCore.QCoreApplication.instance().exit(0))
 
@@ -49,8 +63,14 @@ class MainWindow(QtGui.QMainWindow):
         self.toolbarActionGroup.addAction(self.actionGotoSendcoins)
         self.actionGotoSendcoins.triggered.connect(self.gotoSendcoinsPage)
 
+        self.toolbarActionGroup.addAction(self.actionGotoAsset)
+        self.actionGotoAsset.triggered.connect(self.gotoAssetPage)
+
         self.toolbarActionGroup.addAction(self.actionGotoReceive)
         self.actionGotoReceive.triggered.connect(self.gotoReceivePage)
+
+        self.toolbarActionGroup.addAction(self.actionP2PTrade)
+        self.actionP2PTrade.triggered.connect(self.gotoP2PTradePage)
 
     def gotoOverviewPage(self):
         self.actionGotoOverview.setChecked(True)
@@ -62,10 +82,20 @@ class MainWindow(QtGui.QMainWindow):
         self.sendcoinspage.update()
         self.stackedWidget.setCurrentWidget(self.sendcoinspage)
 
+    def gotoAssetPage(self):
+        self.actionGotoAsset.setChecked(True)
+        self.assetpage.update()
+        self.stackedWidget.setCurrentWidget(self.assetpage)
+
     def gotoReceivePage(self):
         self.actionGotoReceive.setChecked(True)
         self.receivepage.update()
         self.stackedWidget.setCurrentWidget(self.receivepage)
+
+    def gotoP2PTradePage(self):
+        self.actionP2PTrade.setChecked(True)
+        self.tradepage.update()
+        self.stackedWidget.setCurrentWidget(self.tradepage)
 
 
 class QtUI(object):

@@ -33,6 +33,8 @@
     <property name="title">
      <string>&amp;File</string>
     </property>
+    <addaction name="actionRescan"/>
+    <addaction name="separator"/>
     <addaction name="actionExit"/>
    </widget>
    <addaction name="menuFile"/>
@@ -42,6 +44,9 @@
    <property name="windowTitle">
     <string>toolBar</string>
    </property>
+   <property name="toolButtonStyle">
+    <enum>Qt::ToolButtonTextBesideIcon</enum>
+   </property>
    <attribute name="toolBarArea">
     <enum>TopToolBarArea</enum>
    </attribute>
@@ -50,9 +55,16 @@
    </attribute>
    <addaction name="actionGotoOverview"/>
    <addaction name="actionGotoSendcoins"/>
+   <addaction name="actionGotoAsset"/>
    <addaction name="actionGotoReceive"/>
+   <addaction name="actionP2PTrade"/>
   </widget>
   <action name="actionExit">
+   <property name="icon">
+    <iconset>
+     <normalon>../icons/quit.png</normalon>
+    </iconset>
+   </property>
    <property name="text">
     <string>&amp;Exit</string>
    </property>
@@ -67,6 +79,10 @@
    <property name="checked">
     <bool>false</bool>
    </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>../icons/overview.png</normaloff>../icons/overview.png</iconset>
+   </property>
    <property name="text">
     <string>Overview</string>
    </property>
@@ -77,6 +93,10 @@
   <action name="actionGotoSendcoins">
    <property name="checkable">
     <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>../icons/send.png</normaloff>../icons/send.png</iconset>
    </property>
    <property name="text">
     <string>Send coins</string>
@@ -89,11 +109,42 @@
    <property name="checkable">
     <bool>true</bool>
    </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>../icons/receive.png</normaloff>../icons/receive.png</iconset>
+   </property>
    <property name="text">
     <string>Receive</string>
    </property>
    <property name="toolTip">
     <string>Change to Receive page</string>
+   </property>
+  </action>
+  <action name="actionP2PTrade">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>P2P Trade</string>
+   </property>
+   <property name="toolTip">
+    <string>Change to P2P Trade page</string>
+   </property>
+  </action>
+  <action name="actionRescan">
+   <property name="text">
+    <string>rescan</string>
+   </property>
+  </action>
+  <action name="actionGotoAsset">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Asset</string>
+   </property>
+   <property name="toolTip">
+    <string>Change to Asset page</string>
    </property>
   </action>
  </widget>
