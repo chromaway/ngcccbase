@@ -80,6 +80,10 @@ class BlockchainState(object):
             bitcoind = bitcoin.rpc.RawProxy(service_url=url)
         return cls(bitcoind)
 
+    def get_block_height(self, blockhash):
+        block = self.bitcoind.getblock(blockhash)
+        return block['height']
+
     def get_blockhash_at_height(self, height):
         return self.bitcoind.getblockhash(height)
 

@@ -20,6 +20,10 @@ class TradePage(QtGui.QWidget):
 
         wallet.p2ptrade_init()
 
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self.update_offers)
+        self.timer.start(2500)
+
         self.modelBuy = OffersTableModel()
         self.proxyModelBuy = QtGui.QSortFilterProxyModel(self)
         self.proxyModelBuy.setSourceModel(self.modelBuy)
