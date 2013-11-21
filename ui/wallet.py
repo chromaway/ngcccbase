@@ -2,10 +2,16 @@ from pwallet import PersistentWallet
 from wallet_controller import WalletController
 from wallet_model import AssetDefinition
 
+import argparse
+
 
 class Wallet(object):
     def __init__(self):
-        self.wallet = PersistentWallet()
+        parser = argparse.ArgumentParser()
+        parser.add_argument("--wallet", dest="wallet_path")
+        parsed_args = vars(parser.parse_args())
+
+        self.wallet = PersistentWallet(parsed_args.get('wallet_path'))
         self.wallet.init_model()
         self.model = self.wallet.get_model()
         self.controller = WalletController(self.wallet.get_model())
