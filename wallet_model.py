@@ -13,6 +13,7 @@ from coloredcoinlib import (blockchain, builder, store, colormap,
 from ngcccbase.services.electrum import EnhancedBlockchainState
 from ngcccbase import txdb
 from address import Address, TestnetAddress, InvalidAddressError
+from collections import defaultdict
 
 import hashlib
 import json
@@ -623,61 +624,73 @@ class WalletModel(object):
 
         for color in asset.color_set.color_id_set:
             colordef = self.ccc.colormap.get_color_def(color)
-            seen_hashes = {}
-            for row in self.ccc.cdstore.get_all(color):
-                # address_ledger will keep track of the net
-                #  affect on an address
-                address_ledger = {}
-                appended = 0
-                txhash = row[0]
-                colorvalue = row[2]
+            color_transactions = self.ccc.cdstore.get_all(color)
+            transaction_lookup = {}
+            color_record = defaultdict(dict)
+            for row in color_transactions:
+                txhash, outindex, colorvalue, other = row
+                tx = self.ccc.blockchain_state.get_tx(txhash)
                 blockhash = self.ccc.blockchain_state.get_tx_blockhash(txhash)
                 height = self.ccc.blockchain_state.get_block_height(blockhash)
-                if seen_hashes.get(txhash):
-                    continue
-                seen_hashes[txhash] = 1
-                tx = self.ccc.blockchain_state.get_tx(txhash)
-                for output in tx.outputs:
-                    # find out where it went into
-                    address = klass.rawPubkeyToAddress(output.raw_address)
 
-                    if address_lookup.get(address):
-                        address_ledger[address] = \
-                            address_ledger.get(address, 0) \
-                            + colorvalue
+                transaction_lookup[txhash] = (tx, height)
+                output = tx.outputs[outindex]
+                address = klass.rawPubkeyToAddress(output.raw_address)
 
+                if address_lookup.get(address):
+                    color_record[txhash][address] = {
+                        'address': address,
+                        'value': colorvalue,
+                        'height': height
+                        }
+                else:
+                    raise Exception("cdstore or config may be corrupted: "
+                                    "%s is not a valid receiving address"
+                                    % address)
+
+            # check the inputs
+            seen_hashes = {}
+            for txhash, tup in transaction_lookup.items():
+                tx, height = tup
                 for input in tx.inputs:
-                    # find the hash referred to by the input
-                    outpoint = input.outpoint
-                    intx = self.ccc.blockchain_state.get_tx(outpoint.hash)
-                    output = intx.outputs[outpoint.n]
-                    address = klass.rawPubkeyToAddress(output.raw_address)
-                    if address_lookup.get(address):
-                        address_ledger[address] = \
-                            address_ledger.get(address, 0) \
-                            - colorvalue
+                    inhash = input.outpoint.hash
+                    if seen_hashes.get(inhash):
+                        continue
+                    seen_hashes[inhash] = True
+                    # find the transaction that corresponds to this input
+                    color_record_transaction = color_record.get(inhash)
+                    if not color_record_transaction:
+                        continue
+                    for address in color_record_transaction:
+                        if address_lookup.get(address):
+                            if not color_record[txhash].get(address):
+                                color_record[txhash][address] = {
+                                    'address': address,
+                                    'value': 0,
+                                    'height': height,
+                                    }
+                            color_record[txhash][address]['value'] = \
+                                color_record[txhash][address]['value'] - \
+                                color_record_transaction[address]['value']
 
-                for address, value in address_ledger.items():
-                    item = {'address': address, 'height': height}
+            for txhash, color_record_transaction in color_record.items():
+                for address, item in color_record_transaction.items():
+                    value = item['value']
                     if value < 0:
                         item['action'] = 'sent'
-                        item['value'] = -value
+                        item['value'] = -int(value)
                     elif txhash == colordef.genesis['txhash']:
                         item['action'] = 'issued'
-                        item['value'] = value
+                        item['value'] = int(value)
                     else:
                         item['action'] = 'received'
-                        item['value'] = value
+                        item['value'] = int(value)
                     history.append(item)
 
-                if len(address_ledger) == 0:
-                    item = {
-                        'address': txhash, 'height': height,
-                        'action': 'unknown', 'value': -1}
-                    history.append(item)
         # sort by height (date order)
         return sorted(history, cmp=lambda a, b: a['height'] - b['height']
-                      or cmp(b['action'], a['action']))
+                      or cmp(b['action'], a['action'])
+                      or b['value'] - a['value'])
 
     def get_color_map(self):
         """Access method for ColoredCoinContext's colormap
