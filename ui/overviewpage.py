@@ -1,4 +1,4 @@
-from PyQt4 import QtGui, uic
+from PyQt4 import QtCore, QtGui, uic
 
 from wallet import wallet
 
@@ -6,24 +6,54 @@ from wallet import wallet
 class OverviewPage(QtGui.QWidget):
     def __init__(self, parent):
         QtGui.QWidget.__init__(self, parent)
-        uic.loadUi(uic.getUiPath('overviewpage.ui'), self)
 
-        self.cbMoniker.currentIndexChanged.connect(self.updateWallet)
+        layout1 = QtGui.QVBoxLayout(self)
+        layout1.setMargin(0)
+
+        self.scrollArea = QtGui.QScrollArea(self)
+        layout1.addWidget(self.scrollArea)
+        self.scrollArea.setLineWidth(1)
+        self.scrollArea.setWidgetResizable(True)
 
     def update(self):
-        monikers = wallet.get_all_monikers()
-        comboList = self.cbMoniker
-        currentMoniker = str(comboList.currentText())
-        comboList.clear()
-        comboList.addItems(monikers)
-        if currentMoniker and currentMoniker in monikers:
-            comboList.setCurrentIndex(monikers.index(currentMoniker))
+        allowTextSelection = (
+            QtCore.Qt.LinksAccessibleByMouse |
+            QtCore.Qt.TextSelectableByKeyboard |
+            QtCore.Qt.TextSelectableByMouse)
 
-    def updateWallet(self):
-        moniker = str(self.cbMoniker.currentText())
-        if moniker == '':
-            return
-        asset = wallet.get_asset_definition(moniker)
-        balance = wallet.get_balance(asset)
-        self.lblBalance.setText(
-            '%s %s' % (asset.format_value(balance), moniker))
+        self.scrollAreaContents = QtGui.QWidget()
+        self.scrollArea.setWidget(self.scrollAreaContents)
+        self.scrollAreaLayout = QtGui.QVBoxLayout(self.scrollAreaContents)
+
+        for moniker in wallet.get_all_monikers():
+            asset = wallet.get_asset_definition(moniker)
+            address = wallet.get_all_addresses(asset)[0]
+            balance = wallet.get_balance(asset)
+
+            groupBox = QtGui.QGroupBox(moniker, self.scrollAreaContents)
+            layout = QtGui.QFormLayout(groupBox)
+
+            label = QtGui.QLabel(groupBox)
+            label.setText('Balance:')
+            layout.setWidget(0, QtGui.QFormLayout.LabelRole, label)
+
+            label = QtGui.QLabel(groupBox)
+            label.setTextInteractionFlags(allowTextSelection)
+            label.setCursor(QtGui.QCursor(QtCore.Qt.IBeamCursor))
+            label.setText(asset.format_value(balance))
+            layout.setWidget(0, QtGui.QFormLayout.FieldRole, label)
+
+            label = QtGui.QLabel(groupBox)
+            label.setText('Address:')
+            layout.setWidget(1, QtGui.QFormLayout.LabelRole, label)
+
+            label = QtGui.QLabel(groupBox)
+            label.setTextInteractionFlags(allowTextSelection)
+            label.setCursor(QtGui.QCursor(QtCore.Qt.IBeamCursor))
+            label.setText(address)
+            layout.setWidget(1, QtGui.QFormLayout.FieldRole, label)
+
+            self.scrollAreaLayout.addWidget(groupBox)
+
+        self.scrollAreaLayout.addItem(QtGui.QSpacerItem(20, 0))
+        self.scrollAreaLayout.setStretch(self.scrollAreaLayout.count()-1, 1)
