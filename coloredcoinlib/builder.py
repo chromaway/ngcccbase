@@ -95,20 +95,19 @@ class FullScanColorDataBuilder(BasicColorDataBuilder):
         # start from the final_blockhash and go backwards to build up
         #  the list of blocks to scan
         blockhash = final_blockhash
+        genesis_height = self.blockchain_state.get_block_height(
+            self.genesis_blockhash)
         blocklist = []
         while not self.metastore.did_scan(self.color_id, blockhash):
             log("recon block %s", blockhash)
             blocklist.insert(0, blockhash)
-            blockhash = self.blockchain_state.get_previous_blockhash(
+            blockhash, height = self.blockchain_state.get_previous_blockinfo(
                 blockhash)
             if blockhash == self.genesis_blockhash:
                 break
-            # this doesn't work correctly if genesis block 
-            # was orphanned since we started, but there is no
-            # fast way to find block height, so it's better
-            # to have this theoretic problem than to 
-            # slow down the whole application significantly
-            # TODO: some sanity check?
+            # sanity check
+            if height < genesis_height:
+                break
 
         self.scan_blockchain(blocklist)
 

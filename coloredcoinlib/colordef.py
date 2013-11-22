@@ -288,11 +288,11 @@ class POBColorDefinition(ColorDefinition):
         return out_colorvalues
 
     @classmethod
-    def satoshi_to_color(self, satoshivalue):
+    def satoshi_to_color(cls, satoshivalue):
         return satoshivalue - cls.PADDING
 
     @classmethod
-    def color_to_satoshi(self, colorvalue):
+    def color_to_satoshi(cls, colorvalue):
         return colorvalue + cls.PADDING
 
     @classmethod
