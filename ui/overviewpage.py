@@ -27,7 +27,7 @@ class OverviewPage(QtGui.QWidget):
 
         for moniker in wallet.get_all_monikers():
             asset = wallet.get_asset_definition(moniker)
-            address = wallet.get_all_addresses(asset)[0]
+            address = wallet.get_some_address(asset)
             balance = wallet.get_balance(asset)
 
             groupBox = QtGui.QGroupBox(moniker, self.scrollAreaContents)

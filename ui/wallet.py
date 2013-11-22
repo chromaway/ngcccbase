@@ -64,6 +64,12 @@ class Wallet(object):
         return [addr.get_address() for addr in
             self.controller.get_all_addresses(self.get_asset_definition(color))]
 
+    def get_some_address(self, color):
+        wam = self.model.get_address_manager()
+        cs = self.get_asset_definition(color).get_color_set()
+        ar = wam.get_some_address(cs)
+        return ar.get_address()
+
     def get_new_address(self, color):
         return self.controller. \
             get_new_address(self.get_asset_definition(color)).get_address()

@@ -24,10 +24,8 @@ class Application(QtGui.QApplication):
         signal.signal(signal.SIGINT, signal.SIG_DFL)
         QtGui.QApplication.__init__(self, [])
 
-        if len(wallet.get_all_addresses('bitcoin')) == 0:
-            wallet.get_new_address('bitcoin')
-        #wallet.p2p_agent_refresh.start()
-
+        # this is slow
+        wallet.controller.scan_utxos()
 
 class MainWindow(QtGui.QMainWindow):
     def __init__(self):
