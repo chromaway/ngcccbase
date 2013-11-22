@@ -87,11 +87,9 @@ class BlockchainState(object):
     def get_blockhash_at_height(self, height):
         return self.bitcoind.getblockhash(height)
 
-    def get_previous_blockhash(self, blockhash):
-        block_data = self.bitcoind.getblock(blockhash, False)
-        # deserialize only header for speed
-        bh = bitcoin.core.CBlockHeader.deserialize(block_data.decode('hex'))
-        return bh.hashPrevBlock[::-1].encode('hex')
+    def get_previous_blockinfo(self, blockhash):
+        block_data = self.bitcoind.getblock(blockhash)
+        return block_data['previousblockhash'], block_data['height']
 
     def get_tx_blockhash(self, txhash):
         try:
