@@ -47,20 +47,20 @@ class IssueCoinsDialog(QtGui.QDialog):
 
         self.cbScheme.addItem('obc')
 
-        for wname in ['edtMoniker', 'edtAmount', 'edtUnits']:
+        for wname in ['edtMoniker', 'edtUnits', 'edtAtoms']:
             getattr(self, wname).focusInEvent = \
                 lambda e, name=wname: getattr(self, name).setStyleSheet('')
 
-        self.edtAmount.textChanged.connect(self.changeTotalBTC)
         self.edtUnits.textChanged.connect(self.changeTotalBTC)
+        self.edtAtoms.textChanged.connect(self.changeTotalBTC)
 
         self.availableBTC = wallet.get_balance('bitcoin')
         self.lblTotalBTC.setToolTip('Available: %s bitcoin' % \
             wallet.get_asset_definition('bitcoin').format_value(self.availableBTC))
 
     def changeTotalBTC(self):
-        amount = self.edtAmount.text().toInt()
-        units = self.edtUnits.text().toInt()
+        amount = self.edtUnits.text().toInt()
+        units = self.edtAtoms.text().toInt()
         if amount[1] and units[1]:
             need = amount[0] * units[0]
             text = '%s bitcoin' % \
@@ -74,13 +74,13 @@ class IssueCoinsDialog(QtGui.QDialog):
         if not a:
             self.edtMoniker.setStyleSheet('background:#FF8080')
 
-        b = self.edtAmount.text().toInt()
+        b = self.edtUnits.text().toInt()
         if not b[1]:
-            self.edtAmount.setStyleSheet('background:#FF8080')
-
-        c = self.edtUnits.text().toInt()
-        if not c[1]:
             self.edtUnits.setStyleSheet('background:#FF8080')
+
+        c = self.edtAtoms.text().toInt()
+        if not c[1]:
+            self.edtAtoms.setStyleSheet('background:#FF8080')
 
         d = False
         if b[1] and c[1] and b[0]*c[0] <= self.availableBTC:
@@ -96,8 +96,8 @@ class IssueCoinsDialog(QtGui.QDialog):
         return {
             'moniker': str(self.edtMoniker.text()),
             'coloring_scheme': str(self.cbScheme.currentText()),
-            'amount': self.edtAmount.text().toInt()[0],
             'units': self.edtUnits.text().toInt()[0],
+            'atoms': self.edtAtoms.text().toInt()[0],
         }
 
 

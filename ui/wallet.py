@@ -31,6 +31,8 @@ class Wallet(object):
             "color_set": [params['color_desc']],
             "unit": params['unit']
         })
+        if len(self.get_all_addresses(params['moniker'])) == 0:
+            self.get_new_address(params['moniker'])
 
     def get_all_asset(self):
         return self.wallet.wallet_config['asset_definitions']
@@ -38,7 +40,9 @@ class Wallet(object):
     def issue(self, params):
         self.controller.issue_coins(
             params['moniker'], params['coloring_scheme'],
-            params['units'], params['amount'])
+            params['units'], params['atoms'])
+        if len(self.get_all_addresses(params['moniker'])) == 0:
+            self.get_new_address(params['moniker'])
 
     def get_all_monikers(self):
         monikers = [asset.get_monikers()[0] for asset in
