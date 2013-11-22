@@ -47,22 +47,22 @@
    <item row="2" column="0">
     <widget class="QLabel" name="label_3">
      <property name="text">
-      <string>Amount:</string>
+      <string>Units:</string>
      </property>
     </widget>
    </item>
    <item row="3" column="0">
     <widget class="QLabel" name="label_4">
      <property name="text">
-      <string>Units:</string>
+      <string>Atoms:</string>
      </property>
     </widget>
    </item>
    <item row="3" column="1">
-    <widget class="QLineEdit" name="edtUnits"/>
+    <widget class="QLineEdit" name="edtAtoms"/>
    </item>
    <item row="2" column="1">
-    <widget class="QLineEdit" name="edtAmount"/>
+    <widget class="QLineEdit" name="edtUnits"/>
    </item>
    <item row="5" column="0" colspan="2">
     <widget class="QDialogButtonBox" name="buttonBox">
@@ -96,8 +96,8 @@
  <tabstops>
   <tabstop>edtMoniker</tabstop>
   <tabstop>cbScheme</tabstop>
-  <tabstop>edtAmount</tabstop>
   <tabstop>edtUnits</tabstop>
+  <tabstop>edtAtoms</tabstop>
   <tabstop>buttonBox</tabstop>
  </tabstops>
  <resources/>
