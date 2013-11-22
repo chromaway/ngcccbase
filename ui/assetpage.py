@@ -14,7 +14,14 @@ class AddAssetDialog(QtGui.QDialog):
                 lambda e, name=wname: getattr(self, name).setStyleSheet('')
 
     def isValid(self):
-        a = bool(self.edtMoniker.text())
+        moniker = self.edtMoniker.text()
+        a = bool(moniker)
+        if a and moniker in wallet.get_all_monikers():
+            QtGui.QMessageBox.warning(
+                self, 'Already exists!',
+                "Moniker <b>%s</b> already exists!" % moniker,
+                QtGui.QMessageBox.Ok)
+            a = False
         if not a:
             self.edtMoniker.setStyleSheet('background:#FF8080')
 
@@ -70,7 +77,14 @@ class IssueCoinsDialog(QtGui.QDialog):
             self.lblTotalBTC.setText(text)
 
     def isValid(self):
-        a = bool(self.edtMoniker.text())
+        moniker = self.edtMoniker.text()
+        a = bool(moniker)
+        if a and moniker in wallet.get_all_monikers():
+            QtGui.QMessageBox.warning(
+                self, 'Already exists!',
+                "Moniker <b>%s</b> already exists!" % moniker,
+                QtGui.QMessageBox.Ok)
+            a = False
         if not a:
             self.edtMoniker.setStyleSheet('background:#FF8080')
 
