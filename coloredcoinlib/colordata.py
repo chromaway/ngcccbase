@@ -1,4 +1,5 @@
 """ Color data representation objects."""
+import time
 
 
 class ColorData(object):
@@ -22,4 +23,22 @@ class ThickColorData(ColorData):
             return [entry for entry in res
                     if entry[0] in color_id_set]
         else:
-            raise Exception("transaction isn't in blockchain yet")
+            # not in the blockchain, but might be in the memory pool
+            mempool = self.blockchain_state.get_mempool_txs()
+
+            wait = 1
+            # wait until txhash is in the mempool
+            while txhash not in mempool:
+                print "waiting %s seconds for %s to show up in mempool" \
+                    % (wait, txhash)
+                mempool = self.blockchain_state.get_mempool_txs()
+                time.sleep(1)
+                wait += 1
+
+            # scan everything in the mempool
+            for h in mempool:
+                self.cdbuilder_manager.scan_txhash(color_id_set, txhash)
+
+            res = self.cdstore.get_any(txhash, outindex)
+            return [entry for entry in res
+                    if entry[0] in color_id_set]

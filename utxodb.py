@@ -257,15 +257,18 @@ class UTXOManager(object):
                 self.store.add_utxo(address, utxo.txhash, utxo.outindex,
                                     utxo.value, utxo.script)
         except Exception as e:
-            print e
+            if "%s" % e != "No JSON object could be decoded":
+                print e
 
     def update_all(self):
         """Update all utxos for addresses associated with the wallet.
         """
         self.store.delete_all()
         wam = self.model.get_address_manager()
-        for address in wam.get_all_addresses():
+        alladdresses = wam.get_all_addresses()
+        for address in alladdresses:
             self.update_address(address)
+
 
 if __name__ == "__main__":
     # test the UTXOFetcher

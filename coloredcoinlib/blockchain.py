@@ -124,3 +124,6 @@ class BlockchainState(object):
             txhashes = self.bitcoind.getblock(blockhash)['tx']
             for txhash in txhashes:
                 yield self.get_tx(txhash)
+
+    def get_mempool_txs(self):
+        return self.bitcoind.getrawmempool()

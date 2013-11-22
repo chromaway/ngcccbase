@@ -40,6 +40,14 @@ def balance(moniker):
     return controller.get_balance(asset)
 
 
+def addressbalance(moniker):
+    """Returns the balance in Satoshi for a particular asset/color.
+    "bitcoin" is the generic uncolored coin.
+    """
+    asset = get_asset_definition(moniker)
+    return controller.get_address_balance(asset)
+
+
 def newaddr(moniker):
     """Creates a new bitcoin address for a given asset/color.
     """
