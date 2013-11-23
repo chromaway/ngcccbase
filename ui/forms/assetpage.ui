@@ -105,6 +105,14 @@
     <string>Copy Unit</string>
    </property>
   </action>
+  <action name="actionShowAddresses">
+   <property name="text">
+    <string>&amp;Show addresses</string>
+   </property>
+   <property name="toolTip">
+    <string>Show addresses</string>
+   </property>
+  </action>
  </widget>
  <resources/>
  <connections/>
