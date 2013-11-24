@@ -122,7 +122,8 @@ class AssetDefinition(object):
                 for cv in utxo.colorvalues:
                     if cv[0] in self.color_set.color_id_set:
                         return cv[1]
-            raise Exception("cannot get colorvalue for UTXO: no colorvalues available")
+            raise Exception("cannot get colorvalue for UTXO: "
+                            "no colorvalues available")
 
     def make_operational_tx_spec(self, tx_spec):
         """Given a <tx_spec> of type BasicTxSpec, return
@@ -626,23 +627,29 @@ class WalletModel(object):
             colordef = self.ccc.colormap.get_color_def(color)
             color_transactions = self.ccc.cdstore.get_all(color)
             transaction_lookup = {}
-            color_record = defaultdict(dict)
+            color_record = defaultdict(list)
             for row in color_transactions:
                 txhash, outindex, colorvalue, other = row
-                tx = self.ccc.blockchain_state.get_tx(txhash)
-                blockhash = self.ccc.blockchain_state.get_tx_blockhash(txhash)
-                height = self.ccc.blockchain_state.get_block_height(blockhash)
-
-                transaction_lookup[txhash] = (tx, height)
+                if not transaction_lookup.get(txhash):
+                    tx = self.ccc.blockchain_state.get_tx(txhash)
+                    blockhash = self.ccc.blockchain_state.get_tx_blockhash(
+                        txhash)
+                    height = self.ccc.blockchain_state.get_block_height(
+                        blockhash)
+                    transaction_lookup[txhash] = (tx, height)
+                tx, height = transaction_lookup[txhash]
                 output = tx.outputs[outindex]
                 address = klass.rawPubkeyToAddress(output.raw_address)
 
                 if address_lookup.get(address):
-                    color_record[txhash][address] = {
+                    color_record[txhash].append({
+                        'txhash': txhash,
                         'address': address,
                         'value': colorvalue,
-                        'height': height
-                        }
+                        'height': height,
+                        'outindex': outindex,
+                        'inindex': -1,
+                        })
                 else:
                     raise Exception("cdstore or config may be corrupted: "
                                     "%s is not a valid receiving address"
@@ -652,29 +659,34 @@ class WalletModel(object):
             seen_hashes = {}
             for txhash, tup in transaction_lookup.items():
                 tx, height = tup
-                for input in tx.inputs:
+                for input_index, input in enumerate(tx.inputs):
                     inhash = input.outpoint.hash
-                    if seen_hashes.get(inhash):
-                        continue
-                    seen_hashes[inhash] = True
+                    in_outindex = input.outpoint.n
+                    intx = self.ccc.blockchain_state.get_tx(inhash)
+                    in_raw = intx.outputs[in_outindex]
+                    address = klass.rawPubkeyToAddress(in_raw.raw_address)
+
                     # find the transaction that corresponds to this input
-                    color_record_transaction = color_record.get(inhash)
-                    if not color_record_transaction:
+                    transaction = color_record.get(inhash)
+                    if not transaction:
                         continue
-                    for address in color_record_transaction:
-                        if address_lookup.get(address):
-                            if not color_record[txhash].get(address):
-                                color_record[txhash][address] = {
-                                    'address': address,
-                                    'value': 0,
-                                    'height': height,
-                                    }
-                            color_record[txhash][address]['value'] = \
-                                color_record[txhash][address]['value'] - \
-                                color_record_transaction[address]['value']
+
+                    # find the output transaction corresponding to this input
+                    #  index and record it as being spent
+                    for item in transaction:
+                        if item['outindex'] == in_outindex:
+                            color_record[txhash].append({
+                                'txhash': txhash,
+                                'address': address,
+                                'value': -item['value'],
+                                'height': height,
+                                'inindex': input_index,
+                                'outindex': -1,
+                                })
+                            break
 
             for txhash, color_record_transaction in color_record.items():
-                for address, item in color_record_transaction.items():
+                for item in color_record_transaction:
                     value = item['value']
                     if value < 0:
                         item['action'] = 'sent'
@@ -689,8 +701,8 @@ class WalletModel(object):
 
         # sort by height (date order)
         return sorted(history, cmp=lambda a, b: a['height'] - b['height']
-                      or cmp(b['action'], a['action'])
-                      or b['value'] - a['value'])
+                      or a['outindex'] - b['outindex']
+                      or a['inindex'] - b['inindex'])
 
     def get_color_map(self):
         """Access method for ColoredCoinContext's colormap
