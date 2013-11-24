@@ -37,9 +37,25 @@
       </spacer>
      </item>
      <item>
-      <widget class="QCheckBox" name="chkOnlyBitcoin">
+      <widget class="QLabel" name="label_2">
        <property name="text">
-        <string>Show only bitcoin addresses</string>
+        <string>Show only:</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="cbMoniker">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>150</width>
+         <height>0</height>
+        </size>
        </property>
       </widget>
      </item>
@@ -116,7 +132,7 @@
   </action>
  </widget>
  <tabstops>
-  <tabstop>chkOnlyBitcoin</tabstop>
+  <tabstop>cbMoniker</tabstop>
   <tabstop>tableView</tabstop>
   <tabstop>btnNew</tabstop>
   <tabstop>btnCopy</tabstop>

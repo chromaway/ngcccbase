@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>New receiving address</string>
+   <string>New address</string>
   </property>
   <property name="sizeGripEnabled">
    <bool>false</bool>
@@ -25,7 +25,7 @@
      <item>
       <widget class="QLabel" name="label">
        <property name="text">
-        <string>Color:</string>
+        <string>Moniker:</string>
        </property>
       </widget>
      </item>

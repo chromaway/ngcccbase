@@ -14,7 +14,14 @@ class AddAssetDialog(QtGui.QDialog):
                 lambda e, name=wname: getattr(self, name).setStyleSheet('')
 
     def isValid(self):
-        a = bool(self.edtMoniker.text())
+        moniker = self.edtMoniker.text()
+        a = bool(moniker)
+        if a and moniker in wallet.get_all_monikers():
+            QtGui.QMessageBox.warning(
+                self, 'Already exists!',
+                "Moniker <b>%s</b> already exists!" % moniker,
+                QtGui.QMessageBox.Ok)
+            a = False
         if not a:
             self.edtMoniker.setStyleSheet('background:#FF8080')
 
@@ -70,7 +77,14 @@ class IssueCoinsDialog(QtGui.QDialog):
             self.lblTotalBTC.setText(text)
 
     def isValid(self):
-        a = bool(self.edtMoniker.text())
+        moniker = self.edtMoniker.text()
+        a = bool(moniker)
+        if a and moniker in wallet.get_all_monikers():
+            QtGui.QMessageBox.warning(
+                self, 'Already exists!',
+                "Moniker <b>%s</b> already exists!" % moniker,
+                QtGui.QMessageBox.Ok)
+            a = False
         if not a:
             self.edtMoniker.setStyleSheet('background:#FF8080')
 
@@ -148,6 +162,7 @@ class AssetPage(QtGui.QWidget):
             self.actionCopyMoniker,
             self.actionCopyColorSet,
             self.actionCopyUnit,
+            self.actionShowAddresses,
         ]
         menu = QtGui.QMenu()
         for action in actions:
@@ -155,9 +170,15 @@ class AssetPage(QtGui.QWidget):
         result = menu.exec_(event.globalPos())
         if result is None or result not in actions:
             return
-        index = selected[actions.index(result)]
-        QtGui.QApplication.clipboard().setText(
-            self.proxyModel.data(index).toString())
+        if 0 <= actions.index(result) <= 2:
+            index = selected[actions.index(result)]
+            QtGui.QApplication.clipboard().setText(
+                self.proxyModel.data(index).toString())
+        elif actions.index(result) == 3:
+            window = self.parentWidget().parentWidget().parentWidget()
+            window.gotoAddressesPage()
+            window.addressespage.setMonikerFilter(
+                self.proxyModel.data(selected[0]).toString())
 
     def selectRowByMoniker(self, moniker):
         moniker = QtCore.QString(moniker)

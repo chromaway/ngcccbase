@@ -13,14 +13,19 @@ class AddressTableModel(AbstractTableModel):
 
 
 class NewAddressDialog(QtGui.QDialog):
-    def __init__(self, parent):
+    def __init__(self, moniker, parent):
         QtGui.QDialog.__init__(self, parent)
         uic.loadUi(uic.getUiPath('newaddressdialog.ui'), self)
 
-        self.cbMoniker.addItems(wallet.get_all_monikers())
+        monikers = wallet.get_all_monikers()
+        self.cbMoniker.addItems(monikers)
+        if moniker in monikers:
+            self.cbMoniker.setCurrentIndex(monikers.index(moniker))
 
-    def getSelectedMoniker(self):
-        return str(self.cbMoniker.currentText())
+    def get_data(self):
+        return {
+            'moniker': str(self.cbMoniker.currentText()),
+        }
 
 
 class AddressesPage(QtGui.QWidget):
@@ -42,7 +47,8 @@ class AddressesPage(QtGui.QWidget):
         self.tableView.horizontalHeader().setResizeMode(
             1, QtGui.QHeaderView.ResizeToContents)
 
-        self.chkOnlyBitcoin.stateChanged.connect(self.chkOnlyBitcoinStateChanged)
+        self.cbMoniker.activated.connect(
+            lambda *args: self.setMonikerFilter(self.cbMoniker.currentText()))
         self.btnNew.clicked.connect(self.btnNewClicked)
         self.btnCopy.clicked.connect(self.btnCopyClicked)
         self.tableView.selectionModel().selectionChanged.connect(
@@ -53,6 +59,14 @@ class AddressesPage(QtGui.QWidget):
         for moniker in wallet.get_all_monikers():
             for address in wallet.get_all_addresses(moniker):
                 self.model.addRow([moniker, address])
+
+        moniker = self.cbMoniker.currentText()
+        monikers = [''] + wallet.get_all_monikers()
+        self.cbMoniker.clear()
+        self.cbMoniker.addItems(monikers)
+        if moniker in monikers:
+            self.cbMoniker.setCurrentIndex(monikers.index(moniker))
+        self.setMonikerFilter(self.cbMoniker.currentText())
 
     def contextMenuEvent(self, event):
         selected = self.tableView.selectedIndexes()
@@ -72,17 +86,23 @@ class AddressesPage(QtGui.QWidget):
         QtGui.QApplication.clipboard().setText(
             self.proxyModel.data(index))
 
-    def chkOnlyBitcoinStateChanged(self, checked):
-        if checked == QtCore.Qt.Checked:
-            self.proxyModel.setFilterFixedString(QtCore.QString('bitcoin'))
-            self.proxyModel.setFilterKeyColumn(0)
-        else:
-            self.proxyModel.setFilterFixedString(QtCore.QString(''))
+    def setMonikerFilter(self, moniker):
+        index = self.cbMoniker.findText(moniker)
+        if index == -1:
+            return
+        if moniker != self.cbMoniker.currentText():
+            self.cbMoniker.setCurrentIndex(index)
+        self.proxyModel.setFilterKeyColumn(0)
+        self.proxyModel.setFilterFixedString(moniker)
 
     def btnNewClicked(self):
-        dialog = NewAddressDialog(self)
+        moniker = None
+        selected = self.tableView.selectedIndexes()
+        if selected:
+            moniker = str(self.proxyModel.data(selected[0]).toString())
+        dialog = NewAddressDialog(moniker, self)
         if dialog.exec_():
-            moniker = dialog.getSelectedMoniker()
+            moniker = dialog.get_data()['moniker']
             addr = wallet.get_new_address(moniker)
             self.update()
             for row in xrange(self.proxyModel.rowCount()):
