@@ -71,10 +71,13 @@ class SendcoinsEntry(QtGui.QFrame):
         return all([self.edtAddressValidate(), self.edtAmountValidate()])
 
     def getData(self):
+        moniker = str(self.cbMoniker.currentText())
+        asset = wallet.get_asset_definition(moniker)
+        value = asset.parse_value(str(self.edtAmount.value()))
         return {
             'address': str(self.edtAddress.text()),
-            'value':   int(self.edtAmount.value()*1e8),
-            'moniker': str(self.cbMoniker.currentText()),
+            'value':  value,
+            'moniker': moniker,
         }
 
 
@@ -114,9 +117,10 @@ class SendcoinsPage(QtGui.QWidget):
         data = [entry.getData() for entry in entries]
         message = 'Are you sure you want to send'
         for recipient in data:
+            asset = wallet.get_asset_definition(recipient['moniker'])
+            value = asset.format_value(recipient['value'])
             message += '<br><b>{value} {moniker}</b> to {address}'.format(**{
-                'value': wallet.get_asset_definition(recipient['moniker']). \
-                    format_value(recipient['value']),
+                'value': value,
                 'moniker': 'BTC' if recipient['moniker'] == 'bitcoin' \
                     else recipient['moniker'],
                 'address': recipient['address'],

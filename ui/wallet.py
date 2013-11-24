@@ -82,10 +82,10 @@ class Wallet(object):
             items = [items]
         for item in items:
             self.controller.send_coins(
-                item['address'],
-                item['asset'] if 'asset' in item
+                item['asset'] if 'asset' in item \
                     else self.get_asset_definition(item['moniker']),
-                item['value'])
+                [item['address']],
+                [item['value']])
 
     def p2ptrade_init(self):
         ewctrl = EWalletController(self.model, self.controller)
