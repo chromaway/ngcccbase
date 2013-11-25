@@ -137,7 +137,8 @@ class SimpleOperationalTxSpec(txspec.OperationalTxSpec):
             selection.append(utxo)
             if ssum >= colorvalue:
                 return selection, ssum
-        raise Exception('not enough coins: %s requested, %s found' % (colorvalue, ssum))
+        raise Exception('not enough coins: %s requested, %s found'
+                        % (colorvalue, ssum))
 
     def get_required_fee(self, tx_size):
         """Given a transaction that is of size <tx_size>,
