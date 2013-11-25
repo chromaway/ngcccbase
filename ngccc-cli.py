@@ -98,6 +98,12 @@ class Application(object):
         parser.add_argument('moniker')
 
         parser = subparsers.add_parser(
+            'addressbalance', description=
+            "Returns the balance in Satoshi for each address "
+            "of a particular asset/color.")
+        parser.add_argument('moniker')
+
+        parser = subparsers.add_parser(
             'send', description=
             "Send some amount of an asset/color to an address.")
         parser.add_argument('moniker')
@@ -265,6 +271,14 @@ class Application(object):
         print [addr.get_address()
                for addr in self.controller.get_all_addresses(asset)]
 
+    def command_addressbalance(self, **kwargs):
+        """Returns the balance in Satoshi for a particular asset/color.
+        "bitcoin" is the generic uncolored coin.
+        """
+        asset = self.get_asset_definition(kwargs['moniker'])
+        for row in self.controller.get_address_balance(asset):
+            print "%s: %s" % (row['address'], asset.format_value(row['value']))
+
     def command_balance(self, **kwargs):
         """Returns the balance in Satoshi for a particular asset/color.
         "bitcoin" is the generic uncolored coin.
@@ -290,8 +304,9 @@ class Application(object):
         asset = self.get_asset_definition(moniker=kwargs['moniker'])
         history = self.controller.get_history(asset)
         for item in history:
-            print "%s %s %s" % (
-                item['action'], item['value'], item['address'])
+            mempool = "(mempool)" if item['mempool'] else ""
+            print "%s %s %s %s" % (
+                item['action'], item['value'], item['address'], mempool)
 
     def init_p2ptrade(self):
         from ngcccbase.p2ptrade.ewctrl import EWalletController

@@ -37,6 +37,14 @@ class ColorDataBuilderManager(object):
             builder = self.get_builder(color_id)
             builder.ensure_scanned_upto(blockhash)
 
+    def scan_txhash(self, color_id_set, txhash):
+        for color_id in color_id_set:
+            if color_id == 0:
+                continue
+            builder = self.get_builder(color_id)
+            tx = self.blockchain_state.get_tx(txhash)
+            builder.scan_tx(tx)
+
 
 class BasicColorDataBuilder(ColorDataBuilder):
     """ Base class for color data builder algorithms"""
@@ -85,7 +93,7 @@ class FullScanColorDataBuilder(BasicColorDataBuilder):
         with self.cdstore.transaction():
             for i, blockhash in enumerate(blocklist):
                 self.scan_block(blockhash)
-                if i % 25 == 0: # sync each 25 blocks
+                if i % 25 == 0:  # sync each 25 blocks
                     self.cdstore.sync()
 
     def ensure_scanned_upto(self, final_blockhash):

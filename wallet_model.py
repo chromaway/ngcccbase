@@ -615,9 +615,7 @@ class WalletModel(object):
         """Returns the history of how an address got its coins.
         """
         klass = TestnetAddress if self.testnet else Address
-
         history = []
-
         address_lookup = {
             a.get_address(): 1 for a in
             self.address_man.get_addresses_for_color_set(
@@ -630,12 +628,17 @@ class WalletModel(object):
             color_record = defaultdict(list)
             for row in color_transactions:
                 txhash, outindex, colorvalue, other = row
+                mempool = False
                 if not transaction_lookup.get(txhash):
                     tx = self.ccc.blockchain_state.get_tx(txhash)
                     blockhash = self.ccc.blockchain_state.get_tx_blockhash(
                         txhash)
-                    height = self.ccc.blockchain_state.get_block_height(
-                        blockhash)
+                    if blockhash:
+                        height = self.ccc.blockchain_state.get_block_height(
+                            blockhash)
+                    else:
+                        height = -1
+                        mempool = True
                     transaction_lookup[txhash] = (tx, height)
                 tx, height = transaction_lookup[txhash]
                 output = tx.outputs[outindex]
@@ -649,6 +652,7 @@ class WalletModel(object):
                         'height': height,
                         'outindex': outindex,
                         'inindex': -1,
+                        'mempool': mempool,
                         })
                 else:
                     raise Exception("cdstore or config may be corrupted: "
@@ -659,6 +663,7 @@ class WalletModel(object):
             seen_hashes = {}
             for txhash, tup in transaction_lookup.items():
                 tx, height = tup
+                mempool = height == -1
                 for input_index, input in enumerate(tx.inputs):
                     inhash = input.outpoint.hash
                     in_outindex = input.outpoint.n
@@ -682,6 +687,7 @@ class WalletModel(object):
                                 'height': height,
                                 'inindex': input_index,
                                 'outindex': -1,
+                                'mempool': mempool,
                                 })
                             break
 
@@ -700,7 +706,8 @@ class WalletModel(object):
                     history.append(item)
 
         # sort by height (date order)
-        return sorted(history, cmp=lambda a, b: a['height'] - b['height']
+        return sorted(history, cmp=lambda a, b: a['mempool'] - b['mempool']
+                      or a['height'] - b['height']
                       or a['outindex'] - b['outindex']
                       or a['inindex'] - b['inindex'])
 
