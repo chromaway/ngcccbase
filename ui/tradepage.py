@@ -1,16 +1,26 @@
 from PyQt4 import QtCore, QtGui, uic
 
 from wallet import wallet
-from tablemodel import AbstractTableModel
+from tablemodel import TableModel, ProxyModel
 
 
-class OffersTableModel(AbstractTableModel):
-    _columns = ['Price', 'Quantity', 'Total']
+class OffersTableModel(TableModel):
+    _columns = ['Price', 'Quantity', 'Total', 'MyOffer', 'Offer']
     _alignment = [
         QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter,
         QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter,
         QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter,
+        0,
     ]
+
+
+class OffersProxyModel(ProxyModel):
+    def data(self, index, role=QtCore.Qt.DisplayRole):
+        if role == QtCore.Qt.BackgroundRole and index.isValid():
+            oid = self.data(self.index(index.row(), 3)).toString()
+            if oid in wallet.p2p_agent.my_offers:
+                return QtCore.QVariant(QtGui.QColor(200, 200, 200))
+        return ProxyModel.data(self, index, role)
 
 
 class TradePage(QtGui.QWidget):
@@ -24,28 +34,30 @@ class TradePage(QtGui.QWidget):
         self.timer.timeout.connect(self.update_offers)
         self.timer.start(2500)
 
-        self.modelBuy = OffersTableModel()
-        self.proxyModelBuy = QtGui.QSortFilterProxyModel(self)
+        self.modelBuy = OffersTableModel(self)
+        self.proxyModelBuy = OffersProxyModel(self)
         self.proxyModelBuy.setSourceModel(self.modelBuy)
         self.proxyModelBuy.setDynamicSortFilter(True)
         self.proxyModelBuy.setSortCaseSensitivity(QtCore.Qt.CaseInsensitive)
         self.proxyModelBuy.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
 
         self.tvBuy.setModel(self.proxyModelBuy)
+        self.tvBuy.hideColumn(3)
         self.tvBuy.sortByColumn(0, QtCore.Qt.AscendingOrder)
         self.tvBuy.horizontalHeader().setResizeMode(
             0, QtGui.QHeaderView.Stretch)
         self.tvBuy.horizontalHeader().setResizeMode(
             1, QtGui.QHeaderView.ResizeToContents)
 
-        self.modelSell = OffersTableModel()
-        self.proxyModelSell = QtGui.QSortFilterProxyModel(self)
+        self.modelSell = OffersTableModel(self)
+        self.proxyModelSell = OffersProxyModel(self)
         self.proxyModelSell.setSourceModel(self.modelSell)
         self.proxyModelSell.setDynamicSortFilter(True)
         self.proxyModelSell.setSortCaseSensitivity(QtCore.Qt.CaseInsensitive)
         self.proxyModelSell.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
 
         self.tvSell.setModel(self.proxyModelSell)
+        self.tvSell.hideColumn(3)
         self.tvSell.sortByColumn(0, QtCore.Qt.AscendingOrder)
         self.tvSell.horizontalHeader().setResizeMode(
             0, QtGui.QHeaderView.Stretch)
@@ -61,10 +73,12 @@ class TradePage(QtGui.QWidget):
         self.edtBuyQuantity.textChanged.connect(self.lblBuyTotalChange)
         self.edtBuyPrice.textChanged.connect(self.lblBuyTotalChange)
         self.btnBuy.clicked.connect(self.btnBuyClicked)
+        self.tvBuy.doubleClicked.connect(self.tvBuyDoubleClicked)
 
         self.edtSellQuantity.textChanged.connect(self.lblSellTotalChange)
         self.edtSellPrice.textChanged.connect(self.lblSellTotalChange)
         self.btnSell.clicked.connect(self.btnSellClicked)
+        self.tvSell.doubleClicked.connect(self.tvSellDoubleClicked)
 
     def update(self):
         monikers = wallet.get_all_monikers()
@@ -87,7 +101,8 @@ class TradePage(QtGui.QWidget):
         wallet.p2p_agent.update()
         self.modelBuy.removeRows(0, self.modelBuy.rowCount())
         self.modelSell.removeRows(0, self.modelSell.rowCount())
-        for offer in wallet.p2p_agent.their_offers.values():
+        for i, item in enumerate(wallet.p2p_agent.their_offers.items()):
+            oid, offer = item
             data = offer.get_data()
             if data['A'].get('color_spec') == color_desc:
                 value = data['A']['value']
@@ -97,6 +112,7 @@ class TradePage(QtGui.QWidget):
                     bitcoin.format_value(price),
                     asset.format_value(value),
                     bitcoin.format_value(total),
+                    oid,
                 ])
             if data['B'].get('color_spec') == color_desc:
                 value = data['B']['value']
@@ -106,22 +122,24 @@ class TradePage(QtGui.QWidget):
                     bitcoin.format_value(price),
                     asset.format_value(value),
                     bitcoin.format_value(total),
+                    oid,
                 ])
 
     def cbMonikerIndexChanged(self):
         moniker = str(self.cbMoniker.currentText())
         if moniker == '':
             return
-        asset = wallet.get_asset_definition(moniker)
-        balance = wallet.get_balance(asset)
-        self.lblSell.setText('Sell %s' % moniker)
-        self.lblSellAvailable.setText(
-            '(Available: %s %s)' % (asset.format_value(balance), moniker))
+
         asset = wallet.get_asset_definition('bitcoin')
-        balance = wallet.get_balance(asset)
-        self.lblBuy.setText('Buy %s' % moniker)
-        self.lblBuyAvailable.setText(
-            '(Available: %s bitcoin)' % asset.format_value(balance))
+        value = asset.format_value(wallet.get_balance(asset))
+        text = '<b>Buy</b> {0} (Available: {1} bitcoin)'.format(moniker, value)
+        self.lblBuy.setText(text)
+
+        asset = wallet.get_asset_definition(moniker)
+        value = asset.format_value(wallet.get_balance(asset))
+        text = '<b>Sell</b> {0} (Available: {1} {0})'.format(moniker, value)
+        self.lblSell.setText(text)
+
         self.update_offers()
 
     def lblBuyTotalChange(self):
@@ -132,7 +150,6 @@ class TradePage(QtGui.QWidget):
             bitcoin = wallet.get_asset_definition('bitcoin')
             price = bitcoin.parse_value(
                 self.edtBuyPrice.text().toDouble()[0])
-            print price
             total = value*price
             self.lblBuyTotal.setText('%s bitcoin' % bitcoin.format_value(total))
 
@@ -166,6 +183,38 @@ class TradePage(QtGui.QWidget):
         })
         wallet.p2p_agent.register_my_offer(offer)
         self.update_offers()
+
+    def tvBuyDoubleClicked(self):
+        selected = self.tvBuy.selectedIndexes()
+        if not selected:
+            return
+        index = self.proxyModelBuy.index(selected[0].row(), 3)
+        if self.proxyModelBuy.data(index).toBool():
+            #cancel
+            pass
+        else:
+            bitcoin = wallet.get_asset_definition('bitcoin')
+            total = self.proxyModelBuy.data(selected[2]).toDouble()[0]
+            if wallet.get_balance(bitcoin) < bitcoin.parse_value(total):
+                QtGui.QMessageBox.warning(self, "Not enough money...", message,
+                    QtGui.QMessageBox.Cancel)
+                return
+            message = "Buy <b>{value}</b> {moniker} for <b>{course}</b> \
+bitcoin (Total: <b>{total}</b> bitcoin)".format(**{
+                'value': self.proxyModelBuy.data(selected[1]).toString(),
+                'moniker': str(self.cbMoniker.currentText()),
+                'course': self.proxyModelBuy.data(selected[0]).toString(),
+                'total': self.proxyModelBuy.data(selected[2]).toString(),
+            })
+            retval = QtGui.QMessageBox.question(
+                self, 'Confirm buy coins',
+                message,
+                QtGui.QMessageBox.Yes | QtGui.QMessageBox.Cancel,
+                QtGui.QMessageBox.Cancel)
+            if retval != QtGui.QMessageBox.Yes:
+                return
+            index = self.proxyModelBuy.index(selected[0].row(), 3)
+            offer = self.proxyModelBuy.data(index)
 
     def lblSellTotalChange(self):
         self.lblSellTotal.setText('')
@@ -208,3 +257,9 @@ class TradePage(QtGui.QWidget):
         })
         wallet.p2p_agent.register_my_offer(offer)
         self.update_offers()
+
+    def tvSellDoubleClicked(self):
+        selected = self.tvSell.selectedIndexes()
+        print 'tvSellDoubleClicked', selected
+        if not selected:
+            return

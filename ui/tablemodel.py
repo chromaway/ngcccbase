@@ -1,7 +1,7 @@
-from PyQt4 import QtCore
+from PyQt4 import QtCore, QtGui
 
 
-class AbstractTableModel(QtCore.QAbstractTableModel):
+class TableModel(QtCore.QAbstractTableModel):
     _columns = None
     _alignment = None
 
@@ -15,16 +15,16 @@ class AbstractTableModel(QtCore.QAbstractTableModel):
     def columnCount(self, parent=None):
         return len(self._columns)
 
-    def data(self, index, role):
-        if role == QtCore.Qt.TextAlignmentRole:
-            return self._alignment[index.column()]
-
-        if index.isValid() and role == QtCore.Qt.DisplayRole:
-            return QtCore.QVariant(self._data[index.row()][index.column()])
+    def data(self, index, role=QtCore.Qt.DisplayRole):
+        if index.isValid():
+            if role == QtCore.Qt.TextAlignmentRole:
+                return self._alignment[index.column()]
+            if role == QtCore.Qt.DisplayRole:
+                return QtCore.QVariant(self._data[index.row()][index.column()])
 
         return QtCore.QVariant()
 
-    def headerData(self, section, orientation, role):
+    def headerData(self, section, orientation, role=QtCore.Qt.DisplayRole):
         if orientation == QtCore.Qt.Horizontal \
                 and role == QtCore.Qt.DisplayRole:
             return QtCore.QVariant(self._columns[section])
@@ -42,3 +42,14 @@ class AbstractTableModel(QtCore.QAbstractTableModel):
         for _ in range(row, row+count):
             self._data.pop(row)
         self.endRemoveRows()
+
+
+class ProxyModel(QtGui.QSortFilterProxyModel):
+    def data(self, index, role=QtCore.Qt.DisplayRole):
+        if index.isValid() and role == QtCore.Qt.BackgroundRole:
+            if index.row() % 2 == 1:
+                color = QtGui.QColor(243, 243, 243)
+            else:
+                color = QtGui.QColor(255, 255, 255)
+            return QtCore.QVariant(color)
+        return QtGui.QSortFilterProxyModel.data(self, index, role)

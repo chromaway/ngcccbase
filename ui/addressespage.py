@@ -1,15 +1,19 @@
 from PyQt4 import QtCore, QtGui, uic
 
 from wallet import wallet
-from tablemodel import AbstractTableModel
+from tablemodel import TableModel, ProxyModel
 
 
-class AddressTableModel(AbstractTableModel):
+class AddressTableModel(TableModel):
     _columns = ['Moniker', 'Address']
     _alignment = [
         QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter,
         QtCore.Qt.AlignCenter | QtCore.Qt.AlignVCenter,
     ]
+
+
+class AddressProxyModel(ProxyModel):
+    pass
 
 
 class NewAddressDialog(QtGui.QDialog):
@@ -34,7 +38,7 @@ class AddressesPage(QtGui.QWidget):
         uic.loadUi(uic.getUiPath('addressespage.ui'), self)
 
         self.model = AddressTableModel(self)
-        self.proxyModel = QtGui.QSortFilterProxyModel(self)
+        self.proxyModel = AddressProxyModel(self)
         self.proxyModel.setSourceModel(self.model)
         self.proxyModel.setDynamicSortFilter(True)
         self.proxyModel.setSortCaseSensitivity(QtCore.Qt.CaseInsensitive)

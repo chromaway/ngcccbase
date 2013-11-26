@@ -1,7 +1,7 @@
 from PyQt4 import QtCore, QtGui, uic
 
 from wallet import wallet
-from tablemodel import AbstractTableModel
+from tablemodel import TableModel, ProxyModel
 
 
 class AddAssetDialog(QtGui.QDialog):
@@ -115,7 +115,7 @@ class IssueCoinsDialog(QtGui.QDialog):
         }
 
 
-class AssetTableModel(AbstractTableModel):
+class AssetTableModel(TableModel):
     _columns = ['Moniker', 'Color set', 'Unit']
     _alignment = [
         QtCore.Qt.AlignCenter | QtCore.Qt.AlignVCenter,
@@ -124,13 +124,17 @@ class AssetTableModel(AbstractTableModel):
     ]
 
 
+class AssetProxyModel(ProxyModel):
+    pass
+
+
 class AssetPage(QtGui.QWidget):
     def __init__(self, parent):
         QtGui.QWidget.__init__(self, parent)
         uic.loadUi(uic.getUiPath('assetpage.ui'), self)
 
         self.model = AssetTableModel(self)
-        self.proxyModel = QtGui.QSortFilterProxyModel(self)
+        self.proxyModel = AssetProxyModel(self)
         self.proxyModel.setSourceModel(self.model)
         self.proxyModel.setDynamicSortFilter(True)
         self.proxyModel.setSortCaseSensitivity(QtCore.Qt.CaseInsensitive)
