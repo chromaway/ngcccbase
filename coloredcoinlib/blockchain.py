@@ -96,14 +96,23 @@ class BlockchainState(object):
             raw = self.bitcoind.getrawtransaction(txhash, 1)
         except Exception, e:
             print txhash, e
-            return None
-        return raw.get('blockhash', None)
+            return None, False
+        return raw.get('blockhash', None), True
 
     def get_tx(self, txhash):
         txhex = self.bitcoind.getrawtransaction(txhash, 0)
         txbin = bitcoin.core.x(txhex)
         tx = bitcoin.core.CTransaction.deserialize(txbin)
         return CTransaction.from_bitcoincore(txhash, tx, self)
+
+    def get_best_blockhash(self):
+        try:
+            return self.bitcoin.getbestblockhash()
+        except:
+            # warning: not atomic!
+            # remove once bitcoin 0.9 becomes commonplace
+            count = self.bitcoind.getblockcount()
+            return self.bitcoind.getblockhash(count)
 
     def iter_block_txs(self, blockhash):
         block_hex = None

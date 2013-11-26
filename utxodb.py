@@ -127,14 +127,21 @@ class UTXOQuery(object):
         for utxo in all_utxos:
             utxo.address_rec = address_rec
             if not address_is_uncolored:
-                utxo.colorvalues = cdata.get_colorvalues(
-                    addr_color_set.color_id_set, utxo.txhash, utxo.outindex)
+                utxo.colorvalues = None
+                try:
+                    utxo.colorvalues = cdata.get_colorvalues(
+                        addr_color_set.color_id_set, utxo.txhash, utxo.outindex)
+                except Exception as e:
+                    print e
+                    #  if get_colorvalues fails utxo.colorvalues is None
         if address_is_uncolored:
             return all_utxos
         else:
             def relevant(utxo):
                 cvl = utxo.colorvalues
-                if not cvl:
+                if utxo.colorvalues is None:
+                    return False  # None indicates failure
+                if cvl == []:
                     return color_set.has_color_id(0)
                 for cv in cvl:
                     if color_set.has_color_id(cv[0]):

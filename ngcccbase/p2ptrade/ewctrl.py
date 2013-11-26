@@ -45,7 +45,7 @@ class OperationalETxSpec(txspec.OperationalTxSpec):
              their['value']))
 
     def get_required_fee(self, tx_size):
-        return 20000
+        return 10000
 
     def select_coins(self, color_def, value):
         color_id = color_def.color_id
