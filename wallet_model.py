@@ -499,6 +499,7 @@ class ColoredCoinContext(object):
         """
         params = config.get('ccc', {})
         self.testnet = config.get('testnet', False)
+        self.klass = TestnetAddress if self.testnet else Address
 
         self.blockchain_state = blockchain.BlockchainState.from_url(
             None, self.testnet)
@@ -532,6 +533,9 @@ class ColoredCoinContext(object):
 
         self.colordata = colordata.ThickColorData(
             cdbuilder, self.blockchain_state, self.cdstore)
+
+    def raw_to_address(self, raw_address):
+        return self.klass.rawPubkeyToAddress(raw_address)
 
 
 class CoinQueryFactory(object):
@@ -614,7 +618,6 @@ class WalletModel(object):
     def get_history_for_asset(self, asset):
         """Returns the history of how an address got its coins.
         """
-        klass = TestnetAddress if self.testnet else Address
         history = []
         address_lookup = {
             a.get_address(): 1 for a in
@@ -642,7 +645,7 @@ class WalletModel(object):
                     transaction_lookup[txhash] = (tx, height)
                 tx, height = transaction_lookup[txhash]
                 output = tx.outputs[outindex]
-                address = klass.rawPubkeyToAddress(output.raw_address)
+                address = self.ccc.raw_to_address(output.raw_address)
 
                 if address_lookup.get(address):
                     color_record[txhash].append({
@@ -669,7 +672,7 @@ class WalletModel(object):
                     in_outindex = input.outpoint.n
                     intx = self.ccc.blockchain_state.get_tx(inhash)
                     in_raw = intx.outputs[in_outindex]
-                    address = klass.rawPubkeyToAddress(in_raw.raw_address)
+                    address = self.ccc.raw_to_address(in_raw.raw_address)
 
                     # find the transaction that corresponds to this input
                     transaction = color_record.get(inhash)

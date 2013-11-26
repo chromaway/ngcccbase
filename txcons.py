@@ -173,7 +173,8 @@ class RawTxSpec(object):
     @classmethod
     def from_tx_data(cls, model, tx_data):
         pycoin_tx = pycoin_txcons.deserialize(tx_data)
-        return cls(model, pycoin_tx)
+        composed_tx_spec = txspec.ComposedTxSpec.from_pycoin_tx(model.ccc, pycoin_tx)
+        return cls.from_composed_tx_spec(model, composed_tx_spec)
 
     def sign(self, utxo_list):
         pycoin_txcons.sign_tx(
@@ -329,3 +330,4 @@ class TransactionSpecTransformer(object):
             return self.transform_composed(tx_spec, target_spec_kind)
         elif spec_kind == 'signed':
             return self.transform_signed(tx_spec, target_spec_kind)
+
