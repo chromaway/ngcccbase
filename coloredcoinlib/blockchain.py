@@ -7,6 +7,14 @@ import bitcoin.serialize
 import bitcoin.rpc
 
 
+def script_to_raw_address(script):
+    # extract the destination address from the scriptPubkey
+    if script[:3] == "\x76\xa9\x14":
+        return script[3:23]
+    else:
+        return None
+
+
 class COutpoint(object):
     def __init__(self, hash, n):
         self.hash = hash
@@ -19,13 +27,10 @@ class CTxIn(object):
 
 
 class CTxOut(object):
-    def __init__(self, value, scriptPubKey=None):
+    def __init__(self, value, script):
         self.value = value
-        self.raw_address = None
-
-        # extract the destination address from the scriptPubkey
-        if scriptPubKey and scriptPubKey[:3] == "\x76\xa9\x14":
-            self.raw_address = scriptPubKey[3:23]
+        self.script = script
+        self.raw_address = script_to_raw_address(script)
 
 
 class CTransaction(object):

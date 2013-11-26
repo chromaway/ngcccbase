@@ -1,4 +1,5 @@
 """ Transaction specification language """
+from blockchain import script_to_raw_address
 
 
 class OperationalTxSpec(object):
@@ -58,3 +59,32 @@ class ComposedTxSpec(object):
 
     def get_txouts(self):
         return self.txouts
+
+    @classmethod
+    def from_pycoin_tx(cls, ccc, pycoin_tx):
+        txins, txouts = [], []
+
+        for py_txin in pycoin_tx.txs_in:
+            # lookup the previous hash and generate the utxo
+            in_txhash, in_outindex = py_txin.previous_hash, py_txin.previous_index
+            in_tx = ccc.blockchain_state.get_tx(in_txhash)
+            value = in_tx.outputs[in_outindex].value
+            raw_address = script_to_raw_address(py_txin.script)
+            address = ccc.raw_to_address(raw_address)
+
+            utxo = {
+                'txhash': in_txhash,
+                'outindex': in_outindex,
+                'address': address,
+                'value': value,
+                'script': py_txin.script.encode('hex'),
+                'scantime': -1,
+                'commitment': -1,
+                }
+            txins.append(TxIn(utxo))
+        for py_txout in pycoin_tx.txs_out:
+            script = py_txout.script
+            raw_address = script_to_raw_address(script)
+            address = ccc.raw_to_address(raw_address)
+            txouts.append(TxOut(py_txout.coin_value, address))
+        return cls(txins, txouts)
