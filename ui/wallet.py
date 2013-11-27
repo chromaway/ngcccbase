@@ -109,4 +109,8 @@ class Wallet(object):
         else:
             return MyEOffer(None, buy_side, sell_side)
 
+    def p2ptrade_make_mirror_offer(self, offer):
+        data = offer.get_data()
+        return MyEOffer(None, data['B'], data['A'])
+
 wallet = Wallet()

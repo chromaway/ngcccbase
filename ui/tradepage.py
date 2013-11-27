@@ -5,7 +5,7 @@ from tablemodel import TableModel, ProxyModel
 
 
 class OffersTableModel(TableModel):
-    _columns = ['Price', 'Quantity', 'Total', 'MyOffer', 'Offer']
+    _columns = ['Price', 'Quantity', 'Total', 'MyOffer']
     _alignment = [
         QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter,
         QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter,
@@ -17,7 +17,7 @@ class OffersTableModel(TableModel):
 class OffersProxyModel(ProxyModel):
     def data(self, index, role=QtCore.Qt.DisplayRole):
         if role == QtCore.Qt.BackgroundRole and index.isValid():
-            oid = self.data(self.index(index.row(), 3)).toString()
+            oid = str(self.data(self.index(index.row(), 3)).toString())
             if oid in wallet.p2p_agent.my_offers:
                 return QtCore.QVariant(QtGui.QColor(200, 200, 200))
         return ProxyModel.data(self, index, role)
@@ -99,9 +99,22 @@ class TradePage(QtGui.QWidget):
         color_desc = asset.get_color_set().color_desc_list[0]
 
         wallet.p2p_agent.update()
+
+        selected_oids = [None, None]
+        viewsList = [
+            [0, self.tvBuy,  self.proxyModelBuy],
+            [1, self.tvSell, self.proxyModelSell],
+        ]
+        for i, view, proxy in viewsList:
+            selected = view.selectedIndexes()
+            if selected:
+                index = proxy.index(selected[0].row(), 3)
+                selected_oids[i] = str(proxy.data(index).toString())
+
         self.modelBuy.removeRows(0, self.modelBuy.rowCount())
         self.modelSell.removeRows(0, self.modelSell.rowCount())
-        for i, item in enumerate(wallet.p2p_agent.their_offers.items()):
+        offers = wallet.p2p_agent.their_offers.items() + wallet.p2p_agent.my_offers.items()
+        for i, item in enumerate(offers):
             oid, offer = item
             data = offer.get_data()
             if data['A'].get('color_spec') == color_desc:
@@ -124,6 +137,12 @@ class TradePage(QtGui.QWidget):
                     bitcoin.format_value(total),
                     oid,
                 ])
+
+        for i, view, proxy in viewsList:
+            for row in xrange(proxy.rowCount()):
+                oid = str(proxy.data(proxy.index(row, 3)).toString())
+                if oid == selected_oids[i]:
+                    view.selectRow(row)
 
     def cbMonikerIndexChanged(self):
         moniker = str(self.cbMoniker.currentText())
@@ -183,20 +202,20 @@ class TradePage(QtGui.QWidget):
         })
         wallet.p2p_agent.register_my_offer(offer)
         self.update_offers()
+        self.edtBuyQuantity.setText('')
+        self.edtBuyPrice.setText('')
 
     def tvBuyDoubleClicked(self):
         selected = self.tvBuy.selectedIndexes()
         if not selected:
             return
         index = self.proxyModelBuy.index(selected[0].row(), 3)
-        if self.proxyModelBuy.data(index).toBool():
-            #cancel
-            pass
-        else:
+        oid = str(self.proxyModelBuy.data(index).toString())
+        if oid in wallet.p2p_agent.their_offers:
+            offer = wallet.p2p_agent.their_offers[oid]
             bitcoin = wallet.get_asset_definition('bitcoin')
-            total = self.proxyModelBuy.data(selected[2]).toDouble()[0]
-            if wallet.get_balance(bitcoin) < bitcoin.parse_value(total):
-                QtGui.QMessageBox.warning(self, "Not enough money...", message,
+            if wallet.get_balance(bitcoin) < offer.get_data()['B']['value']:
+                QtGui.QMessageBox.warning(self, '', "Not enough money...",
                     QtGui.QMessageBox.Cancel)
                 return
             message = "Buy <b>{value}</b> {moniker} for <b>{course}</b> \
@@ -207,14 +226,17 @@ bitcoin (Total: <b>{total}</b> bitcoin)".format(**{
                 'total': self.proxyModelBuy.data(selected[2]).toString(),
             })
             retval = QtGui.QMessageBox.question(
-                self, 'Confirm buy coins',
-                message,
+                self, "Confirm buy coins", message,
                 QtGui.QMessageBox.Yes | QtGui.QMessageBox.Cancel,
                 QtGui.QMessageBox.Cancel)
             if retval != QtGui.QMessageBox.Yes:
                 return
-            index = self.proxyModelBuy.index(selected[0].row(), 3)
-            offer = self.proxyModelBuy.data(index)
+            new_offer = wallet.p2ptrade_make_mirror_offer(offer)
+            wallet.p2p_agent.register_my_offer(new_offer)
+        else:
+            offer = wallet.p2p_agent.my_offers[oid]
+            wallet.p2p_agent.cancel_my_offer(offer)
+        self.update_offers()
 
     def lblSellTotalChange(self):
         self.lblSellTotal.setText('')
@@ -257,9 +279,39 @@ bitcoin (Total: <b>{total}</b> bitcoin)".format(**{
         })
         wallet.p2p_agent.register_my_offer(offer)
         self.update_offers()
+        self.edtSellQuantity.setText('')
+        self.edtSellPrice.setText('')
 
     def tvSellDoubleClicked(self):
         selected = self.tvSell.selectedIndexes()
-        print 'tvSellDoubleClicked', selected
         if not selected:
             return
+        index = self.proxyModelSell.index(selected[0].row(), 3)
+        oid = str(self.proxyModelSell.data(index).toString())
+        if oid in wallet.p2p_agent.their_offers:
+            offer = wallet.p2p_agent.their_offers[oid]
+            moniker = str(self.cbMoniker.currentText())
+            asset = wallet.get_asset_definition(moniker)
+            if wallet.get_balance(asset) < offer.get_data()['A']['value']:
+                QtGui.QMessageBox.warning(self, '', "Not enough money...",
+                    QtGui.QMessageBox.Cancel)
+                return
+            message = "Sell <b>{value}</b> {moniker} for <b>{course}</b> \
+bitcoin (Total: <b>{total}</b> bitcoin)".format(**{
+                'value': self.proxyModelSell.data(selected[1]).toString(),
+                'moniker': moniker,
+                'course': self.proxyModelSell.data(selected[0]).toString(),
+                'total': self.proxyModelSell.data(selected[2]).toString(),
+            })
+            retval = QtGui.QMessageBox.question(
+                self, "Confirm sell coins", message,
+                QtGui.QMessageBox.Yes | QtGui.QMessageBox.Cancel,
+                QtGui.QMessageBox.Cancel)
+            if retval != QtGui.QMessageBox.Yes:
+                return
+            new_offer = wallet.p2ptrade_make_mirror_offer(offer)
+            wallet.p2p_agent.register_my_offer(new_offer)
+        else:
+            offer = wallet.p2p_agent.my_offers[oid]
+            wallet.p2p_agent.cancel_my_offer(offer)
+        self.update_offers()

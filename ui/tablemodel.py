@@ -18,7 +18,7 @@ class TableModel(QtCore.QAbstractTableModel):
     def data(self, index, role=QtCore.Qt.DisplayRole):
         if index.isValid():
             if role == QtCore.Qt.TextAlignmentRole:
-                return self._alignment[index.column()]
+                return QtCore.QVariant(self._alignment[index.column()])
             if role == QtCore.Qt.DisplayRole:
                 return QtCore.QVariant(self._data[index.row()][index.column()])
 
