@@ -668,8 +668,8 @@ class WalletModel(object):
                 tx, height = tup
                 mempool = height == -1
                 for input_index, input in enumerate(tx.inputs):
-                    inhash = input.outpoint.hash
-                    in_outindex = input.outpoint.n
+                    inhash = input.prevout.hash
+                    in_outindex = input.prevout.n
                     intx = self.ccc.blockchain_state.get_tx(inhash)
                     in_raw = intx.outputs[in_outindex]
                     address = self.ccc.raw_to_address(in_raw.raw_address)

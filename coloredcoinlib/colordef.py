@@ -115,11 +115,9 @@ class OBColorDefinition(ColorDefinition):
         if change > 0:
             targets.append((op_tx_spec.get_change_addr(UNCOLORED_MARKER),
                             UNCOLORED_MARKER, change))
-        txins = [txspec.ComposedTxSpec.TxIn(utxo)
-                 for utxo in inputs]
         txouts = [txspec.ComposedTxSpec.TxOut(target[2], target[0])
                   for target in targets]
-        return txspec.ComposedTxSpec(txins, txouts)
+        return txspec.ComposedTxSpec(inputs, txouts)
 
     def compose_tx_spec(self, op_tx_spec):
         targets_by_color = defaultdict(list)
@@ -155,8 +153,7 @@ class OBColorDefinition(ColorDefinition):
             uncolored_targets.append(
                 (op_tx_spec.get_change_addr(UNCOLORED_MARKER),
                  None, uncolored_change))
-        txins = [txspec.ComposedTxSpec.TxIn(utxo) for utxo in
-                 (colored_inputs + uncolored_inputs)]
+        txins = colored_inputs + uncolored_inputs
         txouts = [txspec.ComposedTxSpec.TxOut(target[2], target[0])
                   for target in (colored_targets + uncolored_targets)]
         return txspec.ComposedTxSpec(txins, txouts)
@@ -318,9 +315,7 @@ class POBColorDefinition(ColorDefinition):
                 txspec.ComposedTxSpec.TxOut(
                     change, op_tx_spec.get_change_addr(UNCOLORED_MARKER)))
 
-        txins = [txspec.ComposedTxSpec.TxIn(utxo)
-                 for utxo in inputs]
-        return txspec.ComposedTxSpec(txins, txouts)
+        return txspec.ComposedTxSpec(inputs, txouts)
 
     def compose_tx_spec(self, op_tx_spec):
         # group targets by color
@@ -365,8 +360,7 @@ class POBColorDefinition(ColorDefinition):
                  None, uncolored_change))
 
         # compose the TxIn and TxOut elements
-        txins = [txspec.ComposedTxSpec.TxIn(utxo) for utxo in
-                 (colored_inputs + uncolored_inputs)]
+        txins = colored_inputs + uncolored_inputs
         txouts = [
             txspec.ComposedTxSpec.TxOut(
                 self.color_to_satoshi(target[2]), target[0])

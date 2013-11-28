@@ -60,7 +60,7 @@ class BasicColorDataBuilder(ColorDataBuilder):
         empty = True
         for inp in tx.inputs:
             val = self.cdstore.get(
-                self.color_id, inp.outpoint.hash, inp.outpoint.n)
+                self.color_id, inp.prevout.hash, inp.prevout.n)
             in_colorvalues.append(val)
             if val:
                 empty = False
@@ -158,8 +158,8 @@ class AidedColorDataBuilder(FullScanColorDataBuilder):
                    directly depends on"""
                 prev_txs = []
                 for inp in tx.inputs:
-                    if inp.outpoint.hash in block_txs:
-                        prev_txs.append(block_txs[inp.outpoint.hash])
+                    if inp.prevout.hash in block_txs:
+                        prev_txs.append(block_txs[inp.prevout.hash])
                 return prev_txs
 
             sorted_block_txs = toposorted(block_txs.values(), get_prev_txs)
