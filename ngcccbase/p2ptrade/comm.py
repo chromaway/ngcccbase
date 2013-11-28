@@ -2,6 +2,7 @@ import urllib2
 import json
 import time
 import binascii
+import threading
 
 def make_random_id():
     import os
@@ -72,3 +73,21 @@ class HTTPExchangeComm:
         except Exception as e:
             LOGERROR("Error in  HTTPExchangeComm.update: %s", e)
             return False
+
+
+class HTTPExchangeCommThread(threading.Thread):
+    def __init__(self, comm):
+        threading.Thread.__init__(self)
+        self._stop = threading.Event()
+        self._comm = comm
+
+    def run(self):
+        while not self._stop.is_set():
+            for agent in self._comm.agents:
+                while not agent.send_messages.empty():
+                    self._comm.post_message(agent.send_messages.get())
+            self._comm.poll_and_dispatch()
+            time.sleep(1)
+
+    def stop(self):
+        self._stop.set()
