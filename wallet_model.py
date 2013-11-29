@@ -634,7 +634,7 @@ class WalletModel(object):
                 mempool = False
                 if not transaction_lookup.get(txhash):
                     tx = self.ccc.blockchain_state.get_tx(txhash)
-                    blockhash = self.ccc.blockchain_state.get_tx_blockhash(
+                    blockhash, x = self.ccc.blockchain_state.get_tx_blockhash(
                         txhash)
                     if blockhash:
                         height = self.ccc.blockchain_state.get_block_height(
@@ -657,10 +657,6 @@ class WalletModel(object):
                         'inindex': -1,
                         'mempool': mempool,
                         })
-                else:
-                    raise Exception("cdstore or config may be corrupted: "
-                                    "%s is not a valid receiving address"
-                                    % address)
 
             # check the inputs
             seen_hashes = {}
@@ -668,8 +664,8 @@ class WalletModel(object):
                 tx, height = tup
                 mempool = height == -1
                 for input_index, input in enumerate(tx.inputs):
-                    inhash = input.outpoint.hash
-                    in_outindex = input.outpoint.n
+                    inhash = input.prevout.hash
+                    in_outindex = input.prevout.n
                     intx = self.ccc.blockchain_state.get_tx(inhash)
                     in_raw = intx.outputs[in_outindex]
                     address = self.ccc.raw_to_address(in_raw.raw_address)

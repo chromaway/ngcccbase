@@ -23,7 +23,10 @@ class COutpoint(object):
 
 class CTxIn(object):
     def __init__(self, op_hash, op_n):
-        self.outpoint = COutpoint(op_hash, op_n)
+        self.prevout = COutpoint(op_hash, op_n)
+
+    def get_outpoint(self):
+        return (self.prevout.hash, self.prevout.n)
 
 
 class CTxOut(object):
@@ -62,10 +65,10 @@ class CTransaction(object):
         if self.have_input_values:
             return
         for inp in self.inputs:
-            prev_tx_hash = inp.outpoint.hash
+            prev_tx_hash = inp.prevout.hash
             if prev_tx_hash != 'coinbase':
                 prevtx = self.bs.get_tx(prev_tx_hash)
-                inp.value = prevtx.outputs[inp.outpoint.n].value
+                inp.value = prevtx.outputs[inp.prevout.n].value
             else:
                 inp.value = 0  # TODO: value of coinbase tx?
 

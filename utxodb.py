@@ -18,10 +18,12 @@ of each colored coin we have.
 """
 
 from coloredcoinlib.store import DataStore, DataStoreConnection
+from coloredcoinlib.txspec import ComposedTxSpec
 from time import time
 from ngcccbase.services.blockchain import BlockchainInfoInterface, AbeInterface
 from ngcccbase.services.electrum import ElectrumInterface
-from pycoin.tx import TxOut
+
+
 
 import sqlite3
 import urllib2
@@ -160,7 +162,7 @@ class UTXOQuery(object):
         return utxos
 
 
-class UTXO(object):
+class UTXO(ComposedTxSpec.TxIn):
     """Unspent Transaction Output object
     Unspent Transaction Outputs are parts of a Transaction that haven't
     been spent yet. Since ordering is important for obc (order-based coloring),
@@ -172,19 +174,14 @@ class UTXO(object):
         at the position <outindex> that consists of <value> Satoshis
         with a signature <script>
         """
-        self.txhash = txhash
+        super(UTXO, self).__init__(txhash, outindex)
+        self.txhash = txhash  # TODO: duplicated, remove
         self.outindex = outindex
         self.value = value
         self.script = script
         self.address_rec = None
         self.colorvalues = None
         self.utxo_rec = None
-
-    def get_outpoint(self):
-        """Returns a tuple of transaction hash and outindex, which is
-        basically the position of this utxo within the greater transaction.
-        """
-        return (self.txhash, self.outindex)
 
     def get_txhash(self):
         return self.txhash.decode('hex')[::-1]

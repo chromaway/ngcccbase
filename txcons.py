@@ -303,8 +303,7 @@ class TransactionSpecTransformer(object):
         """
         if target_spec_kind in ['signed']:
             rtxs = RawTxSpec.from_composed_tx_spec(self.model, tx_spec)
-            utxo_list = [txin.utxo for txin in tx_spec.get_txins()]
-            rtxs.sign(utxo_list)
+            rtxs.sign(tx_spec.get_txins())
             return rtxs
         raise Exception('do not know how to transform tx spec')
 

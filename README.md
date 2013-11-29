@@ -92,7 +92,7 @@ using this command if you already have money in your testnet wallet.
  
  Should return 0.1
  
- * `python ngccc.py issue assetName obc 1 10000`
+ * `python ngccc.py issue assetName obc 10000 1`
 
  Should return a large hash.
 
