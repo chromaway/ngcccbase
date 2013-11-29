@@ -39,7 +39,7 @@ class ColorDefinitionTester():
 
 
 class TestColordef(unittest.TestCase):
-    def atest_pocb_color_kernel(self):
+    def test_pocb_color_kernel(self):
         # test the POBC color kernel
         pobc = POBColorDefinition(
             "testcolor", {'txhash': 'genesis', 'outindex': 0})
@@ -82,7 +82,7 @@ class TestColordef(unittest.TestCase):
         # combine and split
         self.assertEqual(test([10005, 10009, 10006, 50000], [10002, 10003, 10004, 10005, 10006, 50000], [5, 9, 6, None]), [2, 3, 4, 5, 6, None])
 
-    def atest_ones(self):
+    def test_ones(self):
         self.assertEqual(list(ones(0)), [])
         self.assertEqual(list(ones(1)), [0])
         self.assertEqual(list(ones(10)), [1, 3])
@@ -91,7 +91,7 @@ class TestColordef(unittest.TestCase):
         self.assertEqual(list(ones(987654321)), [0, 4, 5, 7, 11, \
                  13, 14, 17, 18, 19, 20, 22, 23, 25, 27, 28, 29])
 
-    def atest_i2seq(self):
+    def test_i2seq(self):
         self.assertEqual(i2seq(None), 0)
         self.assertEqual(i2seq(0), 1)
         self.assertEqual(i2seq(1), 2)
