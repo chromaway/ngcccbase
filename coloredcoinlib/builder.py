@@ -20,6 +20,15 @@ class ColorDataBuilderManager(object):
         self.builders = {}
         self.builder_class = builder_class
 
+    def get_color_def_map(self, color_id_set):
+        """given a set of color_ids <color_id_set>, return
+        a dict of color_id to color_def.
+        """
+        color_def_map = {}
+        for color_id in color_id_set:
+            color_def_map[color_id] = self.colormap.get_color_def(color_id)
+        return color_def_map
+
     def get_builder(self, color_id):
         if color_id in self.builders:
             return self.builders[color_id]

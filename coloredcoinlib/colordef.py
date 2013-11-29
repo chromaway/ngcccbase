@@ -99,6 +99,38 @@ class OBColorDefinition(ColorDefinition):
                 out_colorvalues.append(None)
         return out_colorvalues
 
+    def get_affecting_inputs(self, tx, output_set):
+        """Returns a set object consisting of inputs that correspond to the
+        output indexes of <output_set> from transaction <tx>
+        """
+        if self.is_special(tx):
+            return set()
+        tx.ensure_input_values()
+        running_sum_inputs = []
+        current_sum = 0
+        for txin in tx.inputs:
+            current_sum += txin.value
+            running_sum_inputs.append(current_sum)
+        running_sum_outputs = []
+        current_sum = 0
+        for output in tx.outputs:
+            current_sum += output.value
+            running_sum_outputs.append(current_sum)
+
+        matching_input_set = set()
+
+        num_inputs = len(running_sum_inputs)
+        num_outputs = len(running_sum_outputs)
+        for i in output_set:
+            for j in range(num_inputs):
+                if (i + 1 == num_outputs
+                    or running_sum_inputs[j] < running_sum_outputs[i + 1]) \
+                    and \
+                    (j + 1 == num_inputs
+                     or running_sum_outputs[i] < running_sum_inputs[j + 1]):
+                    matching_input_set.add(tx.inputs[j])
+        return matching_input_set
+
     @classmethod
     def compose_genesis_tx_spec(self, op_tx_spec):
         targets = op_tx_spec.get_targets()[:]
