@@ -41,8 +41,7 @@ def sign_tx(tx, utxo_list, is_test):
     secret_exponents = [
         wif_to_tuple_of_secret_exponent_compressed(
             utxo.address_rec.address.privkey, is_test=is_test)[0]
-        for utxo in utxo_list
-        if utxo.address_rec]
+        for utxo in utxo_list if utxo.address_rec]
     solver = SecretExponentSolver(secret_exponents)
     txins = tx.txs_in[:]
     hash_type = SIGHASH_ALL
@@ -67,7 +66,6 @@ def sign_tx(tx, utxo_list, is_test):
                              signature_hash, hash_type=hash_type):
             raise Exception("invalid script")
     tx.txs_in = txins
-
 
 def deserialize(tx_data):
     return Tx.parse(BytesIO(tx_data))
