@@ -5,10 +5,11 @@ from tablemodel import AbstractTableModel
 
 
 class AddressTableModel(AbstractTableModel):
-    _columns = ['Moniker', 'Address']
+    _columns = ['Moniker', 'Address', 'Balance']
     _alignment = [
         QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter,
         QtCore.Qt.AlignCenter | QtCore.Qt.AlignVCenter,
+        QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter,
     ]
 
 
@@ -57,8 +58,8 @@ class AddressesPage(QtGui.QWidget):
     def update(self):
         self.model.removeRows(0, self.model.rowCount())
         for moniker in wallet.get_all_monikers():
-            for address in wallet.get_all_addresses(moniker):
-                self.model.addRow([moniker, address])
+            for row in wallet.get_address_balance(moniker):
+                self.model.addRow([moniker, row['address'], row['value']])
 
         moniker = self.cbMoniker.currentText()
         monikers = [''] + wallet.get_all_monikers()

@@ -19,7 +19,7 @@
      <item>
       <widget class="QLabel" name="label">
        <property name="text">
-        <string>These are your addresses for receivving payments.</string>
+        <string>These are your addresses for receiving payments.</string>
        </property>
       </widget>
      </item>
