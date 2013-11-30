@@ -199,8 +199,6 @@ def compose_uncolored_tx(tx_spec):
     fee = tx_spec.get_required_fee(500)
     sel_utxos, sum_sel_coins = tx_spec.select_coins(colordef.UNCOLORED_MARKER,
                                                     ttotal + fee)
-    txins = [txspec.ComposedTxSpec.TxIn(utxo)
-             for utxo in sel_utxos]
     change = sum_sel_coins - ttotal - fee
     txouts = [txspec.ComposedTxSpec.TxOut(target[2], target[0])
               for target in targets]
@@ -209,7 +207,7 @@ def compose_uncolored_tx(tx_spec):
         txouts.append(
             txspec.ComposedTxSpec.TxOut(
                 change, tx_spec.get_change_addr(colordef.UNCOLORED_MARKER)))
-    return txspec.ComposedTxSpec(txins, txouts)
+    return txspec.ComposedTxSpec(sel_utxos, txouts)
 
 
 class TransactionSpecTransformer(object):

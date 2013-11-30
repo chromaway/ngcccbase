@@ -518,7 +518,7 @@ class ColoredCoinContext(object):
             if not ok:
                 # use Electrum to request transactions
                 self.blockchain_state = EnhancedBlockchainState(
-                    "btc.it-zone.org", 50001)
+                    "electrum.cafebitcoin.com", 50001)
 
         self.store_conn = store.DataStoreConnection(
             params.get("color.db", "color.db"))
