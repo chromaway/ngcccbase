@@ -44,7 +44,7 @@ class ThickColorData(StoredColorData):
                 best_blockhash = self.blockchain_state.get_best_blockhash()
                 if best_blockhash_prev == best_blockhash:
                     break
-            if not (txhash in mempool):
+            if txhash not in mempool:
                 raise Exception("transaction %s isn't found in mempool" % txhash)
             # the preceding blockchain
             self.cdbuilder_manager.ensure_scanned_upto(
