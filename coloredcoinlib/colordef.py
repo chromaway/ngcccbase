@@ -1,6 +1,7 @@
 """ Color definition schemes """
 
 import txspec
+import math
 from collections import defaultdict
 
 
@@ -53,22 +54,20 @@ class ColorDefinition(object):
 GENESIS_OUTPUT_MARKER = ColorDefinition(-1)
 UNCOLORED_MARKER = ColorDefinition(0)
 
-
-class OBColorDefinition(ColorDefinition):
-    """Implements order-based coloring scheme"""
-    CLASS_CODE = 'obc'
-
+class GenesisColorDefinition(ColorDefinition):
     def __init__(self, color_id, genesis):
-        super(OBColorDefinition, self).__init__(color_id)
+        super(GenesisColorDefinition, self).__init__(color_id)
         self.genesis = genesis
-
     def __repr__(self):
         return "%s:%s:%s:%s" % (
             self.CLASS_CODE, self.genesis['txhash'], self.genesis['outindex'],
             self.genesis['height'])
-
     def is_special_tx(self, tx):
         return tx.hash == self.genesis['txhash']
+
+class OBColorDefinition(GenesisColorDefinition):
+    """Implements order-based coloring scheme"""
+    CLASS_CODE = 'obc'
 
     def run_kernel(self, tx, in_colorvalues):
         out_colorvalues = []
@@ -203,26 +202,13 @@ class OBColorDefinition(ColorDefinition):
         return cls(color_id, genesis)
 
 
-class POBColorDefinition(ColorDefinition):
+class POBColorDefinition(GenesisColorDefinition):
 
     CLASS_CODE = 'pobc'
     PADDING = 10000
 
-    def __init__(self, color_id, genesis):
-        super(POBColorDefinition, self).__init__(color_id)
-        self.genesis = genesis
-
-    def __repr__(self):
-        return "%s:%s:%s:%s" % (
-            self.CLASS_CODE, self.genesis['txhash'], self.genesis['outindex'],
-            self.genesis['height'])
-
-    def is_special_tx(self, tx):
-        return tx.hash == self.genesis['txhash']
-
     def run_kernel(self, tx, in_colorvalues):
-        """Computes the output colorvalues
-        """
+        """Computes the output colorvalues"""
 
         is_genesis = (tx.hash == self.genesis['txhash'])
 
@@ -413,82 +399,44 @@ class POBColorDefinition(ColorDefinition):
                    'outindex': int(outindex)}
         return cls(color_id, genesis)
 
+def ones(n):
+    """ finds indices for the 1's in an integer"""
+    while n:
+        b = n & (~n + 1)
+        i = int(math.log(b, 2))
+        yield i
+        n ^= b
+   
+class BFTColorDefinition (GenesisColorDefinition):
+    CLASS_CODE = 'btfc'
+
+    def run_kernel(self, tx, in_colorvalues):
+        """Computes the output colorvalues"""
+        # special case: genesis tx output
+        tx.ensure_input_values()
+        if tx.hash == self.genesis['txhash']:
+            return [(out.value, '') if self.genesis['outindex'] == i else None \
+                        for i, out in enumerate(tx.outputs)]
+            
+        # start with all outputs having null colorvalue
+        out_colorvalues = [None for _ in tx.outputs]
+        # go through all inputs
+        for inp_index in xrange(len(tx.inputs)):
+            # if input has non-null colorvalue, check its nSequence
+            color_value = in_colorvalues[inp_index]
+            if color_value:
+                nSequence = tx.raw.vin[inp_index].nSequence
+                # if nSequence has exactly one bit set (i-th bit),
+                seq_ones = list(ones(nSequence))
+                if len(seq_ones) == 1:
+                    bit_index = seq_ones[0]
+                    # add colorvalue of this input to colorvalue of i-th output
+                    if bit_index < len(out_colorvalues):
+                        prev_value, text = out_colorvalues[bit_index] or (0, "")
+                        out_colorvalues[bit_index] = prev_value + color_value, text
+
+        return out_colorvalues
+
 ColorDefinition.register_color_def_class(OBColorDefinition)
 ColorDefinition.register_color_def_class(POBColorDefinition)
-
-if __name__ == "__main__":
-    # test the POBC color kernel
-    class MockTXElement:
-        def __init__(self, value):
-            self.value = value
-
-    class MockTX:
-        def __init__(self, hash, inputs, outputs):
-            self.hash = hash
-            self.inputs = [MockTXElement(i) for i in inputs]
-            self.outputs = [MockTXElement(i) for i in outputs]
-
-        def ensure_input_values(self):
-            pass
-
-    pobc = POBColorDefinition(
-        "testcolor", {'txhash': 'genesis', 'outindex': 0})
-
-    def test(inputs, outputs, in_colorvalue, txhash="not genesis"):
-        tx = MockTX(txhash, inputs, outputs)
-        return [i and i[0] for i in pobc.run_kernel(tx, in_colorvalue)]
-
-    # genesis
-    assert test([10001], [10001], [1], "genesis") == [1]
-    assert test([40001], [10001, 30000], [1], "genesis") == [1, None]
-    assert test([10000, 1], [10001], [1], "genesis") == [1]
-    pobc.genesis['outindex'] = 1
-    assert test([40001], [30000, 10001], [1], "genesis") == [None, 1]
-    pobc.genesis['outindex'] = 0
-
-    # simple transfer
-    assert test([10001], [10001], [1]) == [1]
-    # canonical split
-    assert test([10002, 10003], [10005], [2, 3]) == [5]
-    # canonical combine
-    assert test([10005], [10002, 10003], [5]) == [2, 3]
-    # null values before and after
-    assert test([10001, 10002, 10003, 50000], [10001, 10005, 50000],
-                [None, 2, 3, None]) == [None, 5, None]
-    # ignore below-padding values
-    assert test([10001, 10002, 10003, 50000, 100, 20000],
-                [10001, 10005, 100, 70000, 100],
-                [None, 2, 3, None]) == [None, 5]
-    # color values don't add up the same
-    assert test([10001, 10002, 10003, 10001, 50000], [10001, 10005, 50001],
-                [None, 2, 3, 1, None]) == [None, None, None]
-    # value before is not the same
-    assert test([10001, 10002, 10003, 50000], [10002, 10005, 49999],
-                [None, 2, 3, None]) == [None, None, None]
-    # nonnull color values are not adjacent
-    assert test([10001, 10002, 10003, 10004, 50000], [10001, 10006, 49999],
-                [None, 2, None, 4, None]) == [None, None, None]
-    # sequence before don't add up the same
-    assert test([10005, 10001, 10002, 10003, 50000],
-                [10004, 10001, 10005, 40000],
-                [None, None, 2, 3, None]) == [None, None, None, None]
-    # sequence before does add up the same
-    assert test([10005, 10001, 10002, 10003, 50001],
-                [10005, 10001, 10005, 40000],
-                [None, None, 2, 3, None]) == [None, None, 5, None]
-    # split to many
-    assert test([10005, 10001, 10005, 50001],
-                [10005, 10001, 10001, 10001, 10001, 10001, 10001, 40000],
-                [None, None, 5, None]) == [None, None, 1, 1, 1, 1, 1, None]
-    # combine many
-    assert test([10005, 10001, 10001, 10001, 10001, 10001, 10001, 40000],
-                [10005, 10001, 10005, 50001],
-                [None, None, 1, 1, 1, 1, 1, None]) == [None, None, 5, None]
-    # split and combine
-    assert test([10001, 10002, 10003, 10004, 10005, 10006, 50000],
-                [10001, 10005, 10009, 10006, 50000],
-                [None, 2, 3, 4, 5, 6, None]) == [None, 5, 9, 6, None]
-    # combine and split
-    assert test([10005, 10009, 10006, 50000],
-                [10002, 10003, 10004, 10005, 10006, 50000],
-                [5, 9, 6, None]) == [2, 3, 4, 5, 6, None]
+ColorDefinition.register_color_def_class(BFTColorDefinition)
