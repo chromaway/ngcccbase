@@ -56,7 +56,7 @@
    <addaction name="actionGotoOverview"/>
    <addaction name="actionGotoSendcoins"/>
    <addaction name="actionGotoAsset"/>
-   <addaction name="actionGotoAddresses"/>
+   <addaction name="actionGotoReceive"/>
    <addaction name="actionP2PTrade"/>
   </widget>
   <action name="actionExit">
@@ -105,7 +105,7 @@
     <string>Change to Send coins page</string>
    </property>
   </action>
-  <action name="actionGotoAddresses">
+  <action name="actionGotoReceive">
    <property name="checkable">
     <bool>true</bool>
    </property>
@@ -114,10 +114,10 @@
      <normaloff>../icons/receive.png</normaloff>../icons/receive.png</iconset>
    </property>
    <property name="text">
-    <string>Addresses</string>
+    <string>Receive</string>
    </property>
    <property name="toolTip">
-    <string>Change to Addresses page</string>
+    <string>Change to Receive page</string>
    </property>
   </action>
   <action name="actionP2PTrade">
