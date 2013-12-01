@@ -33,10 +33,10 @@ class NewAddressDialog(QtGui.QDialog):
         }
 
 
-class AddressesPage(QtGui.QWidget):
+class ReceivePage(QtGui.QWidget):
     def __init__(self, parent):
         QtGui.QWidget.__init__(self, parent)
-        uic.loadUi(uic.getUiPath('addressespage.ui'), self)
+        uic.loadUi(uic.getUiPath('receivepage.ui'), self)
 
         self.model = AddressTableModel(self)
         self.proxyModel = AddressProxyModel(self)
