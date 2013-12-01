@@ -48,7 +48,7 @@ class MainWindow(QtGui.QMainWindow):
         self.gotoOverviewPage()
 
     def bindActions(self):
-        self.actionRescan.triggered.connect(wallet.scan)
+        self.actionRescan.triggered.connect(self.rescanAction)
         self.actionExit.triggered.connect(
             lambda: QtCore.QCoreApplication.instance().exit(0))
 
@@ -69,30 +69,34 @@ class MainWindow(QtGui.QMainWindow):
         self.toolbarActionGroup.addAction(self.actionP2PTrade)
         self.actionP2PTrade.triggered.connect(self.gotoP2PTradePage)
 
+    def rescanAction(self):
+        wallet.scan()
+        self.currentPage.update()
+
+    def setPage(self, page):
+        page.update()
+        self.stackedWidget.setCurrentWidget(page)
+        self.currentPage = page
+
     def gotoOverviewPage(self):
         self.actionGotoOverview.setChecked(True)
-        self.overviewpage.update()
-        self.stackedWidget.setCurrentWidget(self.overviewpage)
+        self.setPage(self.overviewpage)
 
     def gotoSendcoinsPage(self):
         self.actionGotoSendcoins.setChecked(True)
-        self.sendcoinspage.update()
-        self.stackedWidget.setCurrentWidget(self.sendcoinspage)
+        self.setPage(self.sendcoinspage)
 
     def gotoAssetPage(self):
         self.actionGotoAsset.setChecked(True)
-        self.assetpage.update()
-        self.stackedWidget.setCurrentWidget(self.assetpage)
+        self.setPage(self.assetpage)
 
     def gotoReceivePage(self):
         self.actionGotoReceive.setChecked(True)
-        self.receivepage.update()
-        self.stackedWidget.setCurrentWidget(self.receivepage)
+        self.setPage(self.receivepage)
 
     def gotoP2PTradePage(self):
         self.actionP2PTrade.setChecked(True)
-        self.tradepage.update()
-        self.stackedWidget.setCurrentWidget(self.tradepage)
+        self.setPage(self.tradepage)
 
 
 class QtUI(object):
