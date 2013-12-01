@@ -12,10 +12,15 @@ from tradepage import TradePage
 
 from wallet import wallet
 
+try:
+    main_file = os.path.abspath(sys.modules['__main__'].__file__)
+except AttributeError:
+    main_file = sys.executable
+ui_path = os.path.join(os.path.dirname(main_file), 'ui', 'forms')
 
 def getUiPath(ui_name):
-    return os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                        'forms', ui_name)
+    return os.path.join(ui_path, ui_name)
+
 uic.getUiPath = getUiPath
 
 
