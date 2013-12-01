@@ -31,17 +31,7 @@ class WalletController(object):
             txhex)
         if signed_tx_spec.composed_tx_spec:
             self.model.txdb.add_signed_tx(txhash, signed_tx_spec)
-
-        # delete the spent utxo from the db
-        for txin in signed_tx_spec.composed_tx_spec.txins:
-            self.model.utxo_man.store.del_utxo(txin.utxo.txhash,
-                                               txin.utxo.outindex)
-
-        # put the new utxo into the db
-        for i, txout in enumerate(signed_tx_spec.composed_tx_spec.txouts):
-            script = signed_tx_spec.pycoin_tx.txs_out[i].script.encode('hex')
-            self.model.utxo_man.store.add_utxo(txout.target_addr, txhash, i,
-                                               txout.value, script)
+            self.model.utxo_man.apply_tx(signed_tx_spec)
         return txhash
 
     def scan_utxos(self):

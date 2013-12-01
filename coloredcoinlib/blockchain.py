@@ -7,6 +7,14 @@ import bitcoin.serialize
 import bitcoin.rpc
 
 
+def script_to_raw_address(script):
+    # extract the destination address from the scriptPubkey
+    if script[:3] == "\x76\xa9\x14":
+        return script[3:23]
+    else:
+        return None
+
+
 class COutpoint(object):
     def __init__(self, hash, n):
         self.hash = hash
@@ -15,17 +23,17 @@ class COutpoint(object):
 
 class CTxIn(object):
     def __init__(self, op_hash, op_n):
-        self.outpoint = COutpoint(op_hash, op_n)
+        self.prevout = COutpoint(op_hash, op_n)
+
+    def get_outpoint(self):
+        return (self.prevout.hash, self.prevout.n)
 
 
 class CTxOut(object):
-    def __init__(self, value, scriptPubKey=None):
+    def __init__(self, value, script):
         self.value = value
-        self.raw_address = None
-
-        # extract the destination address from the scriptPubkey
-        if scriptPubKey and scriptPubKey[:3] == "\x76\xa9\x14":
-            self.raw_address = scriptPubKey[3:23]
+        self.script = script
+        self.raw_address = script_to_raw_address(script)
 
 
 class CTransaction(object):
@@ -57,10 +65,10 @@ class CTransaction(object):
         if self.have_input_values:
             return
         for inp in self.inputs:
-            prev_tx_hash = inp.outpoint.hash
+            prev_tx_hash = inp.prevout.hash
             if prev_tx_hash != 'coinbase':
                 prevtx = self.bs.get_tx(prev_tx_hash)
-                inp.value = prevtx.outputs[inp.outpoint.n].value
+                inp.value = prevtx.outputs[inp.prevout.n].value
             else:
                 inp.value = 0  # TODO: value of coinbase tx?
 
@@ -96,14 +104,23 @@ class BlockchainState(object):
             raw = self.bitcoind.getrawtransaction(txhash, 1)
         except Exception, e:
             print txhash, e
-            return None
-        return raw.get('blockhash', None)
+            return None, False
+        return raw.get('blockhash', None), True
 
     def get_tx(self, txhash):
         txhex = self.bitcoind.getrawtransaction(txhash, 0)
         txbin = bitcoin.core.x(txhex)
         tx = bitcoin.core.CTransaction.deserialize(txbin)
         return CTransaction.from_bitcoincore(txhash, tx, self)
+
+    def get_best_blockhash(self):
+        try:
+            return self.bitcoin.getbestblockhash()
+        except:
+            # warning: not atomic!
+            # remove once bitcoin 0.9 becomes commonplace
+            count = self.bitcoind.getblockcount()
+            return self.bitcoind.getblockhash(count)
 
     def iter_block_txs(self, blockhash):
         block_hex = None

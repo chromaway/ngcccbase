@@ -499,6 +499,7 @@ class ColoredCoinContext(object):
         """
         params = config.get('ccc', {})
         self.testnet = config.get('testnet', False)
+        self.klass = TestnetAddress if self.testnet else Address
 
         self.blockchain_state = blockchain.BlockchainState.from_url(
             None, self.testnet)
@@ -517,7 +518,7 @@ class ColoredCoinContext(object):
             if not ok:
                 # use Electrum to request transactions
                 self.blockchain_state = EnhancedBlockchainState(
-                    "btc.it-zone.org", 50001)
+                    "electrum.cafebitcoin.com", 50001)
 
         self.store_conn = store.DataStoreConnection(
             params.get("color.db", "color.db"))
@@ -532,6 +533,9 @@ class ColoredCoinContext(object):
 
         self.colordata = colordata.ThickColorData(
             cdbuilder, self.blockchain_state, self.cdstore)
+
+    def raw_to_address(self, raw_address):
+        return self.klass.rawPubkeyToAddress(raw_address)
 
 
 class CoinQueryFactory(object):
@@ -614,7 +618,6 @@ class WalletModel(object):
     def get_history_for_asset(self, asset):
         """Returns the history of how an address got its coins.
         """
-        klass = TestnetAddress if self.testnet else Address
         history = []
         address_lookup = {
             a.get_address(): 1 for a in
@@ -631,7 +634,7 @@ class WalletModel(object):
                 mempool = False
                 if not transaction_lookup.get(txhash):
                     tx = self.ccc.blockchain_state.get_tx(txhash)
-                    blockhash = self.ccc.blockchain_state.get_tx_blockhash(
+                    blockhash, x = self.ccc.blockchain_state.get_tx_blockhash(
                         txhash)
                     if blockhash:
                         height = self.ccc.blockchain_state.get_block_height(
@@ -642,7 +645,7 @@ class WalletModel(object):
                     transaction_lookup[txhash] = (tx, height)
                 tx, height = transaction_lookup[txhash]
                 output = tx.outputs[outindex]
-                address = klass.rawPubkeyToAddress(output.raw_address)
+                address = self.ccc.raw_to_address(output.raw_address)
 
                 if address_lookup.get(address):
                     color_record[txhash].append({
@@ -654,10 +657,6 @@ class WalletModel(object):
                         'inindex': -1,
                         'mempool': mempool,
                         })
-                else:
-                    raise Exception("cdstore or config may be corrupted: "
-                                    "%s is not a valid receiving address"
-                                    % address)
 
             # check the inputs
             seen_hashes = {}
@@ -665,11 +664,11 @@ class WalletModel(object):
                 tx, height = tup
                 mempool = height == -1
                 for input_index, input in enumerate(tx.inputs):
-                    inhash = input.outpoint.hash
-                    in_outindex = input.outpoint.n
+                    inhash = input.prevout.hash
+                    in_outindex = input.prevout.n
                     intx = self.ccc.blockchain_state.get_tx(inhash)
                     in_raw = intx.outputs[in_outindex]
-                    address = klass.rawPubkeyToAddress(in_raw.raw_address)
+                    address = self.ccc.raw_to_address(in_raw.raw_address)
 
                     # find the transaction that corresponds to this input
                     transaction = color_record.get(inhash)

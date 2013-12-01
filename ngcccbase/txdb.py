@@ -61,7 +61,7 @@ class TxDataStore(DataStore):
             for txin in tx.composed_tx_spec.txins:
                 self.execute(
                     insert_transaction,
-                    (txin.utxo.address_rec.address.pubkey, TXIN, txid))
+                    (txin.address_rec.address.pubkey, TXIN, txid))
 
             for txout in tx.composed_tx_spec.txouts:
                 self.execute(

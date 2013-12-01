@@ -18,10 +18,12 @@ of each colored coin we have.
 """
 
 from coloredcoinlib.store import DataStore, DataStoreConnection
+from coloredcoinlib.txspec import ComposedTxSpec
 from time import time
 from ngcccbase.services.blockchain import BlockchainInfoInterface, AbeInterface
 from ngcccbase.services.electrum import ElectrumInterface
-from pycoin.tx import TxOut
+
+
 
 import sqlite3
 import urllib2
@@ -127,14 +129,21 @@ class UTXOQuery(object):
         for utxo in all_utxos:
             utxo.address_rec = address_rec
             if not address_is_uncolored:
-                utxo.colorvalues = cdata.get_colorvalues(
-                    addr_color_set.color_id_set, utxo.txhash, utxo.outindex)
+                utxo.colorvalues = None
+                try:
+                    utxo.colorvalues = cdata.get_colorvalues(
+                        addr_color_set.color_id_set, utxo.txhash, utxo.outindex)
+                except Exception as e:
+                    print e
+                    #  if get_colorvalues fails utxo.colorvalues is None
         if address_is_uncolored:
             return all_utxos
         else:
             def relevant(utxo):
                 cvl = utxo.colorvalues
-                if not cvl:
+                if utxo.colorvalues is None:
+                    return False  # None indicates failure
+                if cvl == []:
                     return color_set.has_color_id(0)
                 for cv in cvl:
                     if color_set.has_color_id(cv[0]):
@@ -153,7 +162,7 @@ class UTXOQuery(object):
         return utxos
 
 
-class UTXO(object):
+class UTXO(ComposedTxSpec.TxIn):
     """Unspent Transaction Output object
     Unspent Transaction Outputs are parts of a Transaction that haven't
     been spent yet. Since ordering is important for obc (order-based coloring),
@@ -165,19 +174,14 @@ class UTXO(object):
         at the position <outindex> that consists of <value> Satoshis
         with a signature <script>
         """
-        self.txhash = txhash
+        super(UTXO, self).__init__(txhash, outindex)
+        self.txhash = txhash  # TODO: duplicated, remove
         self.outindex = outindex
         self.value = value
         self.script = script
         self.address_rec = None
         self.colorvalues = None
         self.utxo_rec = None
-
-    def get_outpoint(self):
-        """Returns a tuple of transaction hash and outindex, which is
-        basically the position of this utxo within the greater transaction.
-        """
-        return (self.txhash, self.outindex)
 
     def get_txhash(self):
         return self.txhash.decode('hex')[::-1]
@@ -268,6 +272,22 @@ class UTXOManager(object):
         alladdresses = wam.get_all_addresses()
         for address in alladdresses:
             self.update_address(address)
+
+    def apply_tx(self, tx):
+        """Given a transaction <composed_tx_spec>, delete any
+        utxos that it spends and add any utxos that are new
+        """
+
+        # delete the spent utxo from the db
+        for txin in tx.composed_tx_spec.txins:
+            txhash, outindex = txin.get_outpoint()
+            self.store.del_utxo(txhash, outindex)
+
+        # put the new utxo into the db
+        for i, txout in enumerate(tx.composed_tx_spec.txouts):
+            script = tx.pycoin_tx.txs_out[i].script.encode('hex')
+            self.store.add_utxo(txout.target_addr, txhash, i,
+                                txout.value, script)
 
 
 if __name__ == "__main__":

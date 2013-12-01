@@ -18,6 +18,8 @@ from pycoin.tx.script.vm import verify_script
 
 from io import BytesIO
 
+from coloredcoinlib import txspec
+
 
 def construct_standard_tx(composed_tx_spec, is_test):
     txouts = []
@@ -29,8 +31,7 @@ def construct_standard_tx(composed_tx_spec, is_test):
         txouts.append(TxOut(txout.value, script_bin))
     txins = []
     for cts_txin in composed_tx_spec.get_txins():
-        utxo = cts_txin.utxo
-        txins.append(TxIn(utxo.get_txhash(), utxo.outindex))
+        txins.append(TxIn(cts_txin.get_txhash(), cts_txin.prevout.n))
     version = 1
     lock_time = 0
     return Tx(version, txins, txouts, lock_time)
@@ -40,8 +41,7 @@ def sign_tx(tx, utxo_list, is_test):
     secret_exponents = [
         wif_to_tuple_of_secret_exponent_compressed(
             utxo.address_rec.address.privkey, is_test=is_test)[0]
-        for utxo in utxo_list
-        if utxo.address_rec]
+        for utxo in utxo_list if utxo.address_rec]
     solver = SecretExponentSolver(secret_exponents)
     txins = tx.txs_in[:]
     hash_type = SIGHASH_ALL
@@ -67,6 +67,33 @@ def sign_tx(tx, utxo_list, is_test):
             raise Exception("invalid script")
     tx.txs_in = txins
 
-
 def deserialize(tx_data):
     return Tx.parse(BytesIO(tx_data))
+
+def reconstruct_composed_tx_spec(model, tx):
+    if isinstance(tx, str):
+        tx = deserialize(tx)
+    if not isinstance(tx, Tx):
+        raise Exception('tx is neiether string nor pycoin.tx.Tx')
+
+    pycoin_tx = tx
+
+    txins, txouts = [], []
+
+    for py_txin in pycoin_tx.txs_in:
+        # lookup the previous hash and generate the utxo
+        in_txhash, in_outindex = py_txin.previous_hash, py_txin.previous_index
+        in_txhash = in_txhash[::-1].encode('hex')
+
+        txins.append(txspec.ComposedTxSpec.TxIn(in_txhash, in_outindex))
+        # in_tx = ccc.blockchain_state.get_tx(in_txhash)
+        # value = in_tx.outputs[in_outindex].value
+        # raw_address = script_to_raw_address(py_txin.script)
+        # address = ccc.raw_to_address(raw_address)
+
+    for py_txout in pycoin_tx.txs_out:
+        script = py_txout.script
+        raw_address = script_to_raw_address(script)
+        address = ccc.raw_to_address(raw_address)
+        txouts.append(TxOut(py_txout.coin_value, address))
+    return txspec.ComposedTxSpec(txins, txouts)

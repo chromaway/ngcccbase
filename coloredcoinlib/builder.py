@@ -20,6 +20,15 @@ class ColorDataBuilderManager(object):
         self.builders = {}
         self.builder_class = builder_class
 
+    def get_color_def_map(self, color_id_set):
+        """given a set of color_ids <color_id_set>, return
+        a dict of color_id to color_def.
+        """
+        color_def_map = {}
+        for color_id in color_id_set:
+            color_def_map[color_id] = self.colormap.get_color_def(color_id)
+        return color_def_map
+
     def get_builder(self, color_id):
         if color_id in self.builders:
             return self.builders[color_id]
@@ -60,7 +69,7 @@ class BasicColorDataBuilder(ColorDataBuilder):
         empty = True
         for inp in tx.inputs:
             val = self.cdstore.get(
-                self.color_id, inp.outpoint.hash, inp.outpoint.n)
+                self.color_id, inp.prevout.hash, inp.prevout.n)
             in_colorvalues.append(val)
             if val:
                 empty = False
@@ -158,8 +167,8 @@ class AidedColorDataBuilder(FullScanColorDataBuilder):
                    directly depends on"""
                 prev_txs = []
                 for inp in tx.inputs:
-                    if inp.outpoint.hash in block_txs:
-                        prev_txs.append(block_txs[inp.outpoint.hash])
+                    if inp.prevout.hash in block_txs:
+                        prev_txs.append(block_txs[inp.prevout.hash])
                 return prev_txs
 
             sorted_block_txs = toposorted(block_txs.values(), get_prev_txs)

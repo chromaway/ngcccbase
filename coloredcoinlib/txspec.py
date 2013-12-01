@@ -1,5 +1,6 @@
 """ Transaction specification language """
 
+from blockchain import CTxIn
 
 class OperationalTxSpec(object):
     """transaction specification which is ready to be operated on
@@ -31,16 +32,12 @@ class OperationalTxSpec(object):
                 return False
         return True
 
-
 class ComposedTxSpec(object):
     """specification of a transaction which is already composed,
        but isn't signed yet"""
 
-    class TxIn(object):
-        __slots__ = ['utxo']
-
-        def __init__(self, utxo):
-            self.utxo = utxo
+    class TxIn(CTxIn):
+        pass
 
     class TxOut(object):
         __slots__ = ['value', 'target_addr']
@@ -58,3 +55,4 @@ class ComposedTxSpec(object):
 
     def get_txouts(self):
         return self.txouts
+
