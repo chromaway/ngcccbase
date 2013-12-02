@@ -273,15 +273,15 @@ class UTXOManager(object):
         for address in alladdresses:
             self.update_address(address)
 
-    def apply_tx(self, tx):
+    def apply_tx(self, txhash, tx):
         """Given a transaction <composed_tx_spec>, delete any
         utxos that it spends and add any utxos that are new
         """
 
         # delete the spent utxo from the db
         for txin in tx.composed_tx_spec.txins:
-            txhash, outindex = txin.get_outpoint()
-            self.store.del_utxo(txhash, outindex)
+            oldtxhash, outindex = txin.get_outpoint()
+            self.store.del_utxo(oldtxhash, outindex)
 
         # put the new utxo into the db
         for i, txout in enumerate(tx.composed_tx_spec.txouts):

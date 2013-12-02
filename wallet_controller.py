@@ -31,7 +31,7 @@ class WalletController(object):
             txhex)
         if signed_tx_spec.composed_tx_spec:
             self.model.txdb.add_signed_tx(txhash, signed_tx_spec)
-            self.model.utxo_man.apply_tx(signed_tx_spec)
+            self.model.utxo_man.apply_tx(txhash, signed_tx_spec)
         return txhash
 
     def scan_utxos(self):
@@ -45,8 +45,14 @@ class WalletController(object):
         of amount <colorvalue> Satoshis.
         """
         tx_spec = BasicTxSpec(self.model)
+        adm = self.model.get_asset_definition_manager()
         for target_addr, colorvalue in zip(target_addrs, colorvalues):
-            tx_spec.add_target(target_addr, asset, colorvalue)
+            # decode the address
+            address_asset, address = adm.get_asset_and_address(target_addr)
+            if asset != address_asset:
+                raise Exception("Address and asset don't match: %s %s" %
+                                (asset, address_asset))
+            tx_spec.add_target(address, asset, colorvalue)
         signed_tx_spec = self.model.transform_tx_spec(tx_spec, 'signed')
         if self.debug:
             print "In:"
@@ -105,6 +111,12 @@ class WalletController(object):
         wam = self.model.get_address_manager()
         return wam.get_addresses_for_color_set(asset.get_color_set())
 
+    def get_all_assets(self):
+        """Return all assets that are currently registered
+        """
+        adm = self.model.get_asset_definition_manager()
+        return adm.get_all_assets()
+
     def add_asset_definition(self, params):
         """Imports an asset/color with the params <params>.
         The params consist of:
@@ -119,8 +131,11 @@ class WalletController(object):
         """
         cq = self.model.make_coin_query({"asset": asset})
         utxo_list = cq.get_result()
-        addresses = [ar.get_address() for ar in self.get_all_addresses(asset)]
-        retval = [{'address': a, 'value': 0} for a in addresses]
+        ars = self.get_all_addresses(asset)
+        addresses = [ar.get_address() for ar in ars]
+        retval = [{'address': ar.get_address(),
+                   'color_address': ar.get_color_address(),
+                   'value': 0} for ar in ars]
         for utxo in utxo_list:
             i = addresses.index(utxo.address_rec.get_address())
             retval[i]['value'] += asset.get_colorvalue(utxo)
