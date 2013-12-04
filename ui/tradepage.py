@@ -121,7 +121,7 @@ class TradePage(QtGui.QWidget):
                 value = data['A']['value']
                 total = data['B']['value']
                 price = int(total*asset.unit/float(value))
-                self.modelBuy.addRow([
+                self.modelSell.addRow([
                     bitcoin.format_value(price),
                     asset.format_value(value),
                     bitcoin.format_value(total),
@@ -131,7 +131,7 @@ class TradePage(QtGui.QWidget):
                 value = data['B']['value']
                 total = data['A']['value']
                 price = int(total*asset.unit/float(value))
-                self.modelSell.addRow([
+                self.modelBuy.addRow([
                     bitcoin.format_value(price),
                     asset.format_value(value),
                     bitcoin.format_value(total),
