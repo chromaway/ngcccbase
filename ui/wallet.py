@@ -3,8 +3,8 @@ from wallet_controller import WalletController
 from wallet_model import AssetDefinition
 
 from ngcccbase.p2ptrade.ewctrl import EWalletController
-from ngcccbase.p2ptrade.agent import EAgent, EAgentProxy
-from ngcccbase.p2ptrade.comm import HTTPExchangeComm, HTTPExchangeCommThread
+from ngcccbase.p2ptrade.agent import EAgent
+from ngcccbase.p2ptrade.comm import HTTPComm, ThreadedComm
 from ngcccbase.p2ptrade.protocol_objects import MyEOffer
 
 import argparse
@@ -97,16 +97,15 @@ class Wallet(object):
         ewctrl = EWalletController(self.model, self.controller)
         config = {"offer_expiry_interval": 30,
                   "ep_expiry_interval": 30}
-        comm = HTTPExchangeComm(
+        comm = HTTPComm(
             config, 'http://p2ptrade.btx.udoidio.info/messages')
-        self.thread_comm = HTTPExchangeCommThread(comm)
+        self.thread_comm = ThreadedComm(comm)
+        self.p2p_agent = EAgent(ewctrl, config, self.thread_comm)
         self.thread_comm.start()
-        self.p2p_agent = EAgentProxy(ewctrl, config, comm)
 
     def p2ptrade_stop(self):
         if self.thread_comm is not None:
             self.thread_comm.stop()
-            self.thread_comm.join()
 
     def p2ptrade_make_offer(self, we_sell, params):
         asset = self.get_asset_definition(params['moniker'])

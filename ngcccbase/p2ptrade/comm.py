@@ -3,6 +3,7 @@ import json
 import time
 import binascii
 import threading
+import Queue
 
 def make_random_id():
     import os
@@ -21,16 +22,20 @@ def LOGERROR(msg, *params):
     print msg % params
 
 
-class HTTPExchangeComm:
-    def __init__(self, config, url = 'http://localhost:8080/messages'):
-        self.config = config
+class CommBase(object):
+    def __init__(self):
         self.agents = []
-        self.lastpoll = -1
-        self.url = url
-        self.own_msgids = set()
 
     def add_agent(self, agent):
         self.agents.append(agent)
+
+class HTTPComm(CommBase):
+    def __init__(self, config, url = 'http://localhost:8080/messages'):
+        super(HTTPComm, self).__init__()
+        self.config = config
+        self.lastpoll = -1
+        self.url = url
+        self.own_msgids = set()
 
     def post_message(self, content):
         msgid = make_random_id()
@@ -58,35 +63,53 @@ class HTTPExchangeComm:
                 for a in self.agents:
                     a.dispatch_message(content)
 
-    def update(self):
-        # raises exception in case of a problem
-        self.poll_and_dispatch()
-        # agent state is not updated if poll raises exception
-        for a in self.agents:
-            a.update_state()
-        return True
 
-    def safe_update(self):
-        try:
-            self.update()
-            return True
-        except Exception as e:
-            LOGERROR("Error in  HTTPExchangeComm.update: %s", e)
-            return False
+class ThreadedComm(CommBase):
+    class AgentProxy(object):
+        def __init__(self, tc):
+            self.tc = tc
+        def dispatch_message(self, content):
+            self.tc.receive_queue.put(content)
+
+    def __init__(self, upstream_comm):
+        super(ThreadedComm, self).__init__()
+        self.upstream_comm = upstream_comm
+        self.send_queue = Queue.Queue()
+        self.receive_queue = Queue.Queue()
+        self.comm_thread = CommThread(self, upstream_comm)
+        upstream_comm.add_agent(self.AgentProxy(self))
+    
+    def post_message(self, content):
+        self.send_queue.put(content)
+
+    def poll_and_dispatch(self):
+        while not self.receive_queue.empty():
+            content = self.receive_queue.get()
+            for a in self.agents:
+                a.dispatch_message(content)
+
+    def start(self):
+        self.comm_thread.start()
+
+    def stop(self):
+        self.comm_thread.stop()
+        self.comm_thread.join()
 
 
-class HTTPExchangeCommThread(threading.Thread):
-    def __init__(self, comm):
+class CommThread(threading.Thread):
+    def __init__(self, threaded_comm, upstream_comm):
         threading.Thread.__init__(self)
         self._stop = threading.Event()
-        self._comm = comm
+        self.threaded_comm = threaded_comm
+        self.upstream_comm = upstream_comm
 
     def run(self):
+        send_queue = self.threaded_comm.send_queue
+        receive_queue = self.threaded_comm.receive_queue
         while not self._stop.is_set():
-            for agent in self._comm.agents:
-                while not agent.send_messages.empty():
-                    self._comm.post_message(agent.send_messages.get())
-            self._comm.poll_and_dispatch()
+            while not send_queue.empty():
+                self.upstream_comm.post_message(send_queue.get())
+            self.upstream_comm.poll_and_dispatch()
             time.sleep(1)
 
     def stop(self):

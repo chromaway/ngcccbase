@@ -58,7 +58,7 @@ class EAgent(object):
             if their_offer.expired(-self.config.get('offer_grace_interval', 0)):
                 del self.their_offers[their_offer.oid]
 
-    def update_state(self):
+    def _update_state(self):
         if not self.has_active_ep() and self.offers_updated:
             self.offers_updated = False
             self.match_offers()
@@ -171,22 +171,5 @@ class EAgent(object):
             raise
 
     def update(self):
-        self.comm.update()
-
-
-class EAgentProxy(EAgent):
-    def __init__(self, *args, **kwargs):
-        EAgent.__init__(self, *args, **kwargs)
-        self.send_messages = Queue.Queue()
-        self.recv_messages = Queue.Queue()
-
-    def post_message(self, obj):
-        self.send_messages.put(obj.get_data())
-
-    def dispatch_message(self, message):
-        self.recv_messages.put(message)
-
-    def update(self):
-        while not self.recv_messages.empty():
-            EAgent.dispatch_message(self, self.recv_messages.get())
-        self.update_state()
+        self.comm.poll_and_dispatch()
+        self._update_state()
