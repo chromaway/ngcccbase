@@ -111,4 +111,6 @@ class QtUI(object):
         window.move(QtGui.QApplication.desktop().screen().rect().center()
                     - window.rect().center())
         window.show()
-        sys.exit(app.exec_())
+        retcode = app.exec_()
+        wallet.p2ptrade_stop()
+        sys.exit(retcode)

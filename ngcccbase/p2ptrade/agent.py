@@ -1,3 +1,4 @@
+import Queue
 import time
 from protocol_objects import MyEOffer, EOffer, MyEProposal, ForeignEProposal
 
@@ -171,3 +172,21 @@ class EAgent(object):
 
     def update(self):
         self.comm.update()
+
+
+class EAgentProxy(EAgent):
+    def __init__(self, *args, **kwargs):
+        EAgent.__init__(self, *args, **kwargs)
+        self.send_messages = Queue.Queue()
+        self.recv_messages = Queue.Queue()
+
+    def post_message(self, obj):
+        self.send_messages.put(obj.get_data())
+
+    def dispatch_message(self, message):
+        self.recv_messages.put(message)
+
+    def update(self):
+        while not self.recv_messages.empty():
+            EAgent.dispatch_message(self, self.recv_messages.get())
+        self.update_state()
