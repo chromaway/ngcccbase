@@ -15,6 +15,8 @@ from ngcccbase import txdb
 from address import Address, TestnetAddress, InvalidAddressError
 from collections import defaultdict
 
+from pycoin.encoding import b2a_base58
+
 import hashlib
 import json
 import binascii
@@ -43,6 +45,9 @@ class ColorSet(object):
             color_id = colormap.resolve_color_desc(color_desc)
             self.color_id_set.add(color_id)
 
+    def __repr__(self):
+        return self.color_desc_list.__repr__()
+
     def uncolored_only(self):
         return self.color_id_set == set([0])
 
@@ -56,9 +61,13 @@ class ColorSet(object):
         """Returns a deterministic string for this color set.
         Useful for creating deterministic addresses for a given color.
         """
-        json = deterministic_json_dumps(
-            sorted(self.color_desc_list))
+        json = deterministic_json_dumps(sorted(self.color_desc_list))
         return hashlib.sha256(json).hexdigest()
+
+    def get_color_hash(self):
+        """Returns the hash used in color addresses.
+        """
+        return b2a_base58(self.get_hash_string().decode('hex')[:10])
 
     def has_color_id(self, color_id):
         """Returns boolean of whether color <color_id> is associated
@@ -102,6 +111,9 @@ class AssetDefinition(object):
         self.monikers = params.get('monikers', [])
         self.color_set = ColorSet(model, params.get('color_set'))
         self.unit = int(params.get('unit', 1))
+
+    def __repr__(self):
+        return "%s: %s" % (self.monikers, self.color_set)
 
     def get_monikers(self):
         """Returns the list of monikers for this asset.
@@ -229,6 +241,23 @@ class AssetDefinitionManager(object):
         """
         return self.asset_definitions
 
+    def get_asset_and_address(self, color_address):
+        """Given a color address <color_address> return the asset
+        and bitcoin address associated with the address. If the color
+        described in the address isn't managed by this object,
+        throw an exception.
+        """
+
+        if color_address.find('@') == -1:
+            return self.lookup_by_moniker.get('bitcoin')
+
+        color_set_hash, address = color_address.split('@')
+        for asset in self.get_all_assets():
+            if color_set_hash == asset.get_color_set().get_color_hash():
+                return (asset, address)
+        raise Exception("No asset has a color set with this hash: %s"
+                        % color_set_hash)
+
 
 class AddressRecord(object):
     """Object that holds both an Address AND Color.
@@ -254,6 +283,15 @@ class AddressRecord(object):
         """Get the actual bitcoin address
         """
         return self.address.pubkey
+
+    def get_color_address(self):
+        """This is the address that can be used for sending/receiving
+        colored coins
+        """
+        if self.color_set.uncolored_only():
+            return self.get_address()
+        return "%s@%s" % (self.get_color_set().get_color_hash(),
+                          self.get_address())
 
 
 class DeterministicAddressRecord(AddressRecord):

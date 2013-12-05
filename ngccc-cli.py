@@ -93,6 +93,9 @@ class Application(object):
         parser.add_argument('moniker')
 
         parser = subparsers.add_parser(
+            'allassets', description="Lists all assets registered.")
+
+        parser = subparsers.add_parser(
             'balance', description=
             "Returns the balance in Satoshi for a particular asset/color.")
         parser.add_argument('moniker')
@@ -268,8 +271,15 @@ class Application(object):
         """Lists all addresses for a given asset/color
         """
         asset = self.get_asset_definition(kwargs['moniker'])
-        print [addr.get_address()
-               for addr in self.controller.get_all_addresses(asset)]
+        for addr in self.controller.get_all_addresses(asset):
+            print addr.get_color_address()
+
+    def command_allassets(self, **kwargs):
+        """Lists all assets (moniker/color_hash) registered
+        """
+        for asset in self.controller.get_all_assets():
+            print "%s: %s" % (', '.join(asset.monikers),
+                              asset.get_color_set().get_color_hash())
 
     def command_addressbalance(self, **kwargs):
         """Returns the balance in Satoshi for a particular asset/color.
@@ -277,7 +287,8 @@ class Application(object):
         """
         asset = self.get_asset_definition(kwargs['moniker'])
         for row in self.controller.get_address_balance(asset):
-            print "%s: %s" % (row['address'], asset.format_value(row['value']))
+            print "%s: %s" % (row['color_address'],
+                              asset.format_value(row['value']))
 
     def command_balance(self, **kwargs):
         """Returns the balance in Satoshi for a particular asset/color.
