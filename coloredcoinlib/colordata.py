@@ -1,6 +1,7 @@
 """ Color data representation objects."""
 import time
 
+from logger import log
 
 class ColorData(object):
     """Base color data class"""
@@ -77,6 +78,7 @@ class ThinColorData(StoredColorData):
             """For any tx out, process the colorvalues of the affecting
             inputs first and then scan that tx.
             """
+            log(current_txhash)
             if tx_lookup.get(current_txhash):
                 return
             current_tx = self.blockchain_state.get_tx(current_txhash)
@@ -91,7 +93,8 @@ class ThinColorData(StoredColorData):
                     color_def.get_affecting_inputs(current_tx,
                                                    [current_outindex]))
             for i in inputs:
-                process(i.outpoint.hash, i.outpoint.n)
+                process(i.prevout.hash, i.prevout.n)
+            log("scan %s", current_tx.hash)
             self.cdbuilder_manager.scan_txhash(color_id_set, current_tx.hash)
 
         process(txhash, outindex)

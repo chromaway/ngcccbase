@@ -102,7 +102,7 @@ class OBColorDefinition(GenesisColorDefinition):
         """Returns a set object consisting of inputs that correspond to the
         output indexes of <output_set> from transaction <tx>
         """
-        if self.is_special(tx):
+        if self.is_special_tx(tx):
             return set()
         tx.ensure_input_values()
         running_sum_inputs = []

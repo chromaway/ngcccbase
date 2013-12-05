@@ -57,11 +57,12 @@ class ColorDataBuilderManager(object):
 
 class BasicColorDataBuilder(ColorDataBuilder):
     """ Base class for color data builder algorithms"""
-    def __init__(self, cdstore, blockchain_state, colordef):
+    def __init__(self, cdstore, blockchain_state, colordef, metastore):
         self.cdstore = cdstore
         self.blockchain_state = blockchain_state
         self.colordef = colordef
         self.color_id = colordef.color_id
+        self.metastore = metastore
 
     def scan_tx(self, tx):
         """ Scan transaction to obtain color data for its outputs. """
@@ -87,8 +88,7 @@ class FullScanColorDataBuilder(BasicColorDataBuilder):
        for one specific color"""
     def __init__(self, cdstore, blockchain_state, colordef, metastore):
         super(FullScanColorDataBuilder, self).__init__(
-            cdstore, blockchain_state, colordef)
-        self.metastore = metastore
+            cdstore, blockchain_state, colordef, metastore)
         self.genesis_blockhash = self.blockchain_state.get_blockhash_at_height(
             self.colordef.genesis['height'])
 

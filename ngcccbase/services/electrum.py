@@ -191,27 +191,18 @@ class EnhancedBlockchainState(blockchain.BlockchainState):
         return (data.get("block_height", None), True)
 
     def get_raw_transaction(self, txhash):
-        """Get the raw transaction using bitcoind as a first option
-        if it has txindex turned on. Note that most bitcoind
-        instances do not have txindex turned on, so as an alternative
-        use blockchain and electrum to get the raw transaction.
-        """
         try:
-            # try the bitcoind first
-            raw = self.bitcoind.getrawtransaction(txhash, 0)
+            # first, grab the tx height
+            height = self.get_tx_block_height(txhash)[0]
+            if not height:
+                raise Exception("")
+            
+            # grab the transaction from electrum which
+            #  unlike bitcoind requires the height
+            raw = self.interface.get_raw_transaction(txhash, height)
         except:
-            try:
-                # first, grab the tx height
-                height = self.get_tx_block_height(txhash)[0]
-                if not height:
-                    raise Exception("")
-
-                # grab the transaction from electrum which
-                #  unlike bitcoind requires the height
-                raw = self.interface.get_raw_transaction(txhash, height)
-            except:
-                raise Exception("Could not connect to blockchain and/or"
-                                "electrum server to grab the data we need")
+            raise Exception("Could not connect to blockchain and/or"
+                            "electrum server to grab the data we need")
         return raw
 
     def get_tx(self, txhash):
