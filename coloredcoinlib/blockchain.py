@@ -25,6 +25,9 @@ class CTxIn(object):
     def __init__(self, op_hash, op_n):
         self.prevout = COutpoint(op_hash, op_n)
 
+    def get_txhash(self):
+        return self.prevout.hash
+
     def get_outpoint(self):
         return (self.prevout.hash, self.prevout.n)
 
