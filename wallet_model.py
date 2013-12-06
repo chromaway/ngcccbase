@@ -9,13 +9,13 @@ definitions, but it doesn't implement high-level operations
 """
 
 from coloredcoinlib import (blockchain, builder, store, colormap,
-                            colordata, colordef)
+                            colordata, colordef, toposort)
 from ngcccbase.services.electrum import EnhancedBlockchainState
 from ngcccbase import txdb
 from address import Address, TestnetAddress, InvalidAddressError
-from collections import defaultdict
 
 from pycoin.encoding import b2a_base58
+from collections import defaultdict
 
 import hashlib
 import json
@@ -742,11 +742,36 @@ class WalletModel(object):
                         item['value'] = int(value)
                     history.append(item)
 
-        # sort by height (date order)
-        return sorted(history, cmp=lambda a, b: a['mempool'] - b['mempool']
-                      or a['height'] - b['height']
-                      or a['outindex'] - b['outindex']
-                      or a['inindex'] - b['inindex'])
+        def dependent_txs(txhash):
+            """all transactions from current block this transaction
+            directly depends on"""
+            dependent_txhashes = []
+            tx, height = transaction_lookup[txhash]
+            for inp in tx.inputs:
+                if inp.prevout.hash in transaction_lookup:
+                    dependent_txhashes.append(inp.prevout.hash)
+            return dependent_txhashes
+
+        sorted_txhash_list = toposort.toposorted(transaction_lookup.keys(),
+                                                 dependent_txs)
+        txhash_position = {txhash:i for i, txhash
+                           in enumerate(sorted_txhash_list)}
+
+        def compare(a,b):
+            """order in which we get back the history
+            #1 - whether or not it's a mempool transaction
+            #2 - height of the block the transaction is in
+            #3 - whatever transaction is least dependent within a block
+            #4 - whether we're sending or receiving
+            #4 - outindex within a transaction/inindex within a transaction
+            """
+            return a['mempool'] - b['mempool'] \
+                or a['height'] - b['height'] \
+                or txhash_position[a['txhash']] - txhash_position[b['txhash']] \
+                or a['outindex'] - b['outindex'] \
+                or a['inindex'] - b['inindex']
+
+        return sorted(history, cmp=compare)
 
     def get_color_map(self):
         """Access method for ColoredCoinContext's colormap
