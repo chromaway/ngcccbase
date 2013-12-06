@@ -275,14 +275,8 @@ class UTXOManager(object):
             self.update_address(address)
         mempool = self.model.ccc.blockchain_state.get_mempool_txs()
         dels = []
-        # we have no guarantee of the order in which the hashes appear on
-        #  the mempool, so we have to get the deletes back and do them
-        #  again
-        for h in mempool:
-            dels += self.apply_tx(h)
-
-        for item in dels:
-            self.store.del_utxo(*item)
+        for tx in mempool:
+            self.apply_tx(tx.hash)
 
     def apply_tx(self, txhash, tx=None):
         """Given a transaction <composed_tx_spec>, delete any
@@ -297,10 +291,8 @@ class UTXOManager(object):
             raw_tx = bs.bitcoind.getrawtransaction(txhash, 0).decode('hex')
             tx = RawTxSpec.from_tx_data(self.model, raw_tx)
 
-        dels = []
         # delete the spent utxo from the db
         for txin in tx.composed_tx_spec.txins:
-            dels.append(txin.get_outpoint())
             oldtxhash, outindex = txin.get_outpoint()
             self.store.del_utxo(oldtxhash, outindex)
 
@@ -310,7 +302,6 @@ class UTXOManager(object):
             if txout.target_addr in all_addresses:
                 self.store.add_utxo(txout.target_addr, txhash, i,
                                     txout.value, script)
-        return dels
 
 
 if __name__ == "__main__":

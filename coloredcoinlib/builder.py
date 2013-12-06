@@ -47,11 +47,14 @@ class ColorDataBuilderManager(object):
             builder.ensure_scanned_upto(blockhash)
 
     def scan_txhash(self, color_id_set, txhash):
+        tx = self.blockchain_state.get_tx(txhash)
+        self.scan_tx(color_id_set, tx)
+
+    def scan_tx(self, color_id_set, tx):
         for color_id in color_id_set:
             if color_id == 0:
                 continue
             builder = self.get_builder(color_id)
-            tx = self.blockchain_state.get_tx(txhash)
             builder.scan_tx(tx)
 
 

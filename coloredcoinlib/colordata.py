@@ -45,15 +45,16 @@ class ThickColorData(StoredColorData):
                 best_blockhash = self.blockchain_state.get_best_blockhash()
                 if best_blockhash_prev == best_blockhash:
                     break
-            if txhash not in mempool:
+            if txhash not in [tx.hash for tx in mempool]:
                 raise Exception("transaction %s isn't found in mempool" % txhash)
             # the preceding blockchain
             self.cdbuilder_manager.ensure_scanned_upto(
                 color_id_set, best_blockhash)
             # scan everything in the mempool
-            for h in mempool:
-                self.cdbuilder_manager.scan_txhash(color_id_set, h)
+            for tx in mempool:
+                self.cdbuilder_manager.scan_tx(color_id_set, tx)
             return self._fetch_colorvalues(color_id_set, txhash, outindex)
+
 
 class ThinColorData(StoredColorData):
     """ Color data which needs access to the blockchain state up to the genesis of

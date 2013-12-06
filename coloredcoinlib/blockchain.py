@@ -6,6 +6,8 @@ import bitcoin.core
 import bitcoin.serialize
 import bitcoin.rpc
 
+from toposort import toposorted
+
 
 def script_to_raw_address(script):
     # extract the destination address from the scriptPubkey
@@ -145,5 +147,19 @@ class BlockchainState(object):
             for txhash in txhashes:
                 yield self.get_tx(txhash)
 
+    def sort_txs(self, tx_list):
+        block_txs = {h:self.get_tx(h) for h in tx_list}
+
+        def get_dependent_txs(tx):
+            """all transactions from current block this transaction
+            directly depends on"""
+            dependent_txs = []
+            for inp in tx.inputs:
+                if inp.prevout.hash in block_txs:
+                    dependent_txs.append(block_txs[inp.prevout.hash])
+            return dependent_txs
+
+        return toposorted(block_txs.values(), get_dependent_txs)
+
     def get_mempool_txs(self):
-        return self.bitcoind.getrawmempool()
+        return self.sort_txs(self.bitcoind.getrawmempool())
