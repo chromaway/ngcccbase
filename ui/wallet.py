@@ -63,7 +63,7 @@ class Wallet(object):
         return self.controller.get_balance(self.get_asset_definition(color))
 
     def get_all_addresses(self, color):
-        return [addr.get_address() for addr in
+        return [addr.get_color_address() for addr in
             self.controller.get_all_addresses(self.get_asset_definition(color))]
 
     def get_address_balance(self, color):
@@ -74,11 +74,11 @@ class Wallet(object):
         wam = self.model.get_address_manager()
         cs = self.get_asset_definition(color).get_color_set()
         ar = wam.get_some_address(cs)
-        return ar.get_address()
+        return ar.get_color_address()
 
     def get_new_address(self, color):
         return self.controller. \
-            get_new_address(self.get_asset_definition(color)).get_address()
+            get_new_address(self.get_asset_definition(color)).get_color_address()
 
     def scan(self):
         self.controller.scan_utxos()
