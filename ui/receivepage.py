@@ -78,6 +78,7 @@ class ReceivePage(QtGui.QWidget):
         selected = self.tableView.selectedIndexes()
         if not selected:
             return
+
         actions = [
             self.actionCopyAddress,
             self.actionCopyColor,
@@ -88,9 +89,13 @@ class ReceivePage(QtGui.QWidget):
         result = menu.exec_(event.globalPos())
         if result is None or result not in actions:
             return
-        index = selected[actions.index(result)]
+
+        if result == self.actionCopyAddress:
+            index = selected[1]
+        elif result == self.actionCopyColor:
+            index = selected[0]
         QtGui.QApplication.clipboard().setText(
-            self.proxyModel.data(index))
+            self.proxyModel.data(index).toString())
 
     def setMonikerFilter(self, moniker):
         index = self.cbMoniker.findText(moniker)

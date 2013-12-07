@@ -180,8 +180,8 @@ class AssetPage(QtGui.QWidget):
                 self.proxyModel.data(index).toString())
         elif actions.index(result) == 3:
             window = self.parentWidget().parentWidget().parentWidget()
-            window.gotoAddressesPage()
-            window.addressespage.setMonikerFilter(
+            window.gotoReceivePage()
+            window.receivepage.setMonikerFilter(
                 self.proxyModel.data(selected[0]).toString())
 
     def selectRowByMoniker(self, moniker):
