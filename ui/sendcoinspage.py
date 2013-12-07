@@ -51,7 +51,7 @@ class SendcoinsEntry(QtGui.QFrame):
 
     def edtAddressValidate(self):
         valid = True
-        if len(str(self.edtAddress.text())) != 34:
+        if len(str(self.edtAddress.text())) < 30:
             valid = False
             self.edtAddress.setStyleSheet('background:#FF8080')
         else:
