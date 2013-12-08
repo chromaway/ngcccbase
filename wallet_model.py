@@ -559,7 +559,7 @@ class ColoredCoinContext(object):
                     "electrum.cafebitcoin.com", 50001)
 
         self.store_conn = store.DataStoreConnection(
-            params.get("color.db", "color.db"))
+            params.get("colordb_path", "color.db"))
         self.cdstore = store.ColorDataStore(self.store_conn.conn)
         self.metastore = store.ColorMetaStore(self.store_conn.conn)
 

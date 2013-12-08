@@ -5,7 +5,6 @@ Transaction Constructors for the blockchain.
 """
 
 from coloredcoinlib import txspec, colordef
-from coloredcoinlib.blockchain import script_to_raw_address
 from binascii import hexlify
 import pycoin_txcons
 
