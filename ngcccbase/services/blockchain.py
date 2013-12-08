@@ -56,4 +56,4 @@ class AbeInterface(WebBlockchainInterface):
     version of block explorer.
     See https://github.com/bitcoin-abe/bitcoin-abe for more information.
     """
-    URL_TEMPLATE = "http://explorer.tumak.cz/unspent/%s"
+    URL_TEMPLATE = "http://abe.bitcontracts.org/unspent/%s"
