@@ -94,6 +94,9 @@ def reconstruct_composed_tx_spec(model, tx):
     for py_txout in pycoin_tx.txs_out:
         script = py_txout.script
         raw_address = script_to_raw_address(script)
-        address = ccc.raw_to_address(raw_address)
+        if raw_address:
+            address = ccc.raw_to_address(raw_address)
+        else:
+            address = None
         txouts.append(TxOut(py_txout.coin_value, address))
     return txspec.ComposedTxSpec(txins, txouts)
