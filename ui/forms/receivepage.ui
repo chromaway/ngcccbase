@@ -130,6 +130,14 @@
     <string>Copy &amp;Color</string>
    </property>
   </action>
+  <action name="actionCopyBitcoinAddress">
+   <property name="text">
+    <string>Copy &amp;Bitcoin Address</string>
+   </property>
+   <property name="toolTip">
+    <string>Copy Bitcoin Address</string>
+   </property>
+  </action>
  </widget>
  <tabstops>
   <tabstop>cbMoniker</tabstop>
