@@ -19,6 +19,7 @@ from pycoin.tx.script.vm import verify_script
 from io import BytesIO
 
 from coloredcoinlib import txspec
+from coloredcoinlib.blockchain import script_to_raw_address
 
 
 def construct_standard_tx(composed_tx_spec, is_test):
@@ -95,8 +96,8 @@ def reconstruct_composed_tx_spec(model, tx):
         script = py_txout.script
         raw_address = script_to_raw_address(script)
         if raw_address:
-            address = ccc.raw_to_address(raw_address)
+            address = model.ccc.raw_to_address(raw_address)
         else:
             address = None
-        txouts.append(TxOut(py_txout.coin_value, address))
+        txouts.append(txspec.ComposedTxSpec.TxOut(py_txout.coin_value, address))
     return txspec.ComposedTxSpec(txins, txouts)

@@ -175,7 +175,7 @@ class RawTxSpec(object):
     def from_tx_data(cls, model, tx_data):
         pycoin_tx = pycoin_txcons.deserialize(tx_data)
         composed_tx_spec = pycoin_txcons.reconstruct_composed_tx_spec(
-            pycoin_tx)
+            model, pycoin_tx)
         return cls.from_composed_tx_spec(model, composed_tx_spec)
 
     def sign(self, utxo_list):
