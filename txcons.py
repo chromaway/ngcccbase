@@ -174,23 +174,8 @@ class RawTxSpec(object):
     @classmethod
     def from_tx_data(cls, model, tx_data):
         pycoin_tx = pycoin_txcons.deserialize(tx_data)
-
-        txins, txouts = [], []
-        for py_txin in pycoin_tx.txs_in:
-            # lookup the previous hash and generate the utxo
-            in_txhash = py_txin.previous_hash[::-1].encode('hex')
-            in_outindex = py_txin.previous_index
-            txins.append(txspec.ComposedTxSpec.TxIn(in_txhash, in_outindex))
-        for py_txout in pycoin_tx.txs_out:
-            script = py_txout.script
-            raw_address = script_to_raw_address(script)
-            if not raw_address:
-                continue
-            address = model.ccc.raw_to_address(raw_address)
-            txouts.append(txspec.ComposedTxSpec.TxOut(py_txout.coin_value,
-                                                      address))
-
-        composed_tx_spec = txspec.ComposedTxSpec(txins, txouts)
+        composed_tx_spec = pycoin_txcons.reconstruct_composed_tx_spec(
+            model, pycoin_tx)
         return cls.from_composed_tx_spec(model, composed_tx_spec)
 
     def sign(self, utxo_list):
