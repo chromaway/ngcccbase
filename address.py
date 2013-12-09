@@ -40,12 +40,15 @@ class Address:
         private key.
         """
         # validate that the keys correspond to the correct network
-        if a2b_base58(pubkey)[0] == self.PUBLIC_KEY_PREFIX:
-            self.pubkey = pubkey
-            self.privkey = privkey
-        else:
+        if a2b_base58(pubkey)[0] != self.PUBLIC_KEY_PREFIX:
             raise InvalidAddressError("%s is not a public key for %s" %
                                       (pubkey, self.__class__.__name__))
+        elif a2b_base58(privkey)[0] != self.PRIVATE_KEY_PREFIX:
+            raise InvalidAddressError("%s is not a private key for %s" %
+                                      (privkey, self.__class__.__name__))
+        else:
+            self.pubkey = pubkey
+            self.privkey = privkey
 
     def rawPrivkey(self):
         """Returns the raw private key associated with this address.
@@ -146,18 +149,3 @@ class TestnetAddress(Address):
     """
     PUBLIC_KEY_PREFIX = "\x6F"
     PRIVATE_KEY_PREFIX = "\xEF"
-
-
-if __name__ == "__main__":
-    # test the key generation
-    test_key = 'a' * 32
-    address = Address.new(test_key)
-    print address.pubkey
-    rawPubkey = Address.PUBLIC_KEY_PREFIX + hash160(
-        "\x04" + address.rawPubkey())
-    print b2a_hashed_base58(rawPubkey)
-    assert address.privkey \
-        == "5JZB2s2RCtRUunKiqMbb6rAj3Z7TkJwa8zknL1cfTFpWoQArd6n", \
-        "address generation isn't what was expected"
-
-    assert address.rawPrivkey() == test_key, "wrong priv key"
