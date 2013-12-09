@@ -4,6 +4,8 @@ from wallet_model import ColorSet
 from protocol_objects import ETxSpec
 from utxodb import UTXO
 
+FEE = 15000
+
 class OperationalETxSpec(txspec.OperationalTxSpec):
     def __init__(self, model, ewctrl):
         self.model = model
@@ -23,11 +25,17 @@ class OperationalETxSpec(txspec.OperationalTxSpec):
         colordata = self.model.ccc.colordata
         for cspec, inps in etx_spec.inputs.items():
             color_set = self.ewctrl.resolve_color_spec(cspec)
-            for inp in inps:
-                css = colordata.get_colorvalues(color_set.color_id_set, inp[0], inp[1])
-                if css and len(css) == 1:
-                    cs = css[0]
-                    self.inputs[cs[0]].append((cs[1], inp))
+            if color_set.uncolored_only():
+                for inp in inps:
+                    tx = self.model.ccc.blockchain_state.get_tx(inp[0])
+                    value = tx.outputs[inp[1]].value
+                    self.inputs[0].append((value, inp))
+            else:
+                for inp in inps:
+                    css = colordata.get_colorvalues(color_set.color_id_set, inp[0], inp[1])
+                    if (css and len(css) == 1):
+                        cs = css[0]
+                        self.inputs[cs[0]].append((cs[1], inp))
 
     def prepare_targets(self, etx_spec, their):
         self.targets = []
@@ -45,7 +53,7 @@ class OperationalETxSpec(txspec.OperationalTxSpec):
              their['value']))
 
     def get_required_fee(self, tx_size):
-        return 10000
+        return FEE
 
     def select_coins(self, color_def, value):
         color_id = color_def.color_id
@@ -69,8 +77,8 @@ class OperationalETxSpec(txspec.OperationalTxSpec):
                 # TODO: use colorvalue!
                 ssum += utxo.value
                 selection.append(utxo)
-            if ssum >= value:
-                return selection, ssum
+                if ssum >= value:
+                    return selection, ssum
             raise Exception('not enough coins to reach the target')
 
 
@@ -106,7 +114,9 @@ class EWalletController(object):
     def make_etx_spec(self, our, their):
         our_color_set = self.resolve_color_spec(our['color_spec'])
         their_color_set = self.resolve_color_spec(their['color_spec'])
-        c_utxos, c_change = self.select_inputs(our_color_set, our['value'])
+        fee = FEE if our_color_set.uncolored_only() else 0
+        c_utxos, c_change = self.select_inputs(our_color_set,
+                                               our['value'] + fee)
         inputs = {our['color_spec']: 
                   [utxo.get_outpoint() for utxo in c_utxos]}
         wam = self.model.get_address_manager()

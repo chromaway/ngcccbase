@@ -1,5 +1,7 @@
 from coloredcoinlib.store import DataStore, DataStoreConnection
 
+import utxodb
+
 TX_STATUS_UNKNOWN = 0
 
 create_transaction_table = """\
@@ -59,13 +61,15 @@ class TxDataStore(DataStore):
             txid = self.add_tx(txhash, tx.get_hex_tx_data()).lastrowid
 
             for txin in tx.composed_tx_spec.txins:
-                self.execute(
-                    insert_transaction,
-                    (txin.address_rec.address.pubkey, TXIN, txid))
+                if isinstance(txin, utxodb.UTXO) and txin.address_rec:
+                    self.execute(
+                        insert_transaction,
+                        (txin.address_rec.address.pubkey, TXIN, txid))
 
             for txout in tx.composed_tx_spec.txouts:
-                self.execute(
-                    insert_transaction, (txout.target_addr, TXOUT, txid))
+                if isinstance(txout.target_addr, str):
+                    self.execute(
+                        insert_transaction, (txout.target_addr, TXOUT, txid))
 
     def get_tx_by_hash(self, txhash):
         return self.execute("SELECT * FROM tx_data WHERE txhash = ?",
