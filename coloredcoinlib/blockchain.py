@@ -28,7 +28,7 @@ class CTxIn(object):
         self.prevout = COutpoint(op_hash, op_n)
 
     def get_txhash(self):
-        return self.prevout.hash
+        return self.prevout.hash.decode('hex')[::-1]
 
     def get_outpoint(self):
         return (self.prevout.hash, self.prevout.n)
