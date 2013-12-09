@@ -9,6 +9,7 @@ Executes high level tasks such as get balance
 from coloredcoinlib.colordef import ColorDefinition, GENESIS_OUTPUT_MARKER
 from wallet_model import ColorSet
 from txcons import BasicTxSpec, SimpleOperationalTxSpec
+import coloredcoinlib.tsp as tsp
 
 
 class WalletController(object):
@@ -65,6 +66,47 @@ class WalletController(object):
         # scan the tx so that the rest of the system knows
         self.model.ccc.colordata.cdbuilder_manager.scan_txhash(
             asset.color_set.color_id_set, txhash)
+
+
+    def issue_tsp(self, moniker, token_moniker, data):
+        """Issues a new color of name <moniker> using coloring scheme
+        <pck> with <units> per share and <atoms_in_unit> total.
+        """
+
+        adm = self.model.get_asset_definition_manager()
+        colormap = self.model.get_color_map()
+
+        pck = 'tsp'
+        color_definition_cls = ColorDefinition.get_color_def_cls_for_code(pck)
+        if not color_definition_cls:
+            raise Exception('color scheme %s not recognized' % pck)
+
+        token_asset = adm.get_asset_by_moniker(token_moniker)
+        token_colordef = colormap.get_color_def(
+            token_asset.get_color_set().color_desc_list[0])
+        unit = 10000
+
+        op_tx_spec = SimpleOperationalTxSpec(self.model, token_asset)
+        wam = self.model.get_address_manager()
+        address = wam.get_new_genesis_address()
+        op_tx_spec.add_target(
+            address.get_address(), token_colordef, (unit, data))
+        genesis_ctxs = color_definition_cls.compose_genesis_tx_spec(op_tx_spec)
+        genesis_tx = self.model.transform_tx_spec(genesis_ctxs, 'signed')
+        height = self.model.ccc.blockchain_state.bitcoind.getblockcount() \
+            - 1
+        genesis_tx_hash = self.publish_tx(genesis_tx)
+        color_desc = ':'.join([pck, genesis_tx_hash, '0', str(height)])
+
+        asset = adm.add_asset_definition({"monikers": [moniker],
+                                          "color_set": [color_desc],
+                                          "unit": unit})
+        wam.update_genesis_address(address, asset.get_color_set())
+
+        # scan the tx so that the rest of the system knows
+        self.model.ccc.colordata.cdbuilder_manager.scan_txhash(
+            asset.color_set.color_id_set, genesis_tx_hash)
+
 
     def issue_coins(self, moniker, pck, units, atoms_in_unit):
         """Issues a new color of name <moniker> using coloring scheme

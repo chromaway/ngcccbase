@@ -64,6 +64,10 @@ class TxDataStore(DataStore):
                     (txin.address_rec.address.pubkey, TXIN, txid))
 
             for txout in tx.composed_tx_spec.txouts:
+                if not (isinstance(txout.target_addr, str) or
+                        isinstance(txout.target_addr, unicode)):
+                    continue
+                           
                 self.execute(
                     insert_transaction, (txout.target_addr, TXOUT, txid))
 

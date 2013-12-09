@@ -83,6 +83,12 @@ class Application(object):
         parser.add_argument('atoms', type=int)
 
         parser = subparsers.add_parser(
+            'create_sp', description="Create new smart property.")
+        parser.add_argument('token_moniker')
+        parser.add_argument('moniker')
+        parser.add_argument('data')
+
+        parser = subparsers.add_parser(
             'newaddr', description=
             "Creates a new bitcoin address for a given asset/color.")
         parser.add_argument('moniker')
@@ -259,6 +265,12 @@ class Application(object):
         self.controller.issue_coins(
             kwargs['moniker'], kwargs['coloring_scheme'],
             kwargs['units'], kwargs['atoms'])
+
+    def command_create_sp(self, **kwargs):
+        self.controller.issue_tsp(
+            kwargs['moniker'], kwargs['token_moniker'],
+            kwargs['data'])
+
 
     def command_newaddr(self, **kwargs):
         """Creates a new bitcoin address for a given asset/color.

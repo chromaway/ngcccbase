@@ -54,6 +54,7 @@ class ColorDefinition(object):
 GENESIS_OUTPUT_MARKER = ColorDefinition(-1)
 UNCOLORED_MARKER = ColorDefinition(0)
 
+
 class GenesisColorDefinition(ColorDefinition):
     def __init__(self, color_id, genesis):
         super(GenesisColorDefinition, self).__init__(color_id)

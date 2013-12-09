@@ -20,14 +20,19 @@ from io import BytesIO
 
 from coloredcoinlib import txspec
 from coloredcoinlib.blockchain import script_to_raw_address
+from coloredcoinlib import tsp
 
 
 def construct_standard_tx(composed_tx_spec, is_test):
     txouts = []
     STANDARD_SCRIPT_OUT = "OP_DUP OP_HASH160 %s OP_EQUALVERIFY OP_CHECKSIG"
     for txout in composed_tx_spec.get_txouts():
-        hash160 = bitcoin_address_to_hash160_sec(txout.target_addr, is_test)
-        script_text = STANDARD_SCRIPT_OUT % b2h(hash160)
+        target_addr = txout.target_addr
+        if isinstance(target_addr, tsp.DataScriptTarget):
+            script_text = "OP_RETURN %s" % b2h(target_addr.data)
+        else:
+            hash160 = bitcoin_address_to_hash160_sec(txout.target_addr, is_test)
+            script_text = STANDARD_SCRIPT_OUT % b2h(hash160)
         script_bin = tools.compile(script_text)
         txouts.append(TxOut(txout.value, script_bin))
     txins = []
