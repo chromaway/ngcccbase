@@ -50,8 +50,7 @@ class HTTPComm(CommBase):
     def poll_and_dispatch(self):
         url = self.url
         if self.lastpoll == -1:
-            # TODO: this is deprecated
-            url = url
+            url = url + "?from_timestamp_rel=%s" % self.config['offer_expiry_interval']
         else:
             url = url + '?from_serial=%s' % (self.lastpoll+1)
         u = urllib2.urlopen(url)

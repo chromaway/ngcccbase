@@ -27,8 +27,23 @@ class WalletController(object):
         """
         txhex = signed_tx_spec.get_hex_tx_data()
         print txhex
-        txhash = self.model.ccc.blockchain_state.bitcoind.sendrawtransaction(
-            txhex)
+        txhash = signed_tx_spec.get_hex_txhash()
+        r_txhash = None
+        bitcoind = self.model.ccc.blockchain_state.bitcoind
+        try:
+            r_txhash = bitcoind.sendrawtransaction(txhex)
+        except Exception as e:
+            print "got error %s from bitcoind" % e
+        
+        if r_txhash and (r_txhash != txhash):
+            raise Exception('bitcoind reports different txhash')
+        
+        if r_txhash is None:
+            # bitcoind did not eat our txn, check if it is mempool
+            mempool = bitcoind.getrawmempool()
+            if txhash not in mempool:
+                raise Exception("bitcoind didn't accept the transaction")
+
         if signed_tx_spec.composed_tx_spec:
             self.model.txdb.add_signed_tx(txhash, signed_tx_spec)
             self.model.utxo_man.apply_tx(txhash, signed_tx_spec)

@@ -157,6 +157,10 @@ class RawTxSpec(object):
         self.composed_tx_spec = composed_tx_spec
         self.update_tx_data()
 
+    def get_hex_txhash(self):
+        the_hash = self.pycoin_tx.hash()
+        return the_hash[::-1].encode('hex')
+
     def update_tx_data(self):
         """Updates serialized form of transaction.
         """

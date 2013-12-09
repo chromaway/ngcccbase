@@ -4,6 +4,7 @@ from wallet_model import ColorSet
 from protocol_objects import ETxSpec
 from utxodb import UTXO
 
+
 FEE = 15000
 
 class OperationalETxSpec(txspec.OperationalTxSpec):
@@ -88,7 +89,7 @@ class EWalletController(object):
         self.wctrl = wctrl
 
     def publish_tx(self, raw_tx):
-        return self.wctrl.publish_tx(raw_tx)
+        self.wctrl.publish_tx(raw_tx)
 
     def resolve_color_spec(self, color_spec):
         colormap = self.model.get_color_map()
