@@ -55,7 +55,7 @@
    </attribute>
    <addaction name="actionGotoOverview"/>
    <addaction name="actionGotoSendcoins"/>
-   <addaction name="actionGotoAsset"/>
+   <addaction name="actionGotoAssets"/>
    <addaction name="actionGotoReceive"/>
    <addaction name="actionP2PTrade"/>
   </widget>
@@ -139,15 +139,15 @@
     <string>update data</string>
    </property>
   </action>
-  <action name="actionGotoAsset">
+  <action name="actionGotoAssets">
    <property name="checkable">
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Asset</string>
+    <string>Assets</string>
    </property>
    <property name="toolTip">
-    <string>Change to Asset page</string>
+    <string>Change to Assets page</string>
    </property>
   </action>
  </widget>

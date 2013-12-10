@@ -10,8 +10,10 @@ class AddAssetDialog(QtGui.QDialog):
         uic.loadUi(uic.getUiPath('addassetdialog.ui'), self)
 
         for wname in ['edtMoniker', 'edtColorDesc', 'edtUnit']:
-            getattr(self, wname).focusInEvent = \
-                lambda e, name=wname: getattr(self, name).setStyleSheet('')
+            def clearBackground(event, wname=wname):
+                getattr(self, wname).setStyleSheet('')
+                QtGui.QLineEdit.focusInEvent(getattr(self, wname), event)
+            getattr(self, wname).focusInEvent = clearBackground
 
     def isValid(self):
         moniker = self.edtMoniker.text()
@@ -55,8 +57,10 @@ class IssueCoinsDialog(QtGui.QDialog):
         self.cbScheme.addItem('obc')
 
         for wname in ['edtMoniker', 'edtUnits', 'edtAtoms']:
-            getattr(self, wname).focusInEvent = \
-                lambda e, name=wname: getattr(self, name).setStyleSheet('')
+            def clearBackground(event, wname=wname):
+                getattr(self, wname).setStyleSheet('')
+                QtGui.QLineEdit.focusInEvent(getattr(self, wname), event)
+            getattr(self, wname).focusInEvent = clearBackground
 
         self.edtUnits.textChanged.connect(self.changeTotalBTC)
         self.edtAtoms.textChanged.connect(self.changeTotalBTC)
@@ -128,10 +132,10 @@ class AssetProxyModel(ProxyModel):
     pass
 
 
-class AssetPage(QtGui.QWidget):
+class AssetsPage(QtGui.QWidget):
     def __init__(self, parent):
         QtGui.QWidget.__init__(self, parent)
-        uic.loadUi(uic.getUiPath('assetpage.ui'), self)
+        uic.loadUi(uic.getUiPath('assetspage.ui'), self)
 
         self.model = AssetTableModel(self)
         self.proxyModel = AssetProxyModel(self)

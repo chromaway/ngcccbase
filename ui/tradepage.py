@@ -67,8 +67,10 @@ class TradePage(QtGui.QWidget):
         self.cbMoniker.currentIndexChanged.connect(self.cbMonikerIndexChanged)
 
         for wname in ['edtBuyQuantity', 'edtBuyPrice', 'edtSellQuantity', 'edtSellPrice']:
-            getattr(self, wname).focusInEvent = \
-                lambda e, name=wname: getattr(self, name).setStyleSheet('')
+            def clearBackground(event, wname=wname):
+                getattr(self, wname).setStyleSheet('')
+                QtGui.QLineEdit.focusInEvent(getattr(self, wname), event)
+            getattr(self, wname).focusInEvent = clearBackground
 
         self.edtBuyQuantity.textChanged.connect(self.lblBuyTotalChange)
         self.edtBuyPrice.textChanged.connect(self.lblBuyTotalChange)
