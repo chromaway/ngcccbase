@@ -218,7 +218,7 @@ class TradePage(QtGui.QWidget):
                 QtGui.QMessageBox.warning(self, '', "Not enough money...",
                     QtGui.QMessageBox.Cancel)
                 return
-            message = "Buy <b>{value}</b> {moniker} for <b>{course}</b> \
+            message = "Sell <b>{value}</b> {moniker} for <b>{course}</b> \
 bitcoin (Total: <b>{total}</b> bitcoin)".format(**{
                 'value': self.proxyModelBuy.data(selected[1]).toString(),
                 'moniker': str(self.cbMoniker.currentText()),
@@ -296,7 +296,7 @@ bitcoin (Total: <b>{total}</b> bitcoin)".format(**{
                 QtGui.QMessageBox.warning(self, '', "Not enough money...",
                     QtGui.QMessageBox.Cancel)
                 return
-            message = "Sell <b>{value}</b> {moniker} for <b>{course}</b> \
+            message = "Buy <b>{value}</b> {moniker} for <b>{course}</b> \
 bitcoin (Total: <b>{total}</b> bitcoin)".format(**{
                 'value': self.proxyModelSell.data(selected[1]).toString(),
                 'moniker': moniker,
@@ -304,7 +304,7 @@ bitcoin (Total: <b>{total}</b> bitcoin)".format(**{
                 'total': self.proxyModelSell.data(selected[2]).toString(),
             })
             retval = QtGui.QMessageBox.question(
-                self, "Confirm sell coins", message,
+                self, "Confirm buy coins", message,
                 QtGui.QMessageBox.Yes | QtGui.QMessageBox.Cancel,
                 QtGui.QMessageBox.Cancel)
             if retval != QtGui.QMessageBox.Yes:

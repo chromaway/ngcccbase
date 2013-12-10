@@ -123,6 +123,6 @@ class Wallet(object):
 
     def p2ptrade_make_mirror_offer(self, offer):
         data = offer.get_data()
-        return MyEOffer(None, data['B'], data['A'])
+        return MyEOffer(None, data['B'], data['A'], False)
 
 wallet = Wallet()

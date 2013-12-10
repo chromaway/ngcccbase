@@ -184,9 +184,6 @@ class UTXO(ComposedTxSpec.TxIn):
         self.colorvalues = None
         self.utxo_rec = None
 
-    def get_txhash(self):
-        return self.txhash.decode('hex')[::-1]
-
     def __repr__(self):
         return "%s %s %s %s" % (
             self.txhash, self.outindex, self.value, self.script)

@@ -2,7 +2,7 @@
 import urllib2
 import json
 
-BASE_URL = "http://explorer.tumak.cz"
+BASE_URL = "http://abe.bitcontracts.org"
 
 
 def get_spends(tx, blockchain_state):

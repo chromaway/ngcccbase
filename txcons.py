@@ -5,7 +5,6 @@ Transaction Constructors for the blockchain.
 """
 
 from coloredcoinlib import txspec, colordef
-from coloredcoinlib.blockchain import script_to_raw_address
 from binascii import hexlify
 import pycoin_txcons
 
@@ -158,6 +157,10 @@ class RawTxSpec(object):
         self.composed_tx_spec = composed_tx_spec
         self.update_tx_data()
 
+    def get_hex_txhash(self):
+        the_hash = self.pycoin_tx.hash()
+        return the_hash[::-1].encode('hex')
+
     def update_tx_data(self):
         """Updates serialized form of transaction.
         """
@@ -174,24 +177,9 @@ class RawTxSpec(object):
     @classmethod
     def from_tx_data(cls, model, tx_data):
         pycoin_tx = pycoin_txcons.deserialize(tx_data)
-
-        txins, txouts = [], []
-        for py_txin in pycoin_tx.txs_in:
-            # lookup the previous hash and generate the utxo
-            in_txhash = py_txin.previous_hash[::-1].encode('hex')
-            in_outindex = py_txin.previous_index
-            txins.append(txspec.ComposedTxSpec.TxIn(in_txhash, in_outindex))
-        for py_txout in pycoin_tx.txs_out:
-            script = py_txout.script
-            raw_address = script_to_raw_address(script)
-            if not raw_address:
-                continue
-            address = model.ccc.raw_to_address(raw_address)
-            txouts.append(txspec.ComposedTxSpec.TxOut(py_txout.coin_value,
-                                                      address))
-
-        composed_tx_spec = txspec.ComposedTxSpec(txins, txouts)
-        return cls.from_composed_tx_spec(model, composed_tx_spec)
+        composed_tx_spec = pycoin_txcons.reconstruct_composed_tx_spec(
+            model, pycoin_tx)
+        return cls(model, pycoin_tx, composed_tx_spec)
 
     def sign(self, utxo_list):
         pycoin_txcons.sign_tx(
