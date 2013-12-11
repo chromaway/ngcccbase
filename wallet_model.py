@@ -15,10 +15,12 @@ from ngcccbase import txdb
 from address import Address, TestnetAddress, InvalidAddressError
 
 from pycoin.encoding import b2a_base58
+from pycoin.wallet import Wallet
 from collections import defaultdict
 
 import hashlib
 import json
+import os
 import binascii
 
 import txcons
@@ -63,6 +65,25 @@ class ColorSet(object):
         """
         json = deterministic_json_dumps(sorted(self.color_desc_list))
         return hashlib.sha256(json).hexdigest()
+
+    def get_earliest(self):
+        """Returns the color description of the earliest color to
+        show in the blockchain. If there's a tie and two are issued
+        in the same block, go with the one that has a smaller txhash
+        """
+        all_descs = self.get_data()
+        if not len(all_descs):
+            return "\x00\x00\x00\x00"
+        best = all_descs[0]
+        best_components = best.split(':')
+        for desc in all_descs[1:]:
+            components = desc.split(':')
+            if int(components[3]) < int(best_components[3]):
+                best = desc
+            elif int(components[3]) < int(best_components[3]):
+                if cmp(components[1], best_components[1]) == -1:
+                    best = desc
+        return best
 
     def get_color_hash(self):
         """Returns the hash used in color addresses.
@@ -249,7 +270,7 @@ class AssetDefinitionManager(object):
         """
 
         if color_address.find('@') == -1:
-            return self.lookup_by_moniker.get('bitcoin')
+            return (self.lookup_by_moniker.get('bitcoin'), color_address)
 
         color_set_hash, address = color_address.split('@')
         for asset in self.get_all_assets():
@@ -300,12 +321,11 @@ class DeterministicAddressRecord(AddressRecord):
     create addresses for specific colors and bitcoin addresses.
     """
     def __init__(self, **kwargs):
-        """Create an address for this wallet <model>, color
-        <color_set> and index <index> with the master key <master_key>.
-        The address record returned for the same four variables
+        """Create an address for this color <color_set>
+        and index <index> with the master key <master_key>.
+        The address record returned for the same three variables
         will be the same every time, hence "deterministic".
         """
-        self.model = kwargs.get('model')
         self.color_set = kwargs.get('color_set')
         if len(self.color_set.get_data()) == 0:
             color_string = "genesis block"
@@ -314,6 +334,37 @@ class DeterministicAddressRecord(AddressRecord):
         cls = TestnetAddress if kwargs.get('testnet') else Address
         self.address = cls.fromMasterKey(
             kwargs['master_key'], color_string, kwargs['index'])
+
+
+class BIP0032AddressRecord(AddressRecord):
+    """Subclass of AddressRecord which is deterministic and BIP0032 compliant.
+    BIP0032AddressRecord will use a pycoin wallet to create addresses
+    for specific colors.
+    """
+    def __init__(self, **kwargs):
+        """Create an address for this color <color_set> and index <index>
+        with the pycoin_wallet <pycoin_wallet> and on testnet or not
+        <testnet>
+        The address record returned for the same variables
+        will be the same every time, hence "deterministic".
+        """
+        pycoin_wallet = kwargs.get('pycoin_wallet')
+        self.color_set = kwargs.get('color_set')
+        color_string = hashlib.sha256(self.color_set.get_earliest()).digest()
+
+        # use the hash of the color string to get the subkey we need
+        while len(color_string):
+            number = int(color_string[:4].encode('hex'), 16)
+            pycoin_wallet = pycoin_wallet.subkey(i=number, is_prime=True,
+                                                 as_private=True)
+            color_string = color_string[4:]
+
+        # now get the nth address in this wallet
+        pycoin_wallet = pycoin_wallet.subkey(i=kwargs.get('index'),
+                                             is_prime=True, as_private=True)
+
+        klass = TestnetAddress if kwargs.get('testnet') else Address
+        self.address = klass.new(pycoin_wallet.secret_exponent_bytes)
 
 
 class LooseAddressRecord(AddressRecord):
@@ -376,7 +427,6 @@ class DWalletAddressManager(object):
             params = {
                 'testnet': self.testnet,
                 'master_key': self.master_key,
-                'model': self.model,
                 'color_set': color_set
                 }
             for index in xrange(max_index + 1):
@@ -440,10 +490,9 @@ class DWalletAddressManager(object):
         else:
             color_set = asset_or_color_set
         index = self.increment_max_index_for_color_set(color_set)
-        na = DeterministicAddressRecord(
-            model=self.model, master_key=self.master_key,
-            color_set=color_set,
-            index=index, testnet=self.testnet)
+        na = DeterministicAddressRecord(master_key=self.master_key,
+                                        color_set=color_set, index=index,
+                                        testnet=self.testnet)
         self.addresses.append(na)
         self.update_config()
         return na
@@ -454,10 +503,10 @@ class DWalletAddressManager(object):
         index. In general, that index corresponds to the nth
         color created by this wallet.
         """
-        return DeterministicAddressRecord(
-            model=self.model, master_key=self.master_key,
-            color_set=ColorSet(self.model, []),
-            index=genesis_index, testnet=self.testnet)
+        return DeterministicAddressRecord(master_key=self.master_key,
+                                          color_set=ColorSet(self.model, []),
+                                          index=genesis_index,
+                                          testnet=self.testnet)
 
     def get_new_genesis_address(self):
         """Create a new genesis address and return it.
@@ -525,6 +574,129 @@ class DWalletAddressManager(object):
             'color_set_states': self.color_set_states
             }
         self.config['dwam'] = dwam_params
+
+
+class HDWalletAddressManager(DWalletAddressManager):
+    """This class manages the creation of new AddressRecords.
+    Specifically, it keeps track of which colors have been created
+    in this wallet and how many addresses of each color have been
+    created in this wallet. This is different from DWalletAddressManager
+    in that it is BIP-0032 compliant.
+    """
+    def __init__(self, model, config):
+        """Create a deterministic wallet address manager given
+        a wallet <model> and a configuration <config>.
+        Note address manager configuration is in the key "hdwam".
+        """
+        self.config = config
+        self.testnet = config.get('testnet', False)
+        self.model = model
+        self.addresses = []
+
+        # initialize the wallet manager if this is the first time
+        #  this will generate a master key.
+        params = config.get('hdwam', None)
+        if params is None:
+            params = self.init_new_wallet()
+
+        # master key is stored in a separate config entry
+        self.master_key = config['hdw_master_key']
+
+        master = hashlib.sha512(self.master_key.decode('hex')).digest()
+
+        # initialize a BIP-0032 wallet
+        self.pycoin_wallet = Wallet(is_private=True, is_test=self.testnet,
+                                    chain_code=master[32:],
+                                    secret_exponent_bytes=master[:32])
+
+        self.genesis_color_sets = params['genesis_color_sets']
+        self.color_set_states = params['color_set_states']
+
+        # import the genesis addresses
+        for i, color_desc_list in enumerate(self.genesis_color_sets):
+            addr = self.get_genesis_address(i)
+            addr.color_set = ColorSet(self.model, color_desc_list)
+            self.addresses.append(addr)
+
+        # now import the specific color addresses
+        for color_set_st in self.color_set_states:
+            color_desc_list = color_set_st['color_set']
+            max_index = color_set_st['max_index']
+            color_set = ColorSet(self.model, color_desc_list)
+            params = {
+                'testnet': self.testnet,
+                'pycoin_wallet': self.pycoin_wallet,
+                'color_set': color_set
+                }
+            for index in xrange(max_index + 1):
+                params['index'] = index
+                self.addresses.append(BIP0032AddressRecord(**params))
+
+        # import the one-off addresses from the config
+        for addr_params in config.get('addresses', []):
+            addr_params['testnet'] = self.testnet
+            addr_params['model'] = model
+            try:
+                address = LooseAddressRecord(**addr_params)
+                self.addresses.append(address)
+            except InvalidAddressError:
+                address_type = "Testnet" if self.testnet else "Bitcoin"
+
+    def init_new_wallet(self):
+        """Initialize the configuration if this is the first time
+        we're creating addresses in this wallet.
+        Returns the "hdwam" part of the configuration.
+        """
+        if not 'hdw_master_key' in self.config:
+            master_key = os.urandom(64).encode('hex')
+            self.config['hdw_master_key'] = master_key
+        hdwam_params = {
+            'genesis_color_sets': [],
+            'color_set_states': []
+            }
+        self.config['hdwam'] = hdwam_params
+        return hdwam_params
+
+    def get_new_address(self, asset_or_color_set):
+        """Given an asset or color_set <asset_or_color_set>,
+        Create a new BIP0032AddressRecord and return it.
+        This class will keep that tally and
+        persist it in storage, so the address will be available later.
+        """
+        if isinstance(asset_or_color_set, AssetDefinition):
+            color_set = asset_or_color_set.get_color_set()
+        else:
+            color_set = asset_or_color_set
+        index = self.increment_max_index_for_color_set(color_set)
+        na = BIP0032AddressRecord(
+            pycoin_wallet=self.pycoin_wallet, color_set=color_set,
+            index=index, testnet=self.testnet)
+        self.addresses.append(na)
+        self.update_config()
+        return na
+
+    def get_genesis_address(self, genesis_index):
+        """Given the index <genesis_index>, will return
+        the BIP0032 Address Record associated with that
+        index. In general, that index corresponds to the nth
+        color created by this wallet.
+        """
+        return BIP0032AddressRecord(pycoin_wallet=self.pycoin_wallet,
+                                    color_set=ColorSet(self.model, []),
+                                    index=genesis_index, testnet=self.testnet)
+
+    def update_config(self):
+        """Updates the configuration for the address manager.
+        The data will persist in the key "dwam" and consists
+        of this data:
+        genesis_color_sets - Colors created by this wallet
+        color_set_states   - How many addresses of each color
+        """
+        dwam_params = {
+            'genesis_color_sets': self.genesis_color_sets,
+            'color_set_states': self.color_set_states
+            }
+        self.config['hdwam'] = dwam_params
 
 
 class ColoredCoinContext(object):
@@ -611,7 +783,11 @@ class WalletModel(object):
         self.store_conn = store_conn  # hackish!
         self.ccc = ColoredCoinContext(config)
         self.ass_def_man = AssetDefinitionManager(self, config)
-        self.address_man = DWalletAddressManager(self, config)
+        if config.get('bip0032'):
+            self.address_man = HDWalletAddressManager(self, config)
+        else:
+            self.address_man = DWalletAddressManager(self, config)
+
         self.coin_query_factory = CoinQueryFactory(self, config)
         self.utxo_man = utxodb.UTXOManager(self, config)
         self.txdb = txdb.TxDb(self, config)
