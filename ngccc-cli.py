@@ -265,7 +265,7 @@ class Application(object):
         """
         asset = self.get_asset_definition(kwargs['moniker'])
         addr = self.controller.get_new_address(asset)
-        print addr.get_address()
+        print addr.get_color_address()
 
     def command_alladdresses(self, **kwargs):
         """Lists all addresses for a given asset/color
