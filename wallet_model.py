@@ -469,6 +469,7 @@ class DWalletAddressManager(object):
         self.update_config()
         address = self.get_genesis_address(index)
         address.index = index
+        self.addresses.append(address)
         return address
 
     def update_genesis_address(self, address, color_set):
