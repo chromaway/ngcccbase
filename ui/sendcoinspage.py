@@ -150,3 +150,4 @@ class SendcoinsPage(QtGui.QWidget):
                     QtGui.QMessageBox.Ok)
                 return
         wallet.send_coins(data)
+        self.parent().parent().parent().update()

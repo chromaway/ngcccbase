@@ -53,7 +53,7 @@ class MainWindow(QtGui.QMainWindow):
         self.gotoOverviewPage()
 
     def bindActions(self):
-        self.actionRescan.triggered.connect(self.rescanAction)
+        self.actionRescan.triggered.connect(self.update)
         self.actionExit.triggered.connect(
             lambda: QtCore.QCoreApplication.instance().exit(0))
 
@@ -74,7 +74,7 @@ class MainWindow(QtGui.QMainWindow):
         self.toolbarActionGroup.addAction(self.actionP2PTrade)
         self.actionP2PTrade.triggered.connect(self.gotoP2PTradePage)
 
-    def rescanAction(self):
+    def update(self):
         wallet.scan()
         self.currentPage.update()
 

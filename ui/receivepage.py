@@ -125,7 +125,7 @@ class ReceivePage(QtGui.QWidget):
         if dialog.exec_():
             moniker = dialog.get_data()['moniker']
             addr = wallet.get_new_address(moniker)
-            self.update()
+            self.parent().parent().parent().update()
             for row in xrange(self.proxyModel.rowCount()):
                 index = self.proxyModel.index(row, 1)
                 if str(self.proxyModel.data(index).toString()) == addr:

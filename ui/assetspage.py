@@ -217,6 +217,7 @@ class AssetsPage(QtGui.QWidget):
             wallet.issue(data)
             self.update()
             self.selectRowByMoniker(data['moniker'])
+            self.parent().parent().parent().update()
 
     def btnAddExistingAssetClicked(self, data=None):
         dialog = AddAssetDialog(self, data)
@@ -225,6 +226,7 @@ class AssetsPage(QtGui.QWidget):
             wallet.add_asset(data)
             self.update()
             self.selectRowByMoniker(data['moniker'])
+            self.parent().parent().parent().update()
 
     def btnImportAssetFromJSONClicked(self):
         text, ok = QtGui.QInputDialog.getText(self, "Import asset from JSON", "JSON: ")
