@@ -1,3 +1,4 @@
+import json
 from PyQt4 import QtCore, QtGui, uic
 
 from wallet import wallet
@@ -5,7 +6,7 @@ from tablemodel import TableModel, ProxyModel
 
 
 class AddAssetDialog(QtGui.QDialog):
-    def __init__(self, parent):
+    def __init__(self, parent, data=None):
         QtGui.QDialog.__init__(self, parent)
         uic.loadUi(uic.getUiPath('addassetdialog.ui'), self)
 
@@ -14,6 +15,12 @@ class AddAssetDialog(QtGui.QDialog):
                 getattr(self, wname).setStyleSheet('')
                 QtGui.QLineEdit.focusInEvent(getattr(self, wname), event)
             getattr(self, wname).focusInEvent = clearBackground
+
+        data = data or {}
+        self.edtMoniker.setText(data.get('moniker', ''))
+        self.edtColorDesc.setText(data.get('color_desc', ''))
+        self.edtUnit.setText(data.get('unit', ''))
+        self.btnBox.setFocus()
 
     def isValid(self):
         moniker = self.edtMoniker.text()
@@ -153,8 +160,9 @@ class AssetsPage(QtGui.QWidget):
         self.tableView.horizontalHeader().setResizeMode(
             2, QtGui.QHeaderView.ResizeToContents)
 
-        self.btnAddExistingAsset.clicked.connect(self.btnAddExistingAssetClicked)
         self.btnAddNewAsset.clicked.connect(self.btnAddNewAssetClicked)
+        self.btnAddExistingAsset.clicked.connect(self.btnAddExistingAssetClicked)
+        self.btnImportAssetFromJSON.clicked.connect(self.btnImportAssetFromJSONClicked)
 
     def update(self):
         self.model.removeRows(0, self.model.rowCount())
@@ -170,6 +178,7 @@ class AssetsPage(QtGui.QWidget):
             self.actionCopyMoniker,
             self.actionCopyColorSet,
             self.actionCopyUnit,
+            self.actionCopyAsJSON,
             self.actionShowAddresses,
         ]
         menu = QtGui.QMenu()
@@ -178,11 +187,16 @@ class AssetsPage(QtGui.QWidget):
         result = menu.exec_(event.globalPos())
         if result is None or result not in actions:
             return
-        if 0 <= actions.index(result) <= 2:
+        if actions.index(result) in [0, 1, 2]:
             index = selected[actions.index(result)]
             QtGui.QApplication.clipboard().setText(
                 self.proxyModel.data(index).toString())
         elif actions.index(result) == 3:
+            moniker = str(self.proxyModel.data(selected[0]).toString())
+            asset = wallet.get_asset_definition(moniker)
+            QtGui.QApplication.clipboard().setText(
+                json.dumps(asset.get_data()))
+        elif actions.index(result) == 4:
             window = self.parentWidget().parentWidget().parentWidget()
             window.gotoReceivePage()
             window.receivepage.setMonikerFilter(
@@ -196,14 +210,6 @@ class AssetsPage(QtGui.QWidget):
                 self.tableView.selectRow(row)
                 break
 
-    def btnAddExistingAssetClicked(self):
-        dialog = AddAssetDialog(self)
-        if dialog.exec_():
-            data = dialog.get_data()
-            wallet.add_asset(data)
-            self.update()
-            self.selectRowByMoniker(data['moniker'])
-
     def btnAddNewAssetClicked(self):
         dialog = IssueCoinsDialog(self)
         if dialog.exec_():
@@ -211,3 +217,25 @@ class AssetsPage(QtGui.QWidget):
             wallet.issue(data)
             self.update()
             self.selectRowByMoniker(data['moniker'])
+
+    def btnAddExistingAssetClicked(self, data=None):
+        dialog = AddAssetDialog(self, data)
+        if dialog.exec_():
+            data = dialog.get_data()
+            wallet.add_asset(data)
+            self.update()
+            self.selectRowByMoniker(data['moniker'])
+
+    def btnImportAssetFromJSONClicked(self):
+        text, ok = QtGui.QInputDialog.getText(self, "Import asset from JSON", "JSON: ")
+        if ok:
+            try:
+                data = json.loads(str(text))
+                self.btnAddExistingAssetClicked({
+                    'moniker': str(data['monikers'][0]),
+                    'color_desc': str(data['color_set'][0]),
+                    'unit': str(data['unit']),
+                })
+            except Exception, e:
+                QtGui.QMessageBox.critical(self,
+                    '', str(e), QtGui.QMessageBox.Ok)

@@ -193,9 +193,7 @@ class TradePage(QtGui.QWidget):
         if delta < 0:
             message = 'The transaction amount exceeds the balance by %s bitcoin' % \
                 bitcoin.format_value(-delta)
-            QtGui.QMessageBox.critical(
-                self, '', message,
-                QtGui.QMessageBox.Ok, QtGui.QMessageBox.Ok)
+            QtGui.QMessageBox.critical(self, '', message, QtGui.QMessageBox.Ok)
             return
         offer = wallet.p2ptrade_make_offer(False, {
             'moniker': moniker,
@@ -270,9 +268,7 @@ bitcoin (Total: <b>{total}</b> bitcoin)".format(**{
         if delta < 0:
             message = 'The transaction amount exceeds the balance by %s %s' % \
                 (asset.format_value(-delta), moniker)
-            QtGui.QMessageBox.critical(
-                self, '', message,
-                QtGui.QMessageBox.Ok, QtGui.QMessageBox.Ok)
+            QtGui.QMessageBox.critical(self, '', message, QtGui.QMessageBox.Ok)
             return
         offer = wallet.p2ptrade_make_offer(True, {
             'moniker': moniker,

@@ -59,19 +59,6 @@
    <addaction name="actionGotoReceive"/>
    <addaction name="actionP2PTrade"/>
   </widget>
-  <action name="actionExit">
-   <property name="icon">
-    <iconset>
-     <normalon>../icons/quit.png</normalon>
-    </iconset>
-   </property>
-   <property name="text">
-    <string>&amp;Exit</string>
-   </property>
-   <property name="menuRole">
-    <enum>QAction::QuitRole</enum>
-   </property>
-  </action>
   <action name="actionGotoOverview">
    <property name="checkable">
     <bool>true</bool>
@@ -103,6 +90,17 @@
    </property>
    <property name="toolTip">
     <string>Change to Send coins page</string>
+   </property>
+  </action>
+  <action name="actionGotoAssets">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Assets</string>
+   </property>
+   <property name="toolTip">
+    <string>Change to Assets page</string>
    </property>
   </action>
   <action name="actionGotoReceive">
@@ -139,15 +137,17 @@
     <string>update data</string>
    </property>
   </action>
-  <action name="actionGotoAssets">
-   <property name="checkable">
-    <bool>true</bool>
+  <action name="actionExit">
+   <property name="icon">
+    <iconset>
+     <normalon>../icons/quit.png</normalon>
+    </iconset>
    </property>
    <property name="text">
-    <string>Assets</string>
+    <string>&amp;Exit</string>
    </property>
-   <property name="toolTip">
-    <string>Change to Assets page</string>
+   <property name="menuRole">
+    <enum>QAction::QuitRole</enum>
    </property>
   </action>
  </widget>

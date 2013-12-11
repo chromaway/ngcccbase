@@ -44,6 +44,17 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
+      <widget class="QPushButton" name="btnAddNewAsset">
+       <property name="text">
+        <string>Issue new asset</string>
+       </property>
+       <property name="icon">
+        <iconset>
+         <normaloff>../icons/add.png</normaloff>../icons/add.png</iconset>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QPushButton" name="btnAddExistingAsset">
        <property name="text">
         <string>Add existing asset</string>
@@ -55,9 +66,9 @@
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="btnAddNewAsset">
+      <widget class="QPushButton" name="btnImportAssetFromJSON">
        <property name="text">
-        <string>Issue new asset</string>
+        <string>Import asset from JSON</string>
        </property>
        <property name="icon">
         <iconset>
@@ -103,6 +114,14 @@
    </property>
    <property name="toolTip">
     <string>Copy Unit</string>
+   </property>
+  </action>
+  <action name="actionCopyAsJSON">
+   <property name="text">
+    <string>Copy As &amp;JSON</string>
+   </property>
+   <property name="toolTip">
+    <string>Copy As JSON</string>
    </property>
   </action>
   <action name="actionShowAddresses">
