@@ -10,8 +10,8 @@ import argparse
 import os
 import json
 
-from wallet_controller import WalletController
-from pwallet import PersistentWallet
+from ngcccbase.wallet_controller import WalletController
+from ngcccbase.pwallet import PersistentWallet
 
 
 class _ApplicationHelpFormatter(argparse.HelpFormatter):
