@@ -2,6 +2,7 @@ import Queue
 import time
 from protocol_objects import MyEOffer, EOffer, MyEProposal, ForeignEProposal
 
+
 def LOGINFO(msg, *params):
     print msg % params
 

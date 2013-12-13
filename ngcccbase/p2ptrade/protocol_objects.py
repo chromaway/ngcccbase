@@ -1,6 +1,6 @@
 import time
 import binascii
-from txcons import RawTxSpec
+from ngcccbase.txcons import RawTxSpec
 
 def make_random_id():
     import os

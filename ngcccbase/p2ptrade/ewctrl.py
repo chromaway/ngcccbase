@@ -1,8 +1,8 @@
 from coloredcoinlib import txspec
 from collections import defaultdict
-from wallet_model import ColorSet
+from ngcccbase.wallet_model import ColorSet
 from protocol_objects import ETxSpec
-from utxodb import UTXO
+from ngcccbase.utxodb import UTXO
 
 
 FEE = 15000
