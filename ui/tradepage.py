@@ -31,7 +31,7 @@ class TradePage(QtGui.QWidget):
         wallet.p2ptrade_init()
 
         self.timer = QtCore.QTimer()
-        self.timer.timeout.connect(self.update_offers)
+        self.timer.timeout.connect(self.update_agent)
         self.timer.start(2500)
 
         self.modelBuy = OffersTableModel(self)
@@ -82,6 +82,12 @@ class TradePage(QtGui.QWidget):
         self.btnSell.clicked.connect(self.btnSellClicked)
         self.tvSell.doubleClicked.connect(self.tvSellDoubleClicked)
 
+        self.need_update_offers = False
+        def set_need_update_offers(data):
+            self.need_update_offers = True
+        wallet.p2p_agent.set_event_handler('offers_updated', 
+                                           set_need_update_offers)
+
     def update(self):
         monikers = wallet.get_all_monikers()
         monikers.remove('bitcoin')
@@ -92,15 +98,23 @@ class TradePage(QtGui.QWidget):
         if currentMoniker and currentMoniker in monikers:
             comboList.setCurrentIndex(monikers.index(currentMoniker))
 
+    def update_agent(self):
+        moniker = str(self.cbMoniker.currentText())
+        if moniker == '':
+            return
+        wallet.p2p_agent.update()
+        if self.need_update_offers:
+            self.update_offers()
+
+
     def update_offers(self):
+        self.need_update_offers = False
         moniker = str(self.cbMoniker.currentText())
         if moniker == '':
             return
         bitcoin = wallet.get_asset_definition('bitcoin')
         asset = wallet.get_asset_definition(moniker)
         color_desc = asset.get_color_set().color_desc_list[0]
-
-        wallet.p2p_agent.update()
 
         selected_oids = [None, None]
         viewsList = [

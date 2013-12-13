@@ -28,7 +28,16 @@ class EAgent(object):
         self.comm = comm
         self.offers_updated = False
         self.config = config
+        self.event_handlers = {}
         comm.add_agent(self)
+
+    def set_event_handler(self, event_type, handler):
+        self.event_handlers[event_type] = handler
+
+    def fire_event(self, event_type, data):
+        eh = self.event_handlers.get(event_type)
+        if eh:
+            eh(data)
 
     def set_active_ep(self, ep):
         if ep is None:
@@ -58,6 +67,7 @@ class EAgent(object):
         for their_offer in self.their_offers.values():
             if their_offer.expired(-self.config.get('offer_grace_interval', 0)):
                 del self.their_offers[their_offer.oid]
+                self.fire_event('offers_updated', None)
 
     def _update_state(self):
         if not self.has_active_ep() and self.offers_updated:
@@ -70,6 +80,7 @@ class EAgent(object):
         assert isinstance(offer, MyEOffer)
         self.my_offers[offer.oid] = offer
         self.offers_updated = True
+        self.fire_event('offers_updated', offer)
 
     def cancel_my_offer(self, offer):
         if self.active_ep and (self.active_ep.offer.oid == offer.oid
@@ -77,12 +88,14 @@ class EAgent(object):
             self.set_active_ep(None)
         if offer.oid in self.my_offers:
             del self.my_offers[offer.oid]
+        self.fire_event('offers_updated', offer)
 
     def register_their_offer(self, offer):
         LOGINFO("register oid %s ", offer.oid)
         self.their_offers[offer.oid] = offer
         offer.refresh(self.config['offer_expiry_interval'])
         self.offers_updated = True
+        self.fire_event('offers_updated', offer)
 
     def match_offers(self):
         if self.has_active_ep():
@@ -107,6 +120,7 @@ class EAgent(object):
         ep = MyEProposal(self.ewctrl, orig_offer, my_offer)
         self.set_active_ep(ep)
         self.post_message(ep)
+        self.fire_event('make_ep', ep)
 
     def dispatch_exchange_proposal(self, ep_data):
         ep = ForeignEProposal(self.ewctrl, ep_data)
@@ -134,8 +148,10 @@ class EAgent(object):
         reply_ep = ep.accept(my_offer)
         self.set_active_ep(reply_ep)
         self.post_message(reply_ep)
+        self.fire_event('accept_ep', ep)
 
     def clear_orders(self, ep):
+        self.fire_event('trade_complete', ep)
         try:
             if isinstance(ep, MyEProposal):
                 if ep.my_offer:
@@ -145,6 +161,7 @@ class EAgent(object):
                 del self.my_offers[ep.offer.oid]
         except Exception as e:
             LOGERROR("there was an exception when clearing offers: %s", e)
+        self.fire_event('offers_updated', None)
 
     def update_exchange_proposal(self, ep):
         LOGDEBUG("updateExchangeProposal")
