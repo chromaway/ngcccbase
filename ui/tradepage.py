@@ -67,8 +67,10 @@ class TradePage(QtGui.QWidget):
         self.cbMoniker.currentIndexChanged.connect(self.cbMonikerIndexChanged)
 
         for wname in ['edtBuyQuantity', 'edtBuyPrice', 'edtSellQuantity', 'edtSellPrice']:
-            getattr(self, wname).focusInEvent = \
-                lambda e, name=wname: getattr(self, name).setStyleSheet('')
+            def clearBackground(event, wname=wname):
+                getattr(self, wname).setStyleSheet('')
+                QtGui.QLineEdit.focusInEvent(getattr(self, wname), event)
+            getattr(self, wname).focusInEvent = clearBackground
 
         self.edtBuyQuantity.textChanged.connect(self.lblBuyTotalChange)
         self.edtBuyPrice.textChanged.connect(self.lblBuyTotalChange)
@@ -191,9 +193,7 @@ class TradePage(QtGui.QWidget):
         if delta < 0:
             message = 'The transaction amount exceeds the balance by %s bitcoin' % \
                 bitcoin.format_value(-delta)
-            QtGui.QMessageBox.critical(
-                self, '', message,
-                QtGui.QMessageBox.Ok, QtGui.QMessageBox.Ok)
+            QtGui.QMessageBox.critical(self, '', message, QtGui.QMessageBox.Ok)
             return
         offer = wallet.p2ptrade_make_offer(False, {
             'moniker': moniker,
@@ -268,9 +268,7 @@ bitcoin (Total: <b>{total}</b> bitcoin)".format(**{
         if delta < 0:
             message = 'The transaction amount exceeds the balance by %s %s' % \
                 (asset.format_value(-delta), moniker)
-            QtGui.QMessageBox.critical(
-                self, '', message,
-                QtGui.QMessageBox.Ok, QtGui.QMessageBox.Ok)
+            QtGui.QMessageBox.critical(self, '', message, QtGui.QMessageBox.Ok)
             return
         offer = wallet.p2ptrade_make_offer(True, {
             'moniker': moniker,

@@ -79,10 +79,18 @@ class ReceivePage(QtGui.QWidget):
         if not selected:
             return
 
-        actions = [
-            self.actionCopyAddress,
-            self.actionCopyColor,
-        ]
+        if str(self.proxyModel.data(selected[0]).toString()) == 'bitcoin':
+            actions = [
+                self.actionCopyAddress,
+                self.actionCopyColor,
+            ]
+        else:
+            actions = [
+                self.actionCopyAddress,
+                self.actionCopyBitcoinAddress,
+                self.actionCopyColor,
+            ]
+
         menu = QtGui.QMenu()
         for action in actions:
             menu.addAction(action)
@@ -91,11 +99,13 @@ class ReceivePage(QtGui.QWidget):
             return
 
         if result == self.actionCopyAddress:
-            index = selected[1]
+            text = self.proxyModel.data(selected[1]).toString()
+        if result == self.actionCopyBitcoinAddress:
+            text = self.proxyModel.data(selected[1]).toString().split('@')[1]
         elif result == self.actionCopyColor:
-            index = selected[0]
-        QtGui.QApplication.clipboard().setText(
-            self.proxyModel.data(index).toString())
+            text = self.proxyModel.data(selected[0]).toString()
+
+        QtGui.QApplication.clipboard().setText(text)
 
     def setMonikerFilter(self, moniker):
         index = self.cbMoniker.findText(moniker)
@@ -115,7 +125,7 @@ class ReceivePage(QtGui.QWidget):
         if dialog.exec_():
             moniker = dialog.get_data()['moniker']
             addr = wallet.get_new_address(moniker)
-            self.update()
+            self.parent().parent().parent().update()
             for row in xrange(self.proxyModel.rowCount()):
                 index = self.proxyModel.index(row, 1)
                 if str(self.proxyModel.data(index).toString()) == addr:

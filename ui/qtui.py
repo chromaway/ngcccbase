@@ -6,7 +6,7 @@ import signal
 
 from overviewpage import OverviewPage
 from sendcoinspage import SendcoinsPage
-from assetpage import AssetPage
+from assetspage import AssetsPage
 from receivepage import ReceivePage
 from tradepage import TradePage
 
@@ -41,8 +41,8 @@ class MainWindow(QtGui.QMainWindow):
         self.stackedWidget.addWidget(self.overviewpage)
         self.sendcoinspage = SendcoinsPage(self)
         self.stackedWidget.addWidget(self.sendcoinspage)
-        self.assetpage = AssetPage(self)
-        self.stackedWidget.addWidget(self.assetpage)
+        self.assetspage = AssetsPage(self)
+        self.stackedWidget.addWidget(self.assetspage)
         self.receivepage = ReceivePage(self)
         self.stackedWidget.addWidget(self.receivepage)
         self.tradepage = TradePage(self)
@@ -53,7 +53,7 @@ class MainWindow(QtGui.QMainWindow):
         self.gotoOverviewPage()
 
     def bindActions(self):
-        self.actionRescan.triggered.connect(self.rescanAction)
+        self.actionRescan.triggered.connect(self.update)
         self.actionExit.triggered.connect(
             lambda: QtCore.QCoreApplication.instance().exit(0))
 
@@ -65,8 +65,8 @@ class MainWindow(QtGui.QMainWindow):
         self.toolbarActionGroup.addAction(self.actionGotoSendcoins)
         self.actionGotoSendcoins.triggered.connect(self.gotoSendcoinsPage)
 
-        self.toolbarActionGroup.addAction(self.actionGotoAsset)
-        self.actionGotoAsset.triggered.connect(self.gotoAssetPage)
+        self.toolbarActionGroup.addAction(self.actionGotoAssets)
+        self.actionGotoAssets.triggered.connect(self.gotoAssetsPage)
 
         self.toolbarActionGroup.addAction(self.actionGotoReceive)
         self.actionGotoReceive.triggered.connect(self.gotoReceivePage)
@@ -74,7 +74,7 @@ class MainWindow(QtGui.QMainWindow):
         self.toolbarActionGroup.addAction(self.actionP2PTrade)
         self.actionP2PTrade.triggered.connect(self.gotoP2PTradePage)
 
-    def rescanAction(self):
+    def update(self):
         wallet.scan()
         self.currentPage.update()
 
@@ -91,9 +91,9 @@ class MainWindow(QtGui.QMainWindow):
         self.actionGotoSendcoins.setChecked(True)
         self.setPage(self.sendcoinspage)
 
-    def gotoAssetPage(self):
-        self.actionGotoAsset.setChecked(True)
-        self.setPage(self.assetpage)
+    def gotoAssetsPage(self):
+        self.actionGotoAssets.setChecked(True)
+        self.setPage(self.assetspage)
 
     def gotoReceivePage(self):
         self.actionGotoReceive.setChecked(True)

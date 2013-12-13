@@ -1,3 +1,4 @@
+import json
 from PyQt4 import QtCore, QtGui, uic
 
 from wallet import wallet
@@ -5,13 +6,21 @@ from tablemodel import TableModel, ProxyModel
 
 
 class AddAssetDialog(QtGui.QDialog):
-    def __init__(self, parent):
+    def __init__(self, parent, data=None):
         QtGui.QDialog.__init__(self, parent)
         uic.loadUi(uic.getUiPath('addassetdialog.ui'), self)
 
         for wname in ['edtMoniker', 'edtColorDesc', 'edtUnit']:
-            getattr(self, wname).focusInEvent = \
-                lambda e, name=wname: getattr(self, name).setStyleSheet('')
+            def clearBackground(event, wname=wname):
+                getattr(self, wname).setStyleSheet('')
+                QtGui.QLineEdit.focusInEvent(getattr(self, wname), event)
+            getattr(self, wname).focusInEvent = clearBackground
+
+        data = data or {}
+        self.edtMoniker.setText(data.get('moniker', ''))
+        self.edtColorDesc.setText(data.get('color_desc', ''))
+        self.edtUnit.setText(data.get('unit', ''))
+        self.btnBox.setFocus()
 
     def isValid(self):
         moniker = self.edtMoniker.text()
@@ -55,8 +64,10 @@ class IssueCoinsDialog(QtGui.QDialog):
         self.cbScheme.addItem('obc')
 
         for wname in ['edtMoniker', 'edtUnits', 'edtAtoms']:
-            getattr(self, wname).focusInEvent = \
-                lambda e, name=wname: getattr(self, name).setStyleSheet('')
+            def clearBackground(event, wname=wname):
+                getattr(self, wname).setStyleSheet('')
+                QtGui.QLineEdit.focusInEvent(getattr(self, wname), event)
+            getattr(self, wname).focusInEvent = clearBackground
 
         self.edtUnits.textChanged.connect(self.changeTotalBTC)
         self.edtAtoms.textChanged.connect(self.changeTotalBTC)
@@ -128,10 +139,10 @@ class AssetProxyModel(ProxyModel):
     pass
 
 
-class AssetPage(QtGui.QWidget):
+class AssetsPage(QtGui.QWidget):
     def __init__(self, parent):
         QtGui.QWidget.__init__(self, parent)
-        uic.loadUi(uic.getUiPath('assetpage.ui'), self)
+        uic.loadUi(uic.getUiPath('assetspage.ui'), self)
 
         self.model = AssetTableModel(self)
         self.proxyModel = AssetProxyModel(self)
@@ -149,8 +160,9 @@ class AssetPage(QtGui.QWidget):
         self.tableView.horizontalHeader().setResizeMode(
             2, QtGui.QHeaderView.ResizeToContents)
 
-        self.btnAddExistingAsset.clicked.connect(self.btnAddExistingAssetClicked)
         self.btnAddNewAsset.clicked.connect(self.btnAddNewAssetClicked)
+        self.btnAddExistingAsset.clicked.connect(self.btnAddExistingAssetClicked)
+        self.btnImportAssetFromJSON.clicked.connect(self.btnImportAssetFromJSONClicked)
 
     def update(self):
         self.model.removeRows(0, self.model.rowCount())
@@ -166,6 +178,7 @@ class AssetPage(QtGui.QWidget):
             self.actionCopyMoniker,
             self.actionCopyColorSet,
             self.actionCopyUnit,
+            self.actionCopyAsJSON,
             self.actionShowAddresses,
         ]
         menu = QtGui.QMenu()
@@ -174,11 +187,16 @@ class AssetPage(QtGui.QWidget):
         result = menu.exec_(event.globalPos())
         if result is None or result not in actions:
             return
-        if 0 <= actions.index(result) <= 2:
+        if actions.index(result) in [0, 1, 2]:
             index = selected[actions.index(result)]
             QtGui.QApplication.clipboard().setText(
                 self.proxyModel.data(index).toString())
         elif actions.index(result) == 3:
+            moniker = str(self.proxyModel.data(selected[0]).toString())
+            asset = wallet.get_asset_definition(moniker)
+            QtGui.QApplication.clipboard().setText(
+                json.dumps(asset.get_data()))
+        elif actions.index(result) == 4:
             window = self.parentWidget().parentWidget().parentWidget()
             window.gotoReceivePage()
             window.receivepage.setMonikerFilter(
@@ -192,14 +210,6 @@ class AssetPage(QtGui.QWidget):
                 self.tableView.selectRow(row)
                 break
 
-    def btnAddExistingAssetClicked(self):
-        dialog = AddAssetDialog(self)
-        if dialog.exec_():
-            data = dialog.get_data()
-            wallet.add_asset(data)
-            self.update()
-            self.selectRowByMoniker(data['moniker'])
-
     def btnAddNewAssetClicked(self):
         dialog = IssueCoinsDialog(self)
         if dialog.exec_():
@@ -207,3 +217,27 @@ class AssetPage(QtGui.QWidget):
             wallet.issue(data)
             self.update()
             self.selectRowByMoniker(data['moniker'])
+            self.parent().parent().parent().update()
+
+    def btnAddExistingAssetClicked(self, data=None):
+        dialog = AddAssetDialog(self, data)
+        if dialog.exec_():
+            data = dialog.get_data()
+            wallet.add_asset(data)
+            self.update()
+            self.selectRowByMoniker(data['moniker'])
+            self.parent().parent().parent().update()
+
+    def btnImportAssetFromJSONClicked(self):
+        text, ok = QtGui.QInputDialog.getText(self, "Import asset from JSON", "JSON: ")
+        if ok:
+            try:
+                data = json.loads(str(text))
+                self.btnAddExistingAssetClicked({
+                    'moniker': str(data['monikers'][0]),
+                    'color_desc': str(data['color_set'][0]),
+                    'unit': str(data['unit']),
+                })
+            except Exception, e:
+                QtGui.QMessageBox.critical(self,
+                    '', str(e), QtGui.QMessageBox.Ok)

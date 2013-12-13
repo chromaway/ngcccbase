@@ -11,8 +11,13 @@ class SendcoinsEntry(QtGui.QFrame):
         uic.loadUi(uic.getUiPath('sendcoinsentry.ui'), self)
         self.page = page
 
-        self.edtAddress.focusInEvent = lambda *args: self.edtAddress.setStyleSheet('')
-        self.edtAmount.focusInEvent = lambda *args: self.edtAmount.setStyleSheet('')
+        for wname in ['edtAddress', 'edtAmount']:
+            def clearBackground(event, wname=wname):
+                widget = getattr(self, wname)
+                widget.setStyleSheet('')
+                widget.__class__.focusInEvent(widget, event)
+            getattr(self, wname).focusInEvent = clearBackground
+
         self.cbMoniker.activated.connect(self.updateAvailableBalance)
         self.btnPaste.clicked.connect(self.btnPasteClicked)
         self.btnDelete.clicked.connect(self.btnDeleteClicked)
@@ -145,3 +150,4 @@ class SendcoinsPage(QtGui.QWidget):
                     QtGui.QMessageBox.Ok)
                 return
         wallet.send_coins(data)
+        self.parent().parent().parent().update()

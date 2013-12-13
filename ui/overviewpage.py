@@ -67,5 +67,4 @@ class OverviewPage(QtGui.QWidget):
         self.scrollAreaLayout.setStretch(self.scrollAreaLayout.count()-1, 1)
 
     def updateButtonClicked(self):
-        wallet.scan()
-        self.update()
+        self.parent().parent().parent().update()
