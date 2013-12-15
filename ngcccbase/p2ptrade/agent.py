@@ -57,8 +57,7 @@ class EAgent(object):
             if my_offer.auto_post:
                 if not my_offer.expired():
                     continue
-                #  TODO: condition is incorrect
-                if self.active_ep and self.active_ep.offer.oid == my_offer.oid:
+                if self.active_ep and self.active_ep.my_offer.oid == my_offer.oid:
                     continue
                 my_offer.refresh(self.config['offer_expiry_interval'])
                 self.post_message(my_offer)
