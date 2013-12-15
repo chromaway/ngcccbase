@@ -73,15 +73,19 @@ Instructions
  * Install ngcccbase for development ex. `&& python setup.py develop`
 
 If you want to play with the QT client there are two more steps:
- * Install PyQt4 and SIP ex. `sudo apt-get install python-qt4 python-sip` (or use whatever package manager for your linux distro). This is only if you want to play with the QT client.
-* Copy PyQT4 and sip to your virtualenv.
-  On ubuntu/debian:
 
-    cp /usr/lib/python2.7/dist-packages/PyQt4 $YOUR_PROJECT_DIRECTORY/env/ngcccbase/lib/python2.7/site-packages
-    cp /usr/lib/python2.7/dist-packages/sip* $YOUR_PROJECT_DIRECTORY/env/ngcccbase/lib/python2.7/site-packages
-    mkdir $YOUR_PROJECT_DIRECTORY/env/ngcccbase/share
-    mkdir $YOUR_PROJECT_DIRECTORY/env/ngcccbase/share/pyshared
-    cp -r /usr/share/pyshared/PyQt4 $YOUR_PROJECT_DIRECTORY/env/ngcccbase/share/pyshared
+ * Install PyQt4 and SIP ex. `sudo apt-get install python-qt4 python-sip` (or use whatever package manager for your linux distro).
+ * Copy PyQT4 and sip to your virtualenv. On ubuntu/debian:
+
+    `cp /usr/lib/python2.7/dist-packages/PyQt4 $YOUR_PROJECT_DIRECTORY/env/ngcccbase/lib/python2.7/site-packages`
+
+    `cp /usr/lib/python2.7/dist-packages/sip* $YOUR_PROJECT_DIRECTORY/env/ngcccbase/lib/python2.7/site-packages`
+
+    `mkdir $YOUR_PROJECT_DIRECTORY/env/ngcccbase/share`
+
+    `mkdir $YOUR_PROJECT_DIRECTORY/env/ngcccbase/share/pyshared`
+
+    `cp -r /usr/share/pyshared/PyQt4 $YOUR_PROJECT_DIRECTORY/env/ngcccbase/share/pyshared`
 
 
 Testnet Example
