@@ -1,6 +1,7 @@
 from ..ewctrl import EWalletController
 from ..protocol_objects import MyEOffer, EOffer
 from ..agent import EAgent
+from ..comm import CommBase
 
 import unittest
 
@@ -27,7 +28,7 @@ class MockCoinQuery(object):
 
     def __init__(self, params):
         self.color_set = params['color_set']
-    
+
     def get_result(self):
         return [MockUTXO()]
 
@@ -39,7 +40,7 @@ class MockColorMap(object):
             return 'yyy'
         else:
             return ''
-        
+
     def resolve_color_desc(self, color_desc, auto_add=True):
         if color_desc == 'xxx':
             return 1
@@ -56,24 +57,51 @@ class MockModel(object):
     def get_address_manager(self):
         return MockWAM()
 
-class MockComm(object):
+class MockComm(CommBase):
+    def __init__(self):
+        super(MockComm, self).__init__()
+        self.messages_sent = []
+    def poll_and_dispatch(self):
+        pass
     def post_message(self, message):
         print message
+        self.messages_sent.append(message)
+    def get_messages(self):
+        return self.messages_sent
 
 class TestMockP2PTrade(unittest.TestCase):
     def test_basic(self):
         model = MockModel()
-        ewctrl = EWalletController(model)
+        ewctrl = EWalletController(model, None)
         config = {"offer_expiry_interval": 30,
                   "ep_expiry_interval": 30}
-        agent = EAgent(ewctrl, config, MockComm())
-        agent.register_my_offer(
-            MyEOffer(None, 
-                     {"color_spec": "xxx", "value": 100},
-                     {"color_spec": "yyy", "value": 200}))
-        agent.register_their_offer(
-            EOffer('abcdef', 
-                   {"color_spec": "yyy", "value": 200},
-                   {"color_spec": "xxx", "value": 100}))
-        agent.update_state()
-             
+        comm = MockComm()
+        agent = EAgent(ewctrl, config, comm)
+
+        # At this point the agent should not have an active proposal
+        self.assertFalse(agent.has_active_ep())
+        # no messages should have been sent to the network
+        self.assertEqual(len(comm.get_messages()), 0)
+
+        my_offer = MyEOffer(None,
+                            {"color_spec": "xxx", "value": 100},
+                            {"color_spec": "yyy", "value": 200})
+
+        their_offer = EOffer('abcdef',
+                             {"color_spec": "yyy", "value": 200},
+                             {"color_spec": "xxx", "value": 100})
+
+        agent.register_my_offer(my_offer)
+        agent.register_their_offer(their_offer)
+        agent.update()
+
+        # Agent should have an active exchange proposal
+        self.assertTrue(agent.has_active_ep())
+        # Exchange proposal should have been sent over comm
+        # it should be the only message, as we should not resend our offer
+        # if their is an active proposal to match it
+        self.assertTrue(len(comm.get_messages()), 1)
+        [proposal] = comm.get_messages()
+        # The offer data should be in the proposal
+        their_offer_data = their_offer.get_data()
+        self.assertEquals(their_offer_data, proposal["offer"])
