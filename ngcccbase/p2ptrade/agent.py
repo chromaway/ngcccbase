@@ -80,6 +80,7 @@ class EAgent(object):
         self.my_offers[offer.oid] = offer
         self.offers_updated = True
         self.fire_event('offers_updated', offer)
+        self.fire_event('register_my_offer', offer)
 
     def cancel_my_offer(self, offer):
         if self.active_ep and (self.active_ep.offer.oid == offer.oid
@@ -88,6 +89,7 @@ class EAgent(object):
         if offer.oid in self.my_offers:
             del self.my_offers[offer.oid]
         self.fire_event('offers_updated', offer)
+        self.fire_event('cancel_my_offer', offer)
 
     def register_their_offer(self, offer):
         LOGINFO("register oid %s ", offer.oid)
