@@ -428,7 +428,6 @@ class BFTColorDefinition (GenesisColorDefinition):
             color_value = in_colorvalues[inp_index]
             if color_value:
                 nSequence = tx.raw.vin[inp_index].nSequence
-                
                 # nSequence is converted to a set of output indices
                 output_group = list(ones(nSequence))
                 
@@ -454,7 +453,6 @@ class BFTColorDefinition (GenesisColorDefinition):
                 output_groups[nSequence] = prev_value + color_value, text
 
         # At this step we have total colorvalue for each output group.
-        
         # For each output group:
         for nSequence in output_groups:
             output_group = list(ones(nSequence))
@@ -463,11 +461,11 @@ class BFTColorDefinition (GenesisColorDefinition):
             ssvalue = sum(tx.outputs[out_idx].value for out_idx in output_group)
             #find n such that 2^n*ssvalue = total colorvalue (loop over all |n|<32, positive and negative)
             for n in xrange(-31,32):
-                if ssvalue*2**n == in_colorvalue:
+                if ssvalue*2**n == in_colorvalue[0]:
                     # if n exists, each output of this group is assigned colorvalue svalue*2^n, where svalue is its satoshi-value
                     for out_idx in output_group:
                         svalue = tx.outputs[out_idx].value
-                        out_colorvalues[out_idx] = svalue*2**n
+                        out_colorvalues[out_idx] = (svalue*2**n, in_colorvalue[1])
                     break
             else:
                 # if n doesn't exist, we treat is as an exceptional sitation and return a list of None values.
