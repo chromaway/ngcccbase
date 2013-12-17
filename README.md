@@ -87,6 +87,19 @@ If you want to play with the QT client there are two more steps:
 
     `cp -r /usr/share/pyshared/PyQt4 $YOUR_PROJECT_DIRECTORY/env/ngcccbase/share/pyshared`
 
+Mac notes
+---------
+
+Instead of bitcoind you can use Bitcoin-Qt in server mode.
+
+   ` cd /Applications/Bitcoin-Qt.app/Contents/MacOS`
+
+   `./Bitcoin-Qt -server -testnet -txindex`
+
+You need to configure a bitcoin.conf with rpcuser and rpcpassword in
+`~/Library/Application Support/Bitcoin/`
+
+An easy way to install a python, PyQt4 and sip is with homebrew, `brew install python pyqt`
 
 Testnet Example
 ---------------
