@@ -322,12 +322,12 @@ class Application(object):
     def init_p2ptrade(self):
         from ngcccbase.p2ptrade.ewctrl import EWalletController
         from ngcccbase.p2ptrade.agent import EAgent
-        from ngcccbase.p2ptrade.comm import HTTPExchangeComm
+        from ngcccbase.p2ptrade.comm import HTTPComm
 
         ewctrl = EWalletController(self.model, self.controller)
         config = {"offer_expiry_interval": 30,
                   "ep_expiry_interval": 30}
-        comm = HTTPExchangeComm(
+        comm = HTTPComm(
             config, 'http://p2ptrade.btx.udoidio.info/messages')
         agent = EAgent(ewctrl, config, comm)
         return agent
