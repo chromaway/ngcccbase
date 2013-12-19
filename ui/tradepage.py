@@ -88,6 +88,30 @@ class TradePage(QtGui.QWidget):
         wallet.p2p_agent.set_event_handler('offers_updated', 
                                            set_need_update_offers)
 
+        def information_about_offer(offer, action='Create'):
+            A, B = offer.get_data()['A'], offer.get_data()['B']
+            bitcoin = wallet.get_asset_definition('bitcoin')
+            sell_offer = B['color_spec'] == ''
+            asset = wallet.get_asset_definition_by_color_set(
+                (A if sell_offer else B)['color_spec'])
+            value = (A if sell_offer else B)['value']
+            total = (B if sell_offer else A)['value']
+            text = '{action} {type} offer {value} {moniker} for {price} btc. (Total: {total} btc)'.format(**{
+                'action': action,
+                'type': 'sell' if sell_offer else 'buy',
+                'value': asset.format_value(value),
+                'moniker': asset.get_monikers()[0],
+                'price': bitcoin.format_value(total*asset.unit/value),
+                'total': bitcoin.format_value(total),
+            })
+            QtGui.QMessageBox.information(self,
+                '{action} offer'.format(action=action), text, QtGui.QMessageBox.Yes)
+
+        wallet.p2p_agent.set_event_handler('register_my_offer',
+            lambda offer: information_about_offer(offer, 'Create'))
+        wallet.p2p_agent.set_event_handler('cancel_my_offer',
+            lambda offer: information_about_offer(offer, 'Cancel'))
+
     def update(self):
         monikers = wallet.get_all_monikers()
         monikers.remove('bitcoin')
@@ -105,7 +129,6 @@ class TradePage(QtGui.QWidget):
         wallet.p2p_agent.update()
         if self.need_update_offers:
             self.update_offers()
-
 
     def update_offers(self):
         self.need_update_offers = False
