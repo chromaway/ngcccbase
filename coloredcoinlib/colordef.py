@@ -419,21 +419,57 @@ class BFTColorDefinition (GenesisColorDefinition):
                         for i, out in enumerate(tx.outputs)]
             
         # start with all outputs having null colorvalue
+        nones = [None for _ in tx.outputs]
         out_colorvalues = [None for _ in tx.outputs]
+        output_groups = {}
         # go through all inputs
         for inp_index in xrange(len(tx.inputs)):
             # if input has non-null colorvalue, check its nSequence
             color_value = in_colorvalues[inp_index]
             if color_value:
                 nSequence = tx.raw.vin[inp_index].nSequence
-                # if nSequence has exactly one bit set (i-th bit),
-                seq_ones = list(ones(nSequence))
-                if len(seq_ones) == 1:
-                    bit_index = seq_ones[0]
-                    # add colorvalue of this input to colorvalue of i-th output
-                    if bit_index < len(out_colorvalues):
-                        prev_value, text = out_colorvalues[bit_index] or (0, "")
-                        out_colorvalues[bit_index] = prev_value + color_value, text
+                # nSequence is converted to a set of output indices
+                output_group = list(ones(nSequence))
+                
+                # exceptions; If exceptional situation is detected, we return a list of null colorvalues.
+                # nSequence is 0
+                if nSequence == 0:
+                    return nones
+                
+                # nSequence has output indices exceeding number of outputs of this transactions
+                for out_idx in output_group:
+                    if out_idx >= len(tx.inputs):
+                        return nones
+                # there are intersecting 'output groups' (i.e output belongs to more than one group)
+                if not nSequence in output_groups:
+                    for og in output_groups:
+                        if len(set(ones(og)).intersection(output_group)) != 0:
+                            return nones
+                    output_groups[nSequence] = (0, "")
+                
+                        
+                # add colorvalue of this input to colorvalue of output group
+                prev_value, text = output_groups[nSequence]
+                output_groups[nSequence] = prev_value + color_value, text
+
+        # At this step we have total colorvalue for each output group.
+        # For each output group:
+        for nSequence in output_groups:
+            output_group = list(ones(nSequence))
+            in_colorvalue = output_groups[nSequence]
+            # sum satoshi-values of outputs in it (let's call it ssvalue)
+            ssvalue = sum(tx.outputs[out_idx].value for out_idx in output_group)
+            #find n such that 2^n*ssvalue = total colorvalue (loop over all |n|<32, positive and negative)
+            for n in xrange(-31,32):
+                if ssvalue*2**n == in_colorvalue[0]:
+                    # if n exists, each output of this group is assigned colorvalue svalue*2^n, where svalue is its satoshi-value
+                    for out_idx in output_group:
+                        svalue = tx.outputs[out_idx].value
+                        out_colorvalues[out_idx] = (svalue*2**n, in_colorvalue[1])
+                    break
+            else:
+                # if n doesn't exist, we treat is as an exceptional sitation and return a list of None values.
+                return nones
 
         return out_colorvalues
 

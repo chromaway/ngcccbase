@@ -23,8 +23,8 @@ class MockRawTX:
         self.vin = [MicroMock(nSequence=i2seq(i)) for i in inp_seq_indices]
 
 class MockTX:
-    def __init__(self, hash, inputs, outputs, inp_seq_indices=None):
-        self.hash = hash
+    def __init__(self, h, inputs, outputs, inp_seq_indices=None):
+        self.hash = h
         self.inputs = [MockTXElement(satoshis) for satoshis in inputs]
         self.outputs = [MockTXElement(satoshis) for satoshis in outputs]
         self.raw = MockRawTX(inp_seq_indices or [None for _ in inputs])
@@ -33,9 +33,9 @@ class MockTX:
 class ColorDefinitionTester():
     def __init__(self, colordef):
         self.colordef = colordef
-    def test(self, inputs, outputs, in_colorvalue, txhash="not genesis", inp_seq_indices=None):
+    def test(self, inputs, outputs, in_colorvalues, txhash="not genesis", inp_seq_indices=None):
         tx = MockTX(txhash, inputs, outputs, inp_seq_indices)
-        return [i and i[0] for i in self.colordef.run_kernel(tx, in_colorvalue)]
+        return [i and i[0] for i in self.colordef.run_kernel(tx, in_colorvalues)]
 
 
 class TestColordef(unittest.TestCase):
@@ -112,19 +112,11 @@ class TestColordef(unittest.TestCase):
         # non genesis, no bitfield tag, no input color
         self.assertEqual(test([1000], [1000], [None]), [None])
         # non genesis, no bitfield tag, input colorvalue
-        self.assertEqual(test([1000], [1000], [10]), [None])
+        self.assertEqual(test([1000], [1000], [1000]), [None])
         # non genesis, bitfield tag, no input colorvalue
         self.assertEqual(test([1000], [1000], [None], inp_seq_indices=[0]), [None])
         # non genesis, bitfield tag, input colorvalue
-        self.assertEqual(test([1000], [1000], [10], inp_seq_indices=[0]), [10])
-        
-        # more similar simple cases
-        self.assertEqual(test([1000], [500, 500], [10], inp_seq_indices=[0]), [10, None])
-        self.assertEqual(test([1000], [500, 500], [10], inp_seq_indices=[1]), [None, 10])
-        self.assertEqual(test([500, 500], [500, 500], [10, 20], inp_seq_indices=[0,0]), [30, None])
-        self.assertEqual(test([500, 500], [500, 500], [10, 20], inp_seq_indices=[1,1]), [None, 30])
-        self.assertEqual(test([500, 500], [500, 500], [10, 20], inp_seq_indices=[1,0]), [20, 10])
-        self.assertEqual(test([500, 500], [1000], [10, 20], inp_seq_indices=[0,0]), [30])
+        self.assertEqual(test([1000], [1000], [4000], inp_seq_indices=[0]), [4000])
         
         # wrong index in nSequence
         self.assertEqual(test([1000], [1000], [10], inp_seq_indices=[7]), [None])
