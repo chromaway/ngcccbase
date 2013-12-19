@@ -12,12 +12,16 @@ from coloredcoinlib import (blockchain, builder, store, colormap,
                             colordata, colordef, toposort)
 from ngcccbase.services.electrum import EnhancedBlockchainState
 from ngcccbase import txdb
-from address import Address, TestnetAddress, InvalidAddressError
 
-from pycoin.encoding import b2a_base58
+from pycoin.ecdsa import Point
+from pycoin.ecdsa.secp256k1 import generator_secp256k1 as BasePoint
+from pycoin.encoding import (
+    b2a_base58, from_bytes_32, hash160_sec_to_bitcoin_address,
+    public_pair_to_bitcoin_address)
 from pycoin.wallet import Wallet
 from collections import defaultdict
 
+import hmac
 import hashlib
 import json
 import os
@@ -303,7 +307,7 @@ class AddressRecord(object):
     def get_address(self):
         """Get the actual bitcoin address
         """
-        return self.address.pubkey
+        return self.address
 
     def get_color_address(self):
         """This is the address that can be used for sending/receiving
@@ -331,9 +335,16 @@ class DeterministicAddressRecord(AddressRecord):
             color_string = "genesis block"
         else:
             color_string = self.color_set.get_hash_string()
-        cls = TestnetAddress if kwargs.get('testnet') else Address
-        self.address = cls.fromMasterKey(
-            kwargs['master_key'], color_string, kwargs['index'])
+
+        self.testnet = kwargs.get('testnet')
+        h = hmac.new(str(kwargs['master_key']),
+                     "%s|%s" % (color_string, kwargs['index']), hashlib.sha256)
+        string = h.digest()
+        self.rawPrivKey = from_bytes_32(string)
+        self.publicPoint = BasePoint * self.rawPrivKey
+        self.address = public_pair_to_bitcoin_address(self.publicPoint.pair(),
+                                                      compressed=False,
+                                                      is_test=self.testnet)
 
 
 class BIP0032AddressRecord(AddressRecord):
@@ -363,8 +374,12 @@ class BIP0032AddressRecord(AddressRecord):
         pycoin_wallet = pycoin_wallet.subkey(i=kwargs.get('index'),
                                              is_prime=True, as_private=True)
 
-        klass = TestnetAddress if kwargs.get('testnet') else Address
-        self.address = klass.new(pycoin_wallet.secret_exponent_bytes)
+        self.testnet = kwargs.get('testnet')
+        self.rawPrivKey = pycoin_wallet.secret_exponent
+        self.publicPoint = BasePoint * self.rawPrivKey
+        self.address = public_pair_to_bitcoin_address(self.publicPoint.pair(),
+                                                      compressed=False,
+                                                      is_test=self.testnet)
 
 
 class LooseAddressRecord(AddressRecord):
@@ -381,8 +396,13 @@ class LooseAddressRecord(AddressRecord):
         """
         self.model = kwargs.get('model')
         self.color_set = ColorSet(self.model, kwargs.get('color_set'))
-        cls = TestnetAddress if kwargs.get('testnet') else Address
-        self.address = cls.fromObj(kwargs['address_data'])
+        self.testnet = kwargs.get('testnet')
+        self.rawPrivKey = from_bytes_32(
+            a2b_hashed_base58(kwargs['address_data']['privkey']))
+        self.publicPoint = BasePoint * self.rawPrivKey
+        self.address = public_pair_to_bitcoin_address(self.publicPoint.pair(),
+                                                      compressed=False,
+                                                      is_test=self.testnet)
 
 
 class DWalletAddressManager(object):
@@ -451,9 +471,7 @@ class DWalletAddressManager(object):
         Returns the "dwam" part of the configuration.
         """
         if not 'dw_master_key' in self.config:
-            # privkey is in WIF format. not exactly
-            # what we want, but passable, I guess
-            master_key = Address.new().privkey
+            master_key = os.urandom(64).encode('hex')
             self.config['dw_master_key'] = master_key
         dwam_params = {
             'genesis_color_sets': [],
@@ -710,8 +728,6 @@ class ColoredCoinContext(object):
         """
         params = config.get('ccc', {})
         self.testnet = config.get('testnet', False)
-        self.klass = TestnetAddress if self.testnet else Address
-
         self.blockchain_state = blockchain.BlockchainState.from_url(
             None, self.testnet)
 
@@ -746,7 +762,8 @@ class ColoredCoinContext(object):
             cdbuilder, self.blockchain_state, self.cdstore)
 
     def raw_to_address(self, raw_address):
-        return self.klass.rawPubkeyToAddress(raw_address)
+        return hash160_sec_to_bitcoin_address(raw_address,
+                                              is_test=self.testnet)
 
 
 class CoinQueryFactory(object):

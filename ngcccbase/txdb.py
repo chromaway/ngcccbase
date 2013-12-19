@@ -64,7 +64,7 @@ class TxDataStore(DataStore):
                 if isinstance(txin, utxodb.UTXO) and txin.address_rec:
                     self.execute(
                         insert_transaction,
-                        (txin.address_rec.address.pubkey, TXIN, txid))
+                        (txin.address_rec.address, TXIN, txid))
 
             for txout in tx.composed_tx_spec.txouts:
                 if isinstance(txout.target_addr, str):
