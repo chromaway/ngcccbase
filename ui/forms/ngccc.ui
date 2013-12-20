@@ -26,7 +26,7 @@
      <x>0</x>
      <y>0</y>
      <width>850</width>
-     <height>21</height>
+     <height>29</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -44,8 +44,17 @@
    <property name="windowTitle">
     <string>toolBar</string>
    </property>
+   <property name="iconSize">
+    <size>
+     <width>40</width>
+     <height>40</height>
+    </size>
+   </property>
    <property name="toolButtonStyle">
     <enum>Qt::ToolButtonTextBesideIcon</enum>
+   </property>
+   <property name="floatable">
+    <bool>false</bool>
    </property>
    <attribute name="toolBarArea">
     <enum>TopToolBarArea</enum>
@@ -86,7 +95,7 @@
      <normaloff>../icons/send.png</normaloff>../icons/send.png</iconset>
    </property>
    <property name="text">
-    <string>Send coins</string>
+    <string>Send</string>
    </property>
    <property name="toolTip">
     <string>Change to Send coins page</string>
@@ -95,6 +104,10 @@
   <action name="actionGotoAssets">
    <property name="checkable">
     <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>../icons/assets.png</normaloff>../icons/assets.png</iconset>
    </property>
    <property name="text">
     <string>Assets</string>
@@ -121,6 +134,10 @@
   <action name="actionP2PTrade">
    <property name="checkable">
     <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>../icons/trade.png</normaloff>../icons/trade.png</iconset>
    </property>
    <property name="text">
     <string>P2P Trade</string>
