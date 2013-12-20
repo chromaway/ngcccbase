@@ -1,6 +1,5 @@
-from coloredcoinlib import txspec
+from coloredcoinlib import txspec, ColorSet
 from collections import defaultdict
-from ngcccbase.wallet_model import ColorSet
 from protocol_objects import ETxSpec
 from ngcccbase.utxodb import UTXO
 
@@ -17,7 +16,7 @@ class OperationalETxSpec(txspec.OperationalTxSpec):
 
     def get_change_addr(self, color_def):
         color_id = color_def.color_id
-        cs = ColorSet.from_color_ids(self.model, [color_id])
+        cs = ColorSet.from_color_ids(self.model.get_color_map(), [color_id])
         wam = self.model.get_address_manager()
         return wam.get_change_address(cs).get_address()
 
@@ -96,7 +95,7 @@ class EWalletController(object):
         color_id = colormap.resolve_color_desc(color_spec, False)
         if color_id is None:
             raise Exception("color spec not recognized")
-        return ColorSet.from_color_ids(self.model, [color_id])
+        return ColorSet.from_color_ids(self.model.get_color_map(), [color_id])
 
     def select_inputs(self, color_set, t_value):
         cq = self.model.make_coin_query({"color_set": color_set})

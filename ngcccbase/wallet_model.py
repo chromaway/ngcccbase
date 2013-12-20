@@ -8,123 +8,32 @@ definitions, but it doesn't implement high-level operations
 (those are implemented in controller).
 """
 
-from coloredcoinlib import (blockchain, builder, store, colormap,
-                            colordata, colordef, toposort)
-from ngcccbase.services.electrum import EnhancedBlockchainState
-from ngcccbase import txdb
-
-from pycoin.ecdsa import Point
-from pycoin.ecdsa.secp256k1 import generator_secp256k1 as BasePoint
-from pycoin.encoding import (
-    b2a_base58, from_bytes_32, hash160_sec_to_bitcoin_address,
-    public_pair_to_bitcoin_address)
-from pycoin.wallet import Wallet
-from collections import defaultdict
-
 import hmac
 import hashlib
 import json
 import os
-import binascii
 
-import txcons
-import utxodb
+from collections import defaultdict
+from pycoin.ecdsa import Point
+from pycoin.ecdsa.secp256k1 import generator_secp256k1 as BasePoint
+from pycoin.encoding import (b2a_base58, from_bytes_32,
+                             hash160_sec_to_bitcoin_address,
+                             public_pair_to_bitcoin_address)
+from pycoin.wallet import Wallet
 
-
-def deterministic_json_dumps(obj):
-    """TODO: make it even more deterministic!"""
-    return json.dumps(obj, separators=(',', ':'), sort_keys=True)
-
-
-class ColorSet(object):
-    """A set of colors which belong to certain a asset.
-    It can be used to filter addresses and UTXOs
-    """
-    def __init__(self, model, color_desc_list):
-        """Creates a new color set given a wallet model <model>
-        and color descriptions <color_desc_list>
-        """
-        self.color_desc_list = color_desc_list
-        self.color_id_set = set()
-        colormap = model.get_color_map()
-        for color_desc in color_desc_list:
-            color_id = colormap.resolve_color_desc(color_desc)
-            self.color_id_set.add(color_id)
-
-    def __repr__(self):
-        return self.color_desc_list.__repr__()
-
-    def uncolored_only(self):
-        return self.color_id_set == set([0])
-
-    def get_data(self):
-        """Returns a list of strings that describe the colors.
-        e.g. ["obc:f0bd5...a5:0:128649"]
-        """
-        return self.color_desc_list
-
-    def get_hash_string(self):
-        """Returns a deterministic string for this color set.
-        Useful for creating deterministic addresses for a given color.
-        """
-        json = deterministic_json_dumps(sorted(self.color_desc_list))
-        return hashlib.sha256(json).hexdigest()
-
-    def get_earliest(self):
-        """Returns the color description of the earliest color to
-        show in the blockchain. If there's a tie and two are issued
-        in the same block, go with the one that has a smaller txhash
-        """
-        all_descs = self.get_data()
-        if not len(all_descs):
-            return "\x00\x00\x00\x00"
-        best = all_descs[0]
-        best_components = best.split(':')
-        for desc in all_descs[1:]:
-            components = desc.split(':')
-            if int(components[3]) < int(best_components[3]):
-                best = desc
-            elif int(components[3]) < int(best_components[3]):
-                if cmp(components[1], best_components[1]) == -1:
-                    best = desc
-        return best
-
-    def get_color_hash(self):
-        """Returns the hash used in color addresses.
-        """
-        return b2a_base58(self.get_hash_string().decode('hex')[:10])
-
-    def has_color_id(self, color_id):
-        """Returns boolean of whether color <color_id> is associated
-        with this color set.
-        """
-        return (color_id in self.color_id_set)
-
-    def intersects(self, other):
-        """Given another color set <other>, returns whether
-        they share a color in common.
-        """
-        return len(self.color_id_set & other.color_id_set) > 0
-
-    def equals(self, other):
-        """Given another color set <other>, returns whether
-        they are the exact same color set.
-        """
-        return self.color_id_set == other.color_id_set
-
-    @classmethod
-    def from_color_ids(cls, model, color_ids):
-        """Given a wallet model <model> and a list of colors <color_ids>
-        return a ColorSet object.
-        """
-        colormap = model.get_color_map()
-        color_desc_list = [colormap.find_color_desc(color_id)
-                           for color_id in color_ids]
-        return cls(model, color_desc_list)
+from coloredcoinlib import (ColorSet, BlockchainState, ColorDataBuilderManager,
+                            FullScanColorDataBuilder, DataStoreConnection,
+                            ColorDataStore, ColorMetaStore, ColorMap,
+                            ThickColorData, toposorted)
+from ngcccbase.services.electrum import EnhancedBlockchainState
+from ngcccbase import txdb
+from txcons import (BasicTxSpec, SimpleOperationalTxSpec,
+                    TransactionSpecTransformer)
+from utxodb import UTXOQuery, UTXOManager
 
 
 class AssetDefinition(object):
-    """Stores the definition of a particular asset, including its colour sets,
+    """Stores the definition of a particular asset, including its color set,
     it's name (moniker), and the wallet model that represents it.
     """
     def __init__(self, model, params):
@@ -134,7 +43,8 @@ class AssetDefinition(object):
         """
         self.model = model
         self.monikers = params.get('monikers', [])
-        self.color_set = ColorSet(model, params.get('color_set'))
+        self.color_set = ColorSet(model.get_color_map(),
+                                  params.get('color_set'))
         self.unit = int(params.get('unit', 1))
 
     def __repr__(self):
@@ -166,12 +76,12 @@ class AssetDefinition(object):
         """Given a <tx_spec> of type BasicTxSpec, return
         a SimpleOperationalTxSpec.
         """
-        if (not isinstance(tx_spec, txcons.BasicTxSpec)
+        if (not isinstance(tx_spec, BasicTxSpec)
                 or not tx_spec.is_monoasset() or not tx_spec.is_monocolor()):
             raise Exception('tx spec type not supported')
-        op_tx_spec = txcons.SimpleOperationalTxSpec(self.model, self)
+        op_tx_spec = SimpleOperationalTxSpec(self.model, self)
         color_id = list(self.color_set.color_id_set)[0]
-        color_def = self.model.ccc.colormap.get_color_def(color_id)
+        color_def = self.model.get_color_def(color_id)
         for target in tx_spec.targets:
             # TODO: translate colorvalues
             op_tx_spec.add_target(target[0], color_def, target[2])
@@ -302,7 +212,7 @@ class AddressRecord(object):
         Useful for storage and persistence.
         """
         return {"color_set": self.color_set.get_data(),
-                "address_data": self.address.getJSONData()}
+                "address_data": b2a_base58(to_byte_32(self.rawPrivKey))}
 
     def get_address(self):
         """Get the actual bitcoin address
@@ -395,10 +305,11 @@ class LooseAddressRecord(AddressRecord):
         pubKey
         """
         self.model = kwargs.get('model')
-        self.color_set = ColorSet(self.model, kwargs.get('color_set'))
+        self.color_set = ColorSet(self.model.get_color_map(),
+                                  kwargs.get('color_set'))
         self.testnet = kwargs.get('testnet')
         self.rawPrivKey = from_bytes_32(
-            a2b_hashed_base58(kwargs['address_data']['privkey']))
+            a2b_hashed_base58(kwargs['address_data']))
         self.publicPoint = BasePoint * self.rawPrivKey
         self.address = public_pair_to_bitcoin_address(self.publicPoint.pair(),
                                                       compressed=False,
@@ -436,14 +347,15 @@ class DWalletAddressManager(object):
         # import the genesis addresses
         for i, color_desc_list in enumerate(self.genesis_color_sets):
             addr = self.get_genesis_address(i)
-            addr.color_set = ColorSet(self.model, color_desc_list)
+            addr.color_set = ColorSet(self.model.get_color_map(),
+                                      color_desc_list)
             self.addresses.append(addr)
 
         # now import the specific color addresses
         for color_set_st in self.color_set_states:
             color_desc_list = color_set_st['color_set']
             max_index = color_set_st['max_index']
-            color_set = ColorSet(self.model, color_desc_list)
+            color_set = ColorSet(self.model.get_color_map(), color_desc_list)
             params = {
                 'testnet': self.testnet,
                 'master_key': self.master_key,
@@ -488,7 +400,8 @@ class DWalletAddressManager(object):
         for color_set_st in self.color_set_states:
             color_desc_list = color_set_st['color_set']
             max_index = color_set_st['max_index']
-            cur_color_set = ColorSet(self.model, color_desc_list)
+            cur_color_set = ColorSet(self.model.get_color_map(),
+                                     color_desc_list)
             if cur_color_set.equals(color_set):
                 max_index += 1
                 color_set_st['max_index'] = max_index
@@ -521,10 +434,10 @@ class DWalletAddressManager(object):
         index. In general, that index corresponds to the nth
         color created by this wallet.
         """
-        return DeterministicAddressRecord(master_key=self.master_key,
-                                          color_set=ColorSet(self.model, []),
-                                          index=genesis_index,
-                                          testnet=self.testnet)
+        return DeterministicAddressRecord(
+            master_key=self.master_key,
+            color_set=ColorSet(self.model.get_color_map(), []),
+            index=genesis_index, testnet=self.testnet)
 
     def get_new_genesis_address(self):
         """Create a new genesis address and return it.
@@ -633,14 +546,15 @@ class HDWalletAddressManager(DWalletAddressManager):
         # import the genesis addresses
         for i, color_desc_list in enumerate(self.genesis_color_sets):
             addr = self.get_genesis_address(i)
-            addr.color_set = ColorSet(self.model, color_desc_list)
+            addr.color_set = ColorSet(self.model.get_color_map(),
+                                      color_desc_list)
             self.addresses.append(addr)
 
         # now import the specific color addresses
         for color_set_st in self.color_set_states:
             color_desc_list = color_set_st['color_set']
             max_index = color_set_st['max_index']
-            color_set = ColorSet(self.model, color_desc_list)
+            color_set = ColorSet(self.model.get_color_map(), color_desc_list)
             params = {
                 'testnet': self.testnet,
                 'pycoin_wallet': self.pycoin_wallet,
@@ -699,9 +613,10 @@ class HDWalletAddressManager(DWalletAddressManager):
         index. In general, that index corresponds to the nth
         color created by this wallet.
         """
-        return BIP0032AddressRecord(pycoin_wallet=self.pycoin_wallet,
-                                    color_set=ColorSet(self.model, []),
-                                    index=genesis_index, testnet=self.testnet)
+        return BIP0032AddressRecord(
+            pycoin_wallet=self.pycoin_wallet,
+            color_set=ColorSet(self.model.get_color_map(), []),
+            index=genesis_index, testnet=self.testnet)
 
     def update_config(self):
         """Updates the configuration for the address manager.
@@ -728,7 +643,7 @@ class ColoredCoinContext(object):
         """
         params = config.get('ccc', {})
         self.testnet = config.get('testnet', False)
-        self.blockchain_state = blockchain.BlockchainState.from_url(
+        self.blockchain_state = BlockchainState.from_url(
             None, self.testnet)
 
         if not self.testnet:
@@ -747,18 +662,18 @@ class ColoredCoinContext(object):
                 self.blockchain_state = EnhancedBlockchainState(
                     "electrum.cafebitcoin.com", 50001)
 
-        self.store_conn = store.DataStoreConnection(
+        self.store_conn = DataStoreConnection(
             params.get("colordb_path", "color.db"))
-        self.cdstore = store.ColorDataStore(self.store_conn.conn)
-        self.metastore = store.ColorMetaStore(self.store_conn.conn)
+        self.cdstore = ColorDataStore(self.store_conn.conn)
+        self.metastore = ColorMetaStore(self.store_conn.conn)
 
-        self.colormap = colormap.ColorMap(self.metastore)
+        self.colormap = ColorMap(self.metastore)
 
-        cdbuilder = builder.ColorDataBuilderManager(
+        cdbuilder = ColorDataBuilderManager(
             self.colormap, self.blockchain_state, self.cdstore,
-            self.metastore, builder.FullScanColorDataBuilder)
+            self.metastore, FullScanColorDataBuilder)
 
-        self.colordata = colordata.ThickColorData(
+        self.colordata = ThickColorData(
             cdbuilder, self.blockchain_state, self.cdstore)
 
     def raw_to_address(self, raw_address):
@@ -783,12 +698,12 @@ class CoinQueryFactory(object):
         if not color_set:
             if 'color_id_set' in query:
                 color_set = ColorSet.from_color_ids(
-                    self.model, query['color_id_set'])
+                    self.model.get_color_map(), query['color_id_set'])
             elif 'asset' in query:
                 color_set = query['asset'].get_color_set()
             else:
                 raise Exception('color set is not specified')
-        return utxodb.UTXOQuery(self.model, color_set)
+        return UTXOQuery(self.model, color_set)
 
 
 class WalletModel(object):
@@ -806,11 +721,10 @@ class WalletModel(object):
             self.address_man = DWalletAddressManager(self, config)
 
         self.coin_query_factory = CoinQueryFactory(self, config)
-        self.utxo_man = utxodb.UTXOManager(self, config)
+        self.utxo_man = UTXOManager(self, config)
         self.txdb = txdb.TxDb(self, config)
         self.testnet = config.get('testnet', False)
-        self.tx_spec_transformer = txcons.TransactionSpecTransformer(
-            self, config)
+        self.tx_spec_transformer = TransactionSpecTransformer(self, config)
 
     def get_tx_db(self):
         """Access method for transaction data store.
@@ -857,7 +771,7 @@ class WalletModel(object):
                 asset.get_color_set())}
 
         for color in asset.color_set.color_id_set:
-            colordef = self.ccc.colormap.get_color_def(color)
+            colordef = self.get_color_def(color)
             color_transactions = self.ccc.cdstore.get_all(color)
             transaction_lookup = {}
             color_record = defaultdict(list)
@@ -946,7 +860,7 @@ class WalletModel(object):
                     dependent_txhashes.append(inp.prevout.hash)
             return dependent_txhashes
 
-        sorted_txhash_list = toposort.toposorted(transaction_lookup.keys(),
+        sorted_txhash_list = toposorted(transaction_lookup.keys(),
                                                  dependent_txs)
         txhash_position = {txhash:i for i, txhash
                            in enumerate(sorted_txhash_list)}
@@ -971,6 +885,9 @@ class WalletModel(object):
         """Access method for ColoredCoinContext's colormap
         """
         return self.ccc.colormap
+
+    def get_color_def(self, color):
+        return self.ccc.colormap.get_color_def(color)
 
     def get_utxo_manager(self):
         """Access method for Unspent Transaction Out manager.
