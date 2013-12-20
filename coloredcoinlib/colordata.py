@@ -21,6 +21,23 @@ class StoredColorData(ColorData):
         return [entry for entry in res
                 if entry[0] in color_id_set]
 
+    def get_colorvalues_raw(self, color_id, ctx):
+        """get colorvalues for all outputs of a raw transaction
+        (which is, possibly, not in the blockchain yet)
+        """
+        color_id_set = set([color_id])
+        in_colorvalues = []
+        for inp in ctx.inputs:
+            cvs = self.get_colorvalues(color_id_set,
+                                      inp.prevout.hash,
+                                      inp.prevout.n)
+            if cvs:
+                in_colorvalues.append((cvs[0][1], cvs[0][2]))
+            else:
+                cvs.append(None)
+        color_def = self.cdbuilder_manager.colormap.get_color_def(color_id)
+        return color_def.run_kernel(ctx, in_colorvalues)
+
 
 class ThickColorData(StoredColorData):
     """ Color data which needs access to the whole blockchain state"""
