@@ -61,6 +61,19 @@ class BasicTxSpec(object):
             return False
         return asset.color_def == colordef.UNCOLORED_MARKER
 
+    def make_operational_tx_spec(self, asset):
+        """Given a <tx_spec> of type BasicTxSpec, return
+        a SimpleOperationalTxSpec.
+        """
+        if not self.is_monoasset() or not self.is_monocolor():
+            raise Exception('tx spec type not supported')
+        op_tx_spec = SimpleOperationalTxSpec(self.model, asset)
+        color_id = list(asset.get_color_set().color_id_set)[0]
+        color_def = self.model.get_color_def(color_id)
+        for target in self.targets:
+            op_tx_spec.add_target(target[0], color_def, target[2])
+        return op_tx_spec
+
 
 class SimpleOperationalTxSpec(txspec.OperationalTxSpec):
     """Subclass of OperationalTxSpec which uses wallet model.
@@ -283,7 +296,7 @@ class TransactionSpecTransformer(object):
         if target_spec_kind in ['operational', 'composed', 'signed']:
             if tx_spec.is_monoasset():
                 asset = tx_spec.targets[0][1]
-                operational_ts = asset.make_operational_tx_spec(tx_spec)
+                operational_ts = tx_spec.make_operational_tx_spec(asset)
                 return self.transform(operational_ts, target_spec_kind)
         raise Exception('do not know how to transform tx spec')
 
