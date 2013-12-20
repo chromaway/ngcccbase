@@ -23,7 +23,7 @@ build_exe_options = {
 
 setup(
     name='ngcccbase',
-    version='0.0.1',
+    version='0.0.2',
     description='A flexible and modular base for colored coin software.',
     classifiers=[
         "Programming Language :: Python",
