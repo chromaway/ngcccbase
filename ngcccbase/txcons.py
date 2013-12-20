@@ -102,7 +102,7 @@ class SimpleOperationalTxSpec(txspec.OperationalTxSpec):
         wam = self.model.get_address_manager()
         color_set = None
         if color_def == colordef.UNCOLORED_MARKER:
-            color_set = ColorSet.from_color_ids(self.model, [0])
+            color_set = ColorSet.from_color_ids(self.model.get_color_map(), [0])
         elif self.asset.get_color_set().has_color_id(color_id):
             color_set = self.asset.get_color_set()
         if color_set is None:
