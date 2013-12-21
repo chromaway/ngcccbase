@@ -2,8 +2,8 @@
 
 import unittest
 
-from coloredcoinlib.tests.test_colorset import MockColorMap
 from coloredcoinlib import ColorSet
+from coloredcoinlib.tests.test_colorset import MockColorMap
 
 from ngcccbase.asset import AssetDefinition, AssetDefinitionManager
 
