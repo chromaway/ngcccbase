@@ -6,6 +6,7 @@ from pycoin.encoding import (b2a_hashed_base58, from_bytes_32, to_bytes_32,
 class InvalidAddressError(Exception):
     pass
 
+
 class AddressRecord(object):
     """Object that holds both address and color information
     Note this is now an Abstract Class.
@@ -25,9 +26,9 @@ class AddressRecord(object):
         """Get this object as a JSON/Storage compatible dict.
         Useful for storage and persistence.
         """
+        raw = self.prefix + to_bytes_32(self.rawPrivKey)
         return {"color_set": self.color_set.get_data(),
-                "address_data": b2a_hashed_base58(self.prefix
-                                                  + to_bytes_32(self.rawPrivKey))}
+                "address_data": b2a_hashed_base58(raw)}
 
     def get_address(self):
         """Get the actual bitcoin address
