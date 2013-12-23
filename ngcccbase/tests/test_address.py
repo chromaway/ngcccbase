@@ -2,7 +2,7 @@
 
 import unittest
 
-from pycoin.encoding import EncodingError
+from pycoin.encoding import EncodingError, b2a_base58
 
 from coloredcoinlib import ColorSet
 from coloredcoinlib.tests.test_colorset import MockColorMap
@@ -14,7 +14,7 @@ class TestAddress(unittest.TestCase):
     def setUp(self):
         self.colormap = MockColorMap()
         d = self.colormap.d
-        self.colorset0 = ColorSet(self.colormap, [d[0]])
+        self.colorset0 = ColorSet(self.colormap, [self.colormap.get_color_def(0).__repr__()])
         self.colorset1 = ColorSet(self.colormap, [d[1]])
         self.main_p = '5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF'
         self.main = LooseAddressRecord(address_data=self.main_p,

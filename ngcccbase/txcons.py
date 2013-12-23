@@ -4,42 +4,59 @@ txcons.py
 Transaction Constructors for the blockchain.
 """
 
-from coloredcoinlib import txspec, colordef
+from asset import AssetTarget
+from coloredcoinlib import (ColorSet, ColorTarget, SimpleColorValue,
+                            ComposedTxSpec, OperationalTxSpec,
+                            UNCOLORED_MARKER, OBColorDefinition,
+                            InvalidColorIdError, ZeroSelectError)
 from binascii import hexlify
 import pycoin_txcons
 
 import io
 
 
+class InsufficientFundsError(Exception):
+    pass
+
+
+class InvalidTargetError(Exception):
+    pass
+
+
+class InvalidTransformationError(Exception):
+    pass
+
+
 class BasicTxSpec(object):
     """Represents a really simple colored coin transaction.
     Specifically, this particular transaction class has not been
     constructed, composed or signed. Those are done in other classes.
+    Note this only supports a single asset.
     """
     def __init__(self, model):
         """Create a BasicTxSpec that has a wallet_model <model>
+        for an asset <asset>
         """
         self.model = model
         self.targets = []
 
-    def add_target(self, target_addr, asset, value):
-        """Add a receiving address <target_addr> for the transaction
-        that will send color <asset> an amount <value>
-        in Satoshi worth of colored coins.
+    def add_target(self, asset_target):
+        """Add a ColorTarget <color_target> which specifies the
+        colorvalue and address
         """
-        self.targets.append((target_addr, asset, value))
+        if not isinstance(asset_target, AssetTarget):
+            raise InvalidTargetError("Not an asset target")
+        self.targets.append(asset_target)
 
     def is_monoasset(self):
-        """Returns a boolean representing if the transaction is sending
-        at most 1 color. Note that this method requires at least
-        1 target to be defined or will raise an Exception.
-        Use add_target to add a target address first.
+        """Returns a boolean representing if the transaction sends
+        coins of exactly 1 color.
         """
         if not self.targets:
-            raise Exception('basic txs is empty')
-        asset = self.targets[0][1]
+            raise InvalidTargetError('basic txs is empty')
+        asset = self.targets[0].get_asset()
         for target in self.targets:
-            if target[1] != asset:
+            if target.get_asset() != asset:
                 return False
         return True
 
@@ -49,33 +66,27 @@ class BasicTxSpec(object):
         """
         if not self.is_monoasset():
             return False
-        asset = self.targets[0][1]
+        asset = self.targets[0].get_asset()
         return len(asset.get_color_set().color_id_set) == 1
-
-    def is_uncolored(self):
-        """Returns a boolean representing if the transaction is
-        simply a transferring of uncolored bitcoins and not any
-        colored coins.
-        """
-        if not self.is_monoasset():
-            return False
-        return asset.color_def == colordef.UNCOLORED_MARKER
 
     def make_operational_tx_spec(self, asset):
         """Given a <tx_spec> of type BasicTxSpec, return
         a SimpleOperationalTxSpec.
         """
-        if not self.is_monoasset() or not self.is_monocolor():
-            raise Exception('tx spec type not supported')
+        if not self.is_monocolor():
+            raise InvalidTransformationError('tx spec type not supported')
         op_tx_spec = SimpleOperationalTxSpec(self.model, asset)
         color_id = list(asset.get_color_set().color_id_set)[0]
         color_def = self.model.get_color_def(color_id)
         for target in self.targets:
-            op_tx_spec.add_target(target[0], color_def, target[2])
+            colorvalue = SimpleColorValue(colordef=color_def,
+                                          value=target.get_value())
+            colortarget = ColorTarget(target.get_address(), colorvalue)
+            op_tx_spec.add_target(colortarget)
         return op_tx_spec
 
 
-class SimpleOperationalTxSpec(txspec.OperationalTxSpec):
+class SimpleOperationalTxSpec(OperationalTxSpec):
     """Subclass of OperationalTxSpec which uses wallet model.
     Represents a transaction that's ready to be composed
     and then signed. The parent is an abstract class.
@@ -89,16 +100,12 @@ class SimpleOperationalTxSpec(txspec.OperationalTxSpec):
         self.targets = []
         self.asset = asset
 
-    def add_target(self, target_addr, color_def, colorvalue):
-        """Add a receiving address <target_addr> for the transaction
-        that will send color <color_def> an amount <colorvalue>
-        in Satoshi worth of colored coins.
+    def add_target(self, color_target):
+        """Add a ColorTarget <color_target> to the transaction
         """
-        if color_def is None:
-            raise Exception("No defined color when adding a target")
-        if isinstance(color_def, int):
-            raise Exception("Integer for color when adding a target")
-        self.targets.append((target_addr, color_def, colorvalue))
+        if not isinstance(color_target, ColorTarget):
+            raise InvalidTargetError("Target is not an instance of ColorTarget")
+        self.targets.append(color_target)
 
     def get_targets(self):
         """Get a list of (receiving address, color_id, colorvalue)
@@ -107,58 +114,51 @@ class SimpleOperationalTxSpec(txspec.OperationalTxSpec):
         return self.targets
 
     def get_change_addr(self, color_def):
-        """Get an address associated with color <color_id>
+        """Get an address associated with color definition <color_def>
         that is in the current wallet for receiving change.
         """
         color_id = color_def.color_id
-        from wallet_model import ColorSet
         wam = self.model.get_address_manager()
         color_set = None
-        if color_def == colordef.UNCOLORED_MARKER:
-            color_set = ColorSet.from_color_ids(self.model.get_color_map(), [0])
+        if color_def == UNCOLORED_MARKER:
+            color_set = ColorSet.from_color_ids(self.model.get_color_map(),
+                                                [0])
         elif self.asset.get_color_set().has_color_id(color_id):
             color_set = self.asset.get_color_set()
         if color_set is None:
-            raise Exception('wrong color id')
+            raise InvalidColorIdError('wrong color id')
         aw = wam.get_change_address(color_set)
         return aw.get_address()
 
-    def select_coins(self, color_def, colorvalue):
+    def select_coins(self, colorvalue):
         """Return a list of utxos and sum that corresponds to
         the colored coins identified by <color_def> of amount <colorvalue>
-        in Satoshi that we'll be spending from our wallet.
+        that we'll be spending from our wallet.
         """
-        color_id = color_def.color_id
-        get_colorvalue = None
-
-        if color_def == colordef.UNCOLORED_MARKER:
-            get_colorvalue = lambda utxo: utxo.value
-        elif self.asset and \
-                self.asset.get_color_set().has_color_id(color_id):
-            get_colorvalue = self.asset.get_colorvalue
-        else:
-            raise Exception("wrong color id requested")
+        colordef = colorvalue.get_colordef()
+        color_id = colordef.get_color_id()
         cq = self.model.make_coin_query({"color_id_set": set([color_id])})
         utxo_list = cq.get_result()
 
-        ssum = 0
+        zero = ssum = SimpleColorValue(colordef=colordef, value=0)
         selection = []
-        if colorvalue == 0:
-            raise Exception('cannot select 0 coins')
+        if colorvalue == zero:
+            raise ZeroSelectError('cannot select 0 coins')
         for utxo in utxo_list:
-            ssum += get_colorvalue(utxo)
+            ssum += SimpleColorValue.sum(utxo.colorvalues)
             selection.append(utxo)
             if ssum >= colorvalue:
                 return selection, ssum
-        raise Exception('not enough coins: %s requested, %s found'
-                        % (colorvalue, ssum))
+        raise InsufficientFundsError('not enough coins: %s requested, %s found'
+                                     % (colorvalue, ssum))
 
     def get_required_fee(self, tx_size):
         """Given a transaction that is of size <tx_size>,
         return the transaction fee in Satoshi that needs to be
         paid out to miners.
         """
-        return 10000  # TODO
+        # TODO: this should change to something dependent on tx_size
+        return SimpleColorValue(colordef=UNCOLORED_MARKER, value=10000)
 
 
 class RawTxSpec(object):
@@ -213,19 +213,18 @@ class RawTxSpec(object):
 def compose_uncolored_tx(tx_spec):
     """ compose a simple bitcoin transaction """
     targets = tx_spec.get_targets()
-    ttotal = sum([target[2] for target in targets])
+    ttotal = ColorTarget.sum(targets)
     fee = tx_spec.get_required_fee(500)
-    sel_utxos, sum_sel_coins = tx_spec.select_coins(colordef.UNCOLORED_MARKER,
-                                                    ttotal + fee)
+    sel_utxos, sum_sel_coins = tx_spec.select_coins(ttotal + fee)
     change = sum_sel_coins - ttotal - fee
-    txouts = [txspec.ComposedTxSpec.TxOut(target[2], target[0])
+    txouts = [ComposedTxSpec.TxOut(target.get_satoshi(), target.get_address())
               for target in targets]
     # give ourselves the change
     if change > 0:
+        change_addr = tx_spec.get_change_addr(UNCOLORED_MARKER)
         txouts.append(
-            txspec.ComposedTxSpec.TxOut(
-                change, tx_spec.get_change_addr(colordef.UNCOLORED_MARKER)))
-    return txspec.ComposedTxSpec(sel_utxos, txouts)
+            ComposedTxSpec.TxOut(change.get_satoshi(), change_addr))
+    return ComposedTxSpec(sel_utxos, txouts)
 
 
 class TransactionSpecTransformer(object):
@@ -250,8 +249,8 @@ class TransactionSpecTransformer(object):
         tx spec <op_tx_spec> into a composed tx spec
         """
         if op_tx_spec.is_monocolor():
-            color_def = op_tx_spec.get_targets()[0][1]
-            if color_def == colordef.UNCOLORED_MARKER:
+            color_def = op_tx_spec.get_targets()[0].get_colordef()
+            if color_def == UNCOLORED_MARKER:
                 return compose_uncolored_tx
             else:
                 return color_def.compose_tx_spec
@@ -259,10 +258,10 @@ class TransactionSpecTransformer(object):
             # TODO: explicit support for OBC only, generalize!
             obc_color_def = None
             for target in op_tx_spec.get_targets():
-                color_def = target[1]
-                if color_def is colordef.UNCOLORED_MARKER:
+                color_def = target.get_colordef()
+                if color_def is UNCOLORED_MARKER:
                     continue
-                if isinstance(color_def, colordef.OBColorDefinition):
+                if isinstance(color_def, OBColorDefinition):
                     obc_color_def = color_def
                 else:
                     obc_color_def = None
@@ -279,9 +278,9 @@ class TransactionSpecTransformer(object):
         """
         if isinstance(tx_spec, BasicTxSpec):
             return 'basic'
-        elif isinstance(tx_spec, txspec.OperationalTxSpec):
+        elif isinstance(tx_spec, OperationalTxSpec):
             return 'operational'
-        elif isinstance(tx_spec, txspec.ComposedTxSpec):
+        elif isinstance(tx_spec, ComposedTxSpec):
             return 'composed'
         elif isinstance(tx_spec, RawTxSpec):
             return 'signed'
@@ -294,11 +293,11 @@ class TransactionSpecTransformer(object):
         composed, signed).
         """
         if target_spec_kind in ['operational', 'composed', 'signed']:
-            if tx_spec.is_monoasset():
-                asset = tx_spec.targets[0][1]
+            if tx_spec.is_monocolor():
+                asset = tx_spec.targets[0].get_asset()
                 operational_ts = tx_spec.make_operational_tx_spec(asset)
                 return self.transform(operational_ts, target_spec_kind)
-        raise Exception('do not know how to transform tx spec')
+        raise InvalidTransformationError('do not know how to transform tx spec')
 
     def transform_operational(self, tx_spec, target_spec_kind):
         """Takes an operational transaction <tx_spec> and returns a
@@ -310,7 +309,7 @@ class TransactionSpecTransformer(object):
             if composer:
                 composed = composer(tx_spec)
                 return self.transform(composed, target_spec_kind)
-        raise Exception('do not know how to transform tx spec')
+        raise InvalidTransformationError('do not know how to transform tx spec')
 
     def transform_composed(self, tx_spec, target_spec_kind):
         """Takes a SimpleComposedTxSpec <tx_spec> and returns
@@ -321,12 +320,12 @@ class TransactionSpecTransformer(object):
             rtxs = RawTxSpec.from_composed_tx_spec(self.model, tx_spec)
             rtxs.sign(tx_spec.get_txins())
             return rtxs
-        raise Exception('do not know how to transform tx spec')
+        raise InvalidTransformationError('do not know how to transform tx spec')
 
     def transform_signed(self, tx_spec, target_spec_kind):
         """This method is not yet implemented.
         """
-        raise Exception('do not know how to transform tx spec')
+        raise InvalidTransformationError('do not know how to transform tx spec')
 
     def transform(self, tx_spec, target_spec_kind):
         """Transform a transaction <tx_spec> into another type
@@ -334,7 +333,7 @@ class TransactionSpecTransformer(object):
         """
         spec_kind = self.classify_tx_spec(tx_spec)
         if spec_kind is None:
-            raise Exception('spec kind is not recognized')
+            raise InvalidTransformationError('spec kind is not recognized')
         if spec_kind == target_spec_kind:
             return tx_spec
         if spec_kind == 'basic':

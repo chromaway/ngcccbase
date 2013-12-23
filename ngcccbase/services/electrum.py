@@ -25,6 +25,10 @@ import urllib2
 import bitcoin.rpc
 
 
+class ConnectionError(Exception):
+    pass
+
+
 class ElectrumInterface(object):
     """Interface for interacting with Electrum servers using the
     stratum tcp protocol
@@ -50,13 +54,13 @@ class ElectrumInterface(object):
         try:
             sock.connect(self.connection)
         except:
-            raise Exception("Unable to connect to %s:%s" % self.connection)
+            raise ConnectionError("Unable to connect to %s:%s" % self.connection)
 
         sock.settimeout(60)
         self.sock = sock
         self.is_connected = True
         if self.debug:
-            print "connected to %s:%s" % self.connection
+            print "connected to %s:%s" % self.connection  # pragma: no cover
         return True
 
     def wait_for_response(self, target_id):
@@ -69,18 +73,18 @@ class ElectrumInterface(object):
                 try:
                     msg = self.sock.recv(1024)
                     if self.debug:
-                        print msg
-                except socket.timeout:
-                    print "socket timed out"
-                    self.is_connected = False
-                    continue
-                except socket.error:
-                    traceback.print_exc(file=sys.stdout)
-                    raise
+                        print msg  # pragma: no cover
+                except socket.timeout:         # pragma: no cover
+                    print "socket timed out"   # pragma: no cover
+                    self.is_connected = False  # pragma: no cover
+                    continue                   # pragma: no cover
+                except socket.error:                      # pragma: no cover
+                    traceback.print_exc(file=sys.stdout)  # pragma: no cover
+                    raise                                 # pragma: no cover
 
                 out += msg
                 if msg == '':
-                    self.is_connected = False
+                    self.is_connected = False  # pragma: no cover
 
                 # get the list of messages by splitting on newline
                 raw_messages = out.split("\n")
@@ -96,16 +100,17 @@ class ElectrumInterface(object):
 
                     if id == target_id:
                         if error:
-                            raise Exception("received error %s" % message)
+                            raise Exception(                    # pragma: no cover
+                                "received error %s" % message)  # pragma: no cover
                         else:
                             return result
                     else:
                         # just print it for now
-                        print message
-        except:
-            traceback.print_exc(file=sys.stdout)
+                        print message                           # pragma: no cover
+        except:                                   # pragma: no cover
+            traceback.print_exc(file=sys.stdout)  # pragma: no cover
 
-        self.is_connected = False
+        self.is_connected = False                 # pragma: no cover
 
     def get_response(self, method, params):
         """Given a message that consists of <method> which
@@ -120,9 +125,9 @@ class ElectrumInterface(object):
                     'method': method,
                     'params': params})
                 + "\n")
-        except socket.error:
-            traceback.print_exc(file=sys.stdout)
-            return None
+        except socket.error:                       # pragma: no cover
+            traceback.print_exc(file=sys.stdout)   # pragma: no cover
+            return None                            # pragma: no cover
         return self.wait_for_response(current_id)
 
     def get_version(self):
@@ -186,7 +191,7 @@ class EnhancedBlockchainState(blockchain.BlockchainState):
         url = "http://blockchain.info/rawtx/%s" % txhash
         jsonData = urllib2.urlopen(url).read()
         if jsonData[0] != '{':
-            return (None, False)
+            return (None, False)  # pragma: no cover
         data = json.loads(jsonData)
         return (data.get("block_height", None), True)
 
@@ -195,14 +200,15 @@ class EnhancedBlockchainState(blockchain.BlockchainState):
             # first, grab the tx height
             height = self.get_tx_block_height(txhash)[0]
             if not height:
-                raise Exception("")
+                raise Exception("")  # pragma: no cover
             
             # grab the transaction from electrum which
             #  unlike bitcoind requires the height
             raw = self.interface.get_raw_transaction(txhash, height)
-        except:
-            raise Exception("Could not connect to blockchain and/or"
-                            "electrum server to grab the data we need")
+        except:                                              # pragma: no cover
+            raise Exception(                                 # pragma: no cover
+                "Could not connect to blockchain and/or"     # pragma: no cover
+                "electrum server to grab the data we need")  # pragma: no cover
         return raw
 
     def get_tx(self, txhash):
@@ -211,15 +217,3 @@ class EnhancedBlockchainState(blockchain.BlockchainState):
         txhex = self.get_raw_transaction(txhash)
         tx = CTransaction.deserialize(to_binary(txhex))
         return blockchain.CTransaction.from_bitcoincore(txhash, tx, self)
-
-
-if __name__ == "__main__":
-    # we test the outside servers for electrum and blockchain
-    #  if we run this manually
-    ei = ElectrumInterface("btc.it-zone.org", 50001)
-    print ei.get_utxo("1PAMLeDxXK3DJ4nm6okVHmjH7pmsbg8NYr")
-    bcs = EnhancedBlockchainState("btc.it-zone.org", 50001)
-    print bcs.get_tx(
-        "abcc3e3f6ef2e989f1905f77b4e74326a156b941e803abc4d9175e82180be808")
-    print bcs.get_tx_block_height(
-        "f4184fc596403b9d638783cf57adfe4c75c605f6356fbc91338530e9831e9e16")

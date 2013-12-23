@@ -1,6 +1,7 @@
 from pycoin.ecdsa.secp256k1 import generator_secp256k1 as BasePoint
 from pycoin.encoding import (b2a_hashed_base58, from_bytes_32, to_bytes_32, 
-                             a2b_hashed_base58, public_pair_to_bitcoin_address)
+                             a2b_hashed_base58, public_pair_to_bitcoin_address,
+                             public_pair_to_hash160_sec)
 
 
 class InvalidAddressError(Exception):
@@ -15,6 +16,9 @@ class AddressRecord(object):
         self.color_set = kwargs.get('color_set')
         self.testnet = kwargs.get('testnet')
         self.prefix = '\xEF' if self.testnet else '\x80'
+
+    def rawPubkey(self):
+        return public_pair_to_hash160_sec(self.publicPoint.pair(), False)
 
     def get_color_set(self):
         """Access method for the color set associated

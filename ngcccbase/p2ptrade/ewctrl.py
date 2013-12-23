@@ -1,12 +1,17 @@
-from coloredcoinlib import txspec, ColorSet
 from collections import defaultdict
+
+from coloredcoinlib import (ColorSet, ColorTarget, UNCOLORED_MARKER,
+                            InvalidColorIdError, ZeroSelectError,
+                            OperationalTxSpec, SimpleColorValue)
 from protocol_objects import ETxSpec
+from ngcccbase.asset import AdditiveAssetValue
+from ngcccbase.txcons import InsufficientFundsError
 from ngcccbase.utxodb import UTXO
 
 
-FEE = 15000
+FEE = SimpleColorValue(colordef=UNCOLORED_MARKER, value=15000)
 
-class OperationalETxSpec(txspec.OperationalTxSpec):
+class OperationalETxSpec(OperationalTxSpec):
     def __init__(self, model, ewctrl):
         self.model = model
         self.ewctrl = ewctrl
@@ -23,63 +28,52 @@ class OperationalETxSpec(txspec.OperationalTxSpec):
     def prepare_inputs(self, etx_spec):
         self.inputs = defaultdict(list)
         colordata = self.model.ccc.colordata
-        for cspec, inps in etx_spec.inputs.items():
-            color_set = self.ewctrl.resolve_color_spec(cspec)
-            if color_set.uncolored_only():
+        for colordef, inps in etx_spec.inputs.items():
+            if colordef == UNCOLORED_MARKER:
                 for inp in inps:
                     tx = self.model.ccc.blockchain_state.get_tx(inp[0])
                     value = tx.outputs[inp[1]].value
                     self.inputs[0].append((value, inp))
             else:
+                color_id_set = set([colordef.get_color_id()])
                 for inp in inps:
-                    css = colordata.get_colorvalues(color_set.color_id_set, inp[0], inp[1])
+                    
+                    css = colordata.get_colorvalues(color_id_set, inp[0], inp[1])
                     if (css and len(css) == 1):
                         cs = css[0]
-                        self.inputs[cs[0]].append((cs[1], inp))
+                        self.inputs[cs.get_color_id()].append((cs.get_value(),
+                                                               inp))
 
     def prepare_targets(self, etx_spec, their):
-        self.targets = []
-        colormap = self.model.get_color_map()
-        for tgt_spec in etx_spec.targets:
-            tgt_color_id = list(self.ewctrl.resolve_color_spec(tgt_spec[1]).color_id_set)[0]
-            tgt_color_def = colormap.get_color_def(tgt_color_id)
-            self.targets.append((tgt_spec[0], tgt_color_def, tgt_spec[2]))
-        their_color_set = self.ewctrl.resolve_color_spec(their['color_spec'])
+        self.targets = etx_spec.targets
         wam = self.model.get_address_manager()
-        their_color_id =  list(their_color_set.color_id_set)[0]
-        their_color_def = colormap.get_color_def(their_color_id)
-        self.targets.append(
-            (wam.get_change_address(their_color_set).get_address(), their_color_def,
-             their['value']))
+        colormap = self.model.get_color_map()
+        their_color_set = ColorSet.from_color_ids(self.model.get_color_map(),
+                                                  [their.get_color_id()]) 
+        ct = ColorTarget(wam.get_change_address(their_color_set).get_address(),
+                         their)
+        self.targets.append(ct)
 
     def get_required_fee(self, tx_size):
         return FEE
 
-    def select_coins(self, color_def, value):
-        color_id = color_def.color_id
-        if color_id in self.inputs:
-            c_inputs = self.inputs[color_id]
-            tv = sum([inp[0] for inp in c_inputs])
-            if tv < value:
-                raise Exception('not enough coins')
-            return [UTXO(inp[1][0], inp[1][1], inp[0], None)
-                    for inp in c_inputs], tv
-        else:
-            color_id_set = set([color_id])
-            cq = self.model.make_coin_query({"color_id_set": color_id_set})
-            utxo_list = cq.get_result()
+    def select_coins(self, colorvalue):
+        colordef = colorvalue.get_colordef()
+        color_id = colordef.get_color_id()
+        cq = self.model.make_coin_query({"color_id_set": set([color_id])})
+        utxo_list = cq.get_result()
 
-            ssum = 0
-            selection = []
-            if value == 0:
-                raise Exception('cannot select 0 coins')
-            for utxo in utxo_list:
-                # TODO: use colorvalue!
-                ssum += utxo.value
-                selection.append(utxo)
-                if ssum >= value:
-                    return selection, ssum
-            raise Exception('not enough coins to reach the target')
+        zero = ssum = SimpleColorValue(colordef=colordef, value=0)
+        selection = []
+        if colorvalue == zero:
+            raise ZeroSelectError('cannot select 0 coins')
+        for utxo in utxo_list:
+            ssum += SimpleColorValue.sum(utxo.colorvalues)
+            selection.append(utxo)
+            if ssum >= colorvalue:
+                return selection, ssum
+        raise InsufficientFundsError('not enough coins: %s requested, %s found'
+                                     % (colorvalue, ssum))
 
 
 class EWalletController(object):
@@ -94,39 +88,43 @@ class EWalletController(object):
         colormap = self.model.get_color_map()
         color_id = colormap.resolve_color_desc(color_spec, False)
         if color_id is None:
-            raise Exception("color spec not recognized")
+            raise InvalidColorIdError("color spec not recognized")
         return ColorSet.from_color_ids(self.model.get_color_map(), [color_id])
 
-    def select_inputs(self, color_set, t_value):
-        cq = self.model.make_coin_query({"color_set": color_set})
+    def select_inputs(self, colorvalue):
+        cs = ColorSet.from_color_ids(self.model.get_color_map(),
+                                     [colorvalue.get_color_id()])
+
+        cq = self.model.make_coin_query({"color_set": cs})
         utxo_list = cq.get_result()
         selection = []
-        csum = 0
+        csum = SimpleColorValue(colordef=colorvalue.get_colordef(), value=0)
+
         for utxo in utxo_list:
-            csum += utxo.value
+            csum += SimpleColorValue.sum(utxo.colorvalues)
             selection.append(utxo)
-            if csum >= t_value:
+            if csum >= colorvalue:
                 break
-        if csum < t_value:
-            raise Exception('not enough money')
-        return selection, (csum - t_value)
+        if csum < colorvalue:
+            raise InsufficientFundsError('not enough money')
+        return selection, (csum - colorvalue)
 
     def make_etx_spec(self, our, their):
-        our_color_set = self.resolve_color_spec(our['color_spec'])
-        their_color_set = self.resolve_color_spec(their['color_spec'])
-        fee = FEE if our_color_set.uncolored_only() else 0
-        c_utxos, c_change = self.select_inputs(our_color_set,
-                                               our['value'] + fee)
-        inputs = {our['color_spec']: 
+        fee = FEE if our.get_colordef() == UNCOLORED_MARKER else 0
+        c_utxos, c_change = self.select_inputs(our + fee)
+        inputs = {our.get_colordef(): 
                   [utxo.get_outpoint() for utxo in c_utxos]}
         wam = self.model.get_address_manager()
+        our_color_set = ColorSet.from_color_ids(self.model.get_color_map(),
+                                                [our.get_color_id()]) 
+        their_color_set = ColorSet.from_color_ids(self.model.get_color_map(),
+                                                  [their.get_color_id()]) 
         our_address = wam.get_change_address(their_color_set)
-        targets = [(our_address.get_address(),
-                    their['color_spec'], their['value'])]
+        targets = [ColorTarget(our_address.get_address(), their)]
         if c_change > 0:
             our_change_address = wam.get_change_address(our_color_set)
-            targets.append((our_change_address.get_address(),
-                            our['color_spec'], c_change))
+            targets.append(ColorTarget(our_change_address.get_address(),
+                                       c_change))
         return ETxSpec(inputs, targets, c_utxos)
 
     def make_reply_tx(self, etx_spec, our, their):

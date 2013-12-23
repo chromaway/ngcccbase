@@ -19,6 +19,7 @@ of each colored coin we have.
 
 from coloredcoinlib.store import DataStore, DataStoreConnection
 from coloredcoinlib.txspec import ComposedTxSpec
+from coloredcoinlib import UNCOLORED_MARKER, SimpleColorValue
 from txcons import RawTxSpec
 from time import time
 from ngcccbase.services.blockchain import BlockchainInfoInterface, AbeInterface
@@ -127,30 +128,31 @@ class UTXOQuery(object):
             address_rec.get_address())
         cdata = self.model.ccc.colordata
         address_is_uncolored = addr_color_set.color_id_set == set([0])
+        if address_is_uncolored:
+            for utxo in all_utxos:
+                utxo.address_rec = address_rec
+                utxo.colorvalues = [SimpleColorValue(colordef=UNCOLORED_MARKER,
+                                                     value=utxo.value)]
+            return all_utxos
         for utxo in all_utxos:
             utxo.address_rec = address_rec
-            if not address_is_uncolored:
-                utxo.colorvalues = None
-                try:
-                    utxo.colorvalues = cdata.get_colorvalues(
-                        addr_color_set.color_id_set, utxo.txhash, utxo.outindex)
-                except Exception as e:
-                    print e
-                    #  if get_colorvalues fails utxo.colorvalues is None
-        if address_is_uncolored:
-            return all_utxos
-        else:
-            def relevant(utxo):
-                cvl = utxo.colorvalues
-                if utxo.colorvalues is None:
-                    return False  # None indicates failure
-                if cvl == []:
-                    return color_set.has_color_id(0)
-                for cv in cvl:
-                    if color_set.has_color_id(cv[0]):
-                        return True
-                    return False
-            return filter(relevant, all_utxos)
+            utxo.colorvalues = None
+            try:
+                utxo.colorvalues = cdata.get_colorvalues(
+                    addr_color_set.color_id_set, utxo.txhash, utxo.outindex)
+            except Exception as e:
+                print e
+        def relevant(utxo):
+            cvl = utxo.colorvalues
+            if utxo.colorvalues is None:
+                return False  # None indicates failure
+            if cvl == []:
+                return color_set.has_color_id(0)
+            for cv in cvl:
+                if color_set.has_color_id(cv.get_color_id()):
+                    return True
+                return False
+        return filter(relevant, all_utxos)
 
     def get_result(self):
         """Returns all utxos for the color_set defined for this query.

@@ -17,7 +17,7 @@ class TestDeterministic(unittest.TestCase):
     def setUp(self):
         self.colormap = MockColorMap()
         d = self.colormap.d
-        self.colorset0 = ColorSet(self.colormap, [d[0]])
+        self.colorset0 = ColorSet(self.colormap, [''])
         self.colorset1 = ColorSet(self.colormap, [d[1]])
         self.colorset1alt = ColorSet(self.colormap, [d[1],d[6]])
         self.colorset2 = ColorSet(self.colormap, [d[2]])

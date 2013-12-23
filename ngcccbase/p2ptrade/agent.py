@@ -1,18 +1,8 @@
 import Queue
 import time
+
 from protocol_objects import MyEOffer, EOffer, MyEProposal, ForeignEProposal
-
-
-def LOGINFO(msg, *params):
-    print msg % params
-
-
-def LOGDEBUG(msg, *params):
-    print msg % params
-
-
-def LOGERROR(msg, *params):
-    print msg % params
+from utils import LOGINFO, LOGDEBUG, LOGERROR
 
 
 class EAgent(object):
@@ -109,9 +99,10 @@ class EAgent(object):
                     try:
                         self.make_exchange_proposal(their_offer, my_offer)
                         success = True
-                    except Exception as e:
-                        LOGERROR("Exception during matching offer %s", e)
-                        raise
+                    except Exception as e:                # pragma: no cover
+                        LOGERROR("Exception during "      # pragma: no cover
+                                 "matching offer %s", e)  # pragma: no cover
+                        raise                             # pragma: no cover
                     if success:
                         return
 
@@ -160,8 +151,9 @@ class EAgent(object):
                 del self.their_offers[ep.offer.oid]
             else:
                 del self.my_offers[ep.offer.oid]
-        except Exception as e:
-            LOGERROR("there was an exception when clearing offers: %s", e)
+        except Exception as e:                       # pragma: no cover
+            LOGERROR("there was an exception "       # pragma: no cover
+                     "when clearing offers: %s", e)  # pragma: no cover
         self.fire_event('offers_updated', None)
 
     def update_exchange_proposal(self, ep):
@@ -185,9 +177,10 @@ class EAgent(object):
                 self.register_their_offer(o)
             elif 'pid' in content:
                 self.dispatch_exchange_proposal(content)
-        except Exception as e:
-            LOGERROR("got exception %s when dispatching a message", e)
-            raise
+        except Exception as e:                         # pragma: no cover
+            LOGERROR("got exception %s "               # pragma: no cover
+                     "when dispatching a message", e)  # pragma: no cover
+            raise                                      # pragma: no cover
 
     def update(self):
         self.comm.poll_and_dispatch()

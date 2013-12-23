@@ -28,7 +28,10 @@ class CTxIn(object):
         self.prevout = COutpoint(op_hash, op_n)
 
     def get_txhash(self):
-        return self.prevout.hash.decode('hex')[::-1]
+        if self.prevout.hash == 'coinbase':
+            return self.prevout.hash
+        else:
+            return self.prevout.hash.decode('hex')[::-1]
 
     def get_outpoint(self):
         return (self.prevout.hash, self.prevout.n)
@@ -76,6 +79,7 @@ class CTransaction(object):
                 inp.value = prevtx.outputs[inp.prevout.n].value
             else:
                 inp.value = 0  # TODO: value of coinbase tx?
+        self.have_input_values = True
 
 
 class BlockchainState(object):
@@ -90,7 +94,8 @@ class BlockchainState(object):
             bitcoind = bitcoin.rpc.RawProxy(
                 service_url=url, service_port=18332)
         else:
-            bitcoind = bitcoin.rpc.RawProxy(service_url=url)
+            bitcoind = bitcoin.rpc.RawProxy(  # pragma: no cover
+                service_url=url)              # pragma: no cover
         return cls(bitcoind)
 
     def get_block_height(self, blockhash):
@@ -108,7 +113,7 @@ class BlockchainState(object):
         try:
             raw = self.bitcoind.getrawtransaction(txhash, 1)
         except Exception, e:
-            print txhash, e
+            # print txhash, e
             return None, False
         return raw.get('blockhash', None), True
 
