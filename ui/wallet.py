@@ -1,6 +1,6 @@
 from ngcccbase.pwallet import PersistentWallet
 from ngcccbase.wallet_controller import WalletController
-from ngcccbase.wallet_model import AssetDefinition
+from ngcccbase.asset import AssetDefinition
 
 from ngcccbase.p2ptrade.ewctrl import EWalletController
 from ngcccbase.p2ptrade.agent import EAgent
