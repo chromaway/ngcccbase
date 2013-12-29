@@ -1,5 +1,5 @@
-from coloredcoinlib import ColorSet
-from txcons import BasicTxSpec, SimpleOperationalTxSpec
+from coloredcoinlib import ColorSet, IncompatibleTypesError, InvalidValueError
+from coloredcoinlib.comparable import ComparableMixin
 
 
 class AssetDefinition(object):
@@ -23,6 +23,9 @@ class AssetDefinition(object):
         """
         return self.monikers
 
+    def has_color_id(self, color_id):
+        return self.get_color_set().has_color_id(color_id)
+
     def get_color_set(self):
         """Returns the list of colors for this asset.
         """
@@ -30,15 +33,12 @@ class AssetDefinition(object):
 
     def get_colorvalue(self, utxo):
         """ return colorvalue for a given utxo"""
-        if self.color_set.uncolored_only():
-            return utxo.value
-        else:
-            if utxo.colorvalues:
-                for cv in utxo.colorvalues:
-                    if cv[0] in self.color_set.color_id_set:
-                        return cv[1]
-            raise Exception("cannot get colorvalue for UTXO: "
-                            "no colorvalues available")
+        if utxo.colorvalues:
+            for cv in utxo.colorvalues:
+                if self.has_color_id(cv.get_color_id()):
+                    return cv
+        raise Exception("cannot get colorvalue for UTXO: "
+                        "no colorvalues available")
 
     def parse_value(self, portion):
         """Returns actual number of Satoshis for this Asset
@@ -60,6 +60,120 @@ class AssetDefinition(object):
             "color_set": self.color_set.get_data(),
             "unit": self.unit
             }
+
+
+class AssetValue(object):
+    def __init__(self, **kwargs):
+        self.asset = kwargs.pop('asset')
+
+    def get_kwargs(self):
+        kwargs = {}
+        kwargs['asset'] = self.get_asset()
+        return kwargs
+
+    def clone(self):
+        kwargs = self.get_kwargs()
+        return self.__class__(**kwargs)
+
+    def check_compatibility(self, other):
+        if self.get_color_set() != other.get_color_set():
+            raise IncompatibleTypesError        
+
+    def get_asset(self):
+        return self.asset
+
+    def get_color_set(self):
+        return self.asset.get_color_set()
+
+
+class AdditiveAssetValue(AssetValue, ComparableMixin):
+    def __init__(self, **kwargs):
+        super(AdditiveAssetValue, self).__init__(**kwargs)
+        self.value = kwargs.pop('value')
+        if not isinstance(self.value, int):
+            raise InvalidValueError('not an int')
+
+    def get_kwargs(self):
+        kwargs = super(AdditiveAssetValue, self).get_kwargs()
+        kwargs['value'] = self.get_value()
+        return kwargs
+
+    def get_value(self):
+        return self.value
+
+    def __add__(self, other):
+        if isinstance(other, int) and other == 0:
+            return self
+        self.check_compatibility(other)
+        kwargs = self.get_kwargs()
+        kwargs['value'] = self.get_value() + other.get_value()
+        return self.__class__(**kwargs)
+
+    def __radd__(self, other):
+        return self + other
+
+    def __sub__(self, other):
+        if isinstance(other, int) and other == 0:
+            return self
+        self.check_compatibility(other)
+        kwargs = self.get_kwargs()
+        kwargs['value'] = self.get_value() - other.get_value()
+        return self.__class__(**kwargs)
+
+    def __iadd__(self, other):
+        self.check_compatibility(other)
+        self.value += other.value
+        return self
+
+    def __lt__(self, other):
+        self.check_compatibility(other)
+        return self.get_value() < other.get_value()
+
+    def __eq__(self, other):
+        if self.get_color_set() != other.get_color_set():
+            return False
+        else:
+            return self.get_value() == other.get_value()
+
+    def __gt__(self, other):
+        if isinstance(other, int) and other == 0:
+            return self.get_value() > 0
+        return other < self
+
+    def __repr__(self):
+        return "Asset Value: %s" % (self.get_value())
+
+    @classmethod
+    def sum(cls, items):
+        return reduce(lambda x,y:x + y, items)
+
+
+class AssetTarget(object):
+    def __init__(self, address, assetvalue):
+        self.address = address
+        self.assetvalue = assetvalue
+
+    def get_asset(self):
+        return self.assetvalue.get_asset()
+
+    def get_color_set(self):
+        return self.assetvalue.get_color_set()
+
+    def get_address(self):
+        return self.address
+
+    def get_value(self):
+        return self.assetvalue.get_value()
+
+    def __repr__(self):
+        return "%s: %s" % (self.get_address(), self.assetvalue)
+
+    @classmethod
+    def sum(cls, targets):
+        if len(targets) == 0:
+            return 0
+        c = targets[0].assetvalue.__class__
+        return c.sum([t.assetvalue for t in targets])
 
 
 class AssetDefinitionManager(object):

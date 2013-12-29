@@ -43,7 +43,7 @@ class ColoredCoinContext(object):
             self.metastore, FullScanColorDataBuilder)
 
         self.colordata = ThickColorData(
-            cdbuilder, self.blockchain_state, self.cdstore)
+            cdbuilder, self.blockchain_state, self.cdstore, self.colormap)
 
     def raw_to_address(self, raw_address):
         return hash160_sec_to_bitcoin_address(raw_address,

@@ -1,25 +1,10 @@
 import urllib2
 import json
 import time
-import binascii
 import threading
 import Queue
 
-def make_random_id():
-    import os
-    bits = os.urandom(8)
-    return binascii.hexlify(bits)
-
-def LOGINFO(msg, *params):
-    print msg % params
-
-
-def LOGDEBUG(msg, *params):
-    print msg % params
-
-
-def LOGERROR(msg, *params):
-    print msg % params
+from utils import make_random_id, LOGINFO, LOGDEBUG, LOGERROR
 
 
 class CommBase(object):
@@ -28,6 +13,7 @@ class CommBase(object):
 
     def add_agent(self, agent):
         self.agents.append(agent)
+
 
 class HTTPComm(CommBase):
     def __init__(self, config, url = 'http://localhost:8080/messages'):
@@ -53,6 +39,7 @@ class HTTPComm(CommBase):
             url = url + "?from_timestamp_rel=%s" % self.config['offer_expiry_interval']
         else:
             url = url + '?from_serial=%s' % (self.lastpoll+1)
+        print url
         u = urllib2.urlopen(url)
         resp = json.loads(u.read())
         for x in resp:

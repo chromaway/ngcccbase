@@ -194,6 +194,3 @@ class ColorMetaStore(DataStore):
     def find_color_desc(self, color_id):
         q = "SELECT color_desc FROM color_map WHERE color_id = ?"
         return unwrap1(self.execute(q, (color_id,)).fetchone())
-
-    def get_persistent_dict(self, dictname):
-        return PersistentDictStore(self.conn, dictname)

@@ -39,9 +39,9 @@ class WebBlockchainInterface(object):
                 utxos.append(utxo)
             return utxos
         except urllib2.HTTPError as e:
-            if e.code == 500:
-                return []
-            raise
+            if e.code == 500:         
+                return []             
+            raise                       # pragma: no cover
 
 
 class BlockchainInfoInterface(WebBlockchainInterface):

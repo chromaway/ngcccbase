@@ -6,9 +6,16 @@ Executes high level tasks such as get balance
  (tasks that require more complex logic) [verification needed]
 """
 
-from coloredcoinlib.colordef import ColorDefinition, GENESIS_OUTPUT_MARKER
+from asset import AssetTarget, AdditiveAssetValue
+from coloredcoinlib import (InvalidColorDefinitionError, ColorDefinition,
+                            GENESIS_OUTPUT_MARKER,
+                            ColorTarget, SimpleColorValue)
 from wallet_model import ColorSet
 from txcons import BasicTxSpec, SimpleOperationalTxSpec
+
+
+class AssetMismatchError(Exception):
+    pass
 
 
 class WalletController(object):
@@ -19,6 +26,7 @@ class WalletController(object):
         """
         self.model = model
         self.debug = False
+        self.testing = False
 
     def publish_tx(self, signed_tx_spec):
         """Given a signed transaction <signed_tx_spec>, publish the transaction
@@ -26,23 +34,23 @@ class WalletController(object):
         side effect. Returns the transaction hash.
         """
         txhex = signed_tx_spec.get_hex_tx_data()
-        print txhex
         txhash = signed_tx_spec.get_hex_txhash()
         r_txhash = None
         bitcoind = self.model.ccc.blockchain_state.bitcoind
         try:
             r_txhash = bitcoind.sendrawtransaction(txhex)
-        except Exception as e:
-            print "got error %s from bitcoind" % e
+        except Exception as e:                      # pragma: no cover
+            print "got error %s from bitcoind" % e  # pragma: no cover
         
-        if r_txhash and (r_txhash != txhash):
-            raise Exception('bitcoind reports different txhash')
+        if r_txhash and (r_txhash != txhash) and not self.testing:
+            raise Exception('bitcoind reports different txhash')  # pragma: no cover
         
-        if r_txhash is None:
+        if r_txhash is None:                                      # pragma: no cover
             # bitcoind did not eat our txn, check if it is mempool
-            mempool = bitcoind.getrawmempool()
-            if txhash not in mempool:
-                raise Exception("bitcoind didn't accept the transaction")
+            mempool = bitcoind.getrawmempool()                    # pragma: no cover
+            if txhash not in mempool:                             # pragma: no cover
+                raise Exception(                                  # pragma: no cover
+                    "bitcoind didn't accept the transaction")     # pragma: no cover
 
         if signed_tx_spec.composed_tx_spec:
             self.model.txdb.add_signed_tx(txhash, signed_tx_spec)
@@ -55,24 +63,28 @@ class WalletController(object):
         """
         self.model.utxo_man.update_all()
 
-    def send_coins(self, asset, target_addrs, colorvalues):
+    def send_coins(self, asset, target_addrs, raw_colorvalues):
         """Sends coins to address <target_addr> of asset/color <asset>
         of amount <colorvalue> Satoshis.
         """
         tx_spec = BasicTxSpec(self.model)
         adm = self.model.get_asset_definition_manager()
-        for target_addr, colorvalue in zip(target_addrs, colorvalues):
+        colormap = self.model.get_color_map()
+        for target_addr, raw_colorvalue in zip(target_addrs, raw_colorvalues):
             # decode the address
             address_asset, address = adm.get_asset_and_address(target_addr)
             if asset != address_asset:
-                raise Exception("Address and asset don't match: %s %s" %
-                                (asset, address_asset))
-            tx_spec.add_target(address, asset, colorvalue)
+                raise AssetMismatchError("Address and asset don't match: %s %s" %
+                                         (asset, address_asset))
+            assettarget = AssetTarget(address,
+                                      AdditiveAssetValue(asset=asset,
+                                                         value=raw_colorvalue))
+            tx_spec.add_target(assettarget)
         signed_tx_spec = self.model.transform_tx_spec(tx_spec, 'signed')
         if self.debug:
             print "In:"
             for txin in signed_tx_spec.composed_tx_spec.txins:
-                print txin.utxo.value
+                print txin.prevout
             print "Out:"
             for txout in signed_tx_spec.composed_tx_spec.txouts:
                 print txout.value
@@ -88,14 +100,16 @@ class WalletController(object):
 
         color_definition_cls = ColorDefinition.get_color_def_cls_for_code(pck)
         if not color_definition_cls:
-            raise Exception('color scheme %s not recognized' % pck)
+            raise InvalidColorDefinitionError('color scheme %s not recognized' % pck)
 
         total = units * atoms_in_unit
         op_tx_spec = SimpleOperationalTxSpec(self.model, None)
         wam = self.model.get_address_manager()
         address = wam.get_new_genesis_address()
-        op_tx_spec.add_target(
-            address.get_address(), GENESIS_OUTPUT_MARKER, total)
+        colorvalue = SimpleColorValue(colordef=GENESIS_OUTPUT_MARKER,
+                                      value=total)
+        color_target = ColorTarget(address.get_address(), colorvalue)
+        op_tx_spec.add_target(color_target)
         genesis_ctxs = color_definition_cls.compose_genesis_tx_spec(op_tx_spec)
         genesis_tx = self.model.transform_tx_spec(genesis_ctxs, 'signed')
         height = self.model.ccc.blockchain_state.bitcoind.getblockcount() \
@@ -153,7 +167,7 @@ class WalletController(object):
                    'value': 0} for ar in ars]
         for utxo in utxo_list:
             i = addresses.index(utxo.address_rec.get_address())
-            retval[i]['value'] += asset.get_colorvalue(utxo)
+            retval[i]['value'] += asset.get_colorvalue(utxo).get_value()
         return retval
 
     def get_balance(self, asset):
@@ -163,7 +177,10 @@ class WalletController(object):
         cq = self.model.make_coin_query({"asset": asset})
         utxo_list = cq.get_result()
         value_list = [asset.get_colorvalue(utxo) for utxo in utxo_list]
-        return sum(value_list)
+        if len(value_list) == 0:
+            return 0
+        else:
+            return SimpleColorValue.sum(value_list).get_value()
 
     def get_history(self, asset):
         """Returns the history of an asset for all addresses of that color

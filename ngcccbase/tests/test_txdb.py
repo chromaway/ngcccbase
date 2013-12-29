@@ -4,24 +4,11 @@ import unittest
 
 import sqlite3
 
-from ngcccbase import txdb
-
-#######################################################
-# FIXME: The following imports
-#        will explode if not run from main directory
-#        this is a symptom of dumping stuff in the main
-#        directory, moving txcons into ngcccbase will
-#        resolve this
-import txcons
-import utxodb
-from address import Address
-######################################################
-
+from ngcccbase import txdb, txcons, utxodb
+from ngcccbase.address import LooseAddressRecord
 from coloredcoinlib import txspec
 
-import ecdsa
-
-from pycoin.tx.script import opcodes, tools
+from pycoin.tx.script import tools
 
 
 class TestTxDataStoreInitialization(unittest.TestCase):
@@ -32,51 +19,54 @@ class TestTxDataStoreInitialization(unittest.TestCase):
         self.assertTrue(store.table_exists("tx_address"))
 
 
-class AddressRec(object):
-    def __init__(self, address):
-        self.address = address
+class MockModel(object):
+    def is_testnet(self):
+        return False
 
 
-def fake_transaction(model=None):
-    key = ecdsa.SigningKey.from_string(
-        "\xe8\x00\xb8\xd4\xa1b\xb7o\x0f;\xf2\xcf\xca\xfd\x1a$\xb9\xa9"
-        "\xeb\x0b\x08X\x9f}9C\xe4\x88\xfdD\x11b", curve=ecdsa.curves.SECP256k1)
+def fake_transaction(model=MockModel()):
+    key = "5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF"
 
-    address = Address.fromPrivkey(key)
+    address = LooseAddressRecord(address_data=key)
     script = tools.compile(
         "OP_DUP OP_HASH160 {0} OP_EQUALVERIFY OP_CHECKSIG".format(
-            address.rawPubkey()[1:-4].encode("hex"))).encode("hex")
-    utxo = utxodb.UTXO("D34DB33F", 0, 1, script)
-    utxo.address_rec = object()
-    utxo.address_rec = AddressRec(address)
-    txin = txspec.ComposedTxSpec.TxIn(utxo)
-    txout = txspec.ComposedTxSpec.TxOut(1, address.pubkey)
+            address.rawPubkey().encode("hex"))).encode("hex")
+
+    txin = utxodb.UTXO("D34DB33F", 0, 1, script)
+    txin.address_rec = address
+    txout = txspec.ComposedTxSpec.TxOut(1, address.get_address())
     composed = txspec.ComposedTxSpec([txin], [txout])
-    return txcons.SignedTxSpec(model, composed, False), address
+    return txcons.RawTxSpec.from_composed_tx_spec(model, composed), address
 
 
 class TestTxDataStore(unittest.TestCase):
     def setUp(self):
         connection = sqlite3.connect(":memory:")
         self.store = txdb.TxDataStore(connection)
-        self.model = None
+        self.model = MockModel()
 
     def test_empty_signed_tx(self):
+        txhash = "FAKEHASH"
         transaction, address = fake_transaction(self.model)
-        self.store.add_signed_tx("FAKEHASH", transaction)
+        self.store.add_signed_tx(txhash, transaction)
 
         stored_id, stored_hash, stored_data, stored_status = \
-            self.store.get_tx_by_hash("FAKEHASH")
+            self.store.get_tx_by_hash(txhash)
 
-        self.assertEqual(stored_hash, "FAKEHASH")
+        self.assertEqual(stored_hash, txhash)
         self.assertEqual(stored_data, transaction.get_hex_tx_data())
 
     def test_signed_tx(self):
+        txhash = "FAKEHASH"
         transaction, address = fake_transaction(self.model)
-        self.store.add_signed_tx("FAKEHASH", transaction)
+        self.store.add_signed_tx(txhash, transaction)
 
-        txes = self.store.get_tx_by_output_address(address.pubkey)
-        (stored_hash, stored_data, stored_status) = txes.fetchone()
+        txes = self.store.get_tx_by_output_address(address.get_address())
+        stored_hash, stored_data, stored_status = txes.fetchone()
 
-        self.assertEqual(stored_hash, "FAKEHASH")
+        self.assertEqual(stored_hash, txhash)
         self.assertEqual(stored_data, transaction.get_hex_tx_data())
+
+
+if __name__ == '__main__':
+    unittest.main()

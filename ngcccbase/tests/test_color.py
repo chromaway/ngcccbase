@@ -13,16 +13,13 @@ from ngcccbase.color import ColoredCoinContext
 class TestColor(unittest.TestCase):
 
     def setUp(self):
-        self.path = 'testcolor.db'
+        self.path = ":memory:"
         c = {
             'ccc': {'colordb_path': self.path},
             'testnet': False,
             }
         self.address = '5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF'
         self.ccc = ColoredCoinContext(c)
-
-    def tearDown(self):
-        os.remove(self.path)
 
     def test_init(self):
         self.assertTrue(self.ccc.colordata)

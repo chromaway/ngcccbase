@@ -3,7 +3,11 @@ from ..protocol_objects import MyEOffer, EOffer
 from ..agent import EAgent
 from ..comm import CommBase
 
+from coloredcoinlib import (SimpleColorValue,
+                            OBColorDefinition, UNCOLORED_MARKER)
+
 import unittest
+
 
 class MockAddressRecord(object):
     def __init__(self, address):
@@ -21,6 +25,8 @@ class MockWAM(object):
 class MockUTXO(object):
     def __init__(self):
         self.value = 100
+        self.colorvalues = [SimpleColorValue(colordef=UNCOLORED_MARKER,
+                                             value=300000)]
     def get_outpoint(self):
         return ('outp1', 1)
 
@@ -83,13 +89,15 @@ class TestMockP2PTrade(unittest.TestCase):
         # no messages should have been sent to the network
         self.assertEqual(len(comm.get_messages()), 0)
 
-        my_offer = MyEOffer(None,
-                            {"color_spec": "xxx", "value": 100},
-                            {"color_spec": "yyy", "value": 200})
+        self.cd = OBColorDefinition(1, {'txhash': 'xxx',
+                                        'outindex': 0, 'height':0})
 
-        their_offer = EOffer('abcdef',
-                             {"color_spec": "yyy", "value": 200},
-                             {"color_spec": "xxx", "value": 100})
+        cv0 = SimpleColorValue(colordef=UNCOLORED_MARKER, value=100)
+        cv1 = SimpleColorValue(colordef=self.cd, value=200)
+
+        my_offer = MyEOffer(None, cv0, cv1)
+
+        their_offer = EOffer('abcdef', cv1, cv0)
 
         agent.register_my_offer(my_offer)
         agent.register_their_offer(their_offer)

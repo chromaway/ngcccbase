@@ -1,17 +1,16 @@
 import time
-import binascii
+
+from coloredcoinlib import IncompatibleTypesError
 from ngcccbase.txcons import RawTxSpec
 
-def make_random_id():
-    import os
-    bits = os.urandom(8)
-    return binascii.hexlify(bits)
+from utils import make_random_id
 
 
 class EOffer(object):
-    # A = offerer's side, B = replyer's side
-    # ie. offerer says "I want to give you A['value'] coins of color
-    # A['colorid'] and receive B['value'] coins of color B['colorid']"
+    """
+    A is the offer side's ColorValue
+    B is the replyer side's ColorValue
+    """
     def __init__(self, oid, A, B):
         self.oid = oid or make_random_id()
         self.A = A
@@ -31,25 +30,10 @@ class EOffer(object):
 
     def matches(self, offer):
         """A <=x=> B"""
-        def prop_matches(name):
-            if (self.A[name] == offer.B[name]) \
-                    and (self.B[name] == offer.A[name]):
-                return True
-        return prop_matches('value') and prop_matches('color_spec')
+        return self.A == offer.B and offer.A == self.B
 
     def is_same_as_mine(self, my_offer):
-        def checkprop(name):
-            if self.A[name] != my_offer.A[name]:
-                return False
-            if self.B[name] != my_offer.B[name]:
-                return False
-            return True
-
-        if not checkprop('color_spec'):
-            return False
-        if not checkprop('value'):
-            return False
-        return True
+        return self.A == my_offer.A and self.B == my_offer.B
 
     @classmethod
     def from_data(cls, data):
@@ -148,7 +132,7 @@ class ForeignEProposal(EProposal):
 
     def accept(self, my_offer):
         if not self.offer.is_same_as_mine(my_offer):
-            raise Exception("incompatible offer")
+            raise Exception("incompatible offer")          # pragma: no cover
         if not self.etx_spec:
-            raise Exception("need etx_spec")
+            raise Exception("need etx_spec")               # pragma: no cover
         return MyReplyEProposal(self.ewctrl, self, my_offer)

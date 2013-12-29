@@ -2,23 +2,20 @@
 
 import unittest
 
-from coloredcoinlib import ColorSet
+from coloredcoinlib import OBColorDefinition, ColorSet, SimpleColorValue, IncompatibleTypesError
 from coloredcoinlib.tests.test_colorset import MockColorMap
+from coloredcoinlib.tests.test_txspec import MockUTXO
 
-from ngcccbase.asset import AssetDefinition, AssetDefinitionManager
+from ngcccbase.asset import (AssetDefinition, AdditiveAssetValue,
+                             AssetTarget, AssetDefinitionManager)
 
-
-class MockUTXO:
-    def __init__(self, value, cvs):
-        self.value = value
-        self.colorvalues = cvs
 
 class TestAssetDefinition(unittest.TestCase):
 
     def setUp(self):
         self.colormap = MockColorMap()
         d = self.colormap.d
-        self.colorset0 = ColorSet(self.colormap, [d[0]])
+        self.colorset0 = ColorSet(self.colormap, [''])
         self.colorset1 = ColorSet(self.colormap, [d[1], d[2]])
         self.colorset2 = ColorSet(self.colormap, [d[3]])
         self.def0 = {'monikers': ['bitcoin'],
@@ -33,6 +30,14 @@ class TestAssetDefinition(unittest.TestCase):
         self.asset0 = AssetDefinition(self.colormap, self.def0)
         self.asset1 = AssetDefinition(self.colormap, self.def1)
         self.asset2 = AssetDefinition(self.colormap, self.def2)
+
+        self.assetvalue0 = AdditiveAssetValue(asset=self.asset0, value=5)
+        self.assetvalue1 = AdditiveAssetValue(asset=self.asset0, value=6)
+        self.assetvalue2 = AdditiveAssetValue(asset=self.asset1, value=7)
+
+        self.assettarget0 = AssetTarget('address0', self.assetvalue0)
+        self.assettarget1 = AssetTarget('address1', self.assetvalue1)
+        self.assettarget2 = AssetTarget('address2', self.assetvalue2)
 
         config = {'asset_definitions': [self.def1, self.def2]}
         self.adm = AssetDefinitionManager(self.colormap, config)
@@ -56,13 +61,24 @@ class TestAssetDefinition(unittest.TestCase):
         self.assertTrue(self.asset2.get_color_set().equals(self.colorset2))
 
     def test_get_colorvalue(self):
-        utxo = MockUTXO(5,[[1,2],[2,3],[3,4]])
+        g = {'txhash':'blah', 'height':1, 'outindex':0}
+        cid0 = list(self.colorset0.color_id_set)[0]
+        cdef0 = OBColorDefinition(cid0, g)
+        cid1 = list(self.colorset1.color_id_set)[0]
+        cdef1 = OBColorDefinition(cid1, g)
+        cid2 = list(self.colorset2.color_id_set)[0]
+        cdef2 = OBColorDefinition(cid2, g)
+        cv0 = SimpleColorValue(colordef=cdef0, value=1)
+        cv1 = SimpleColorValue(colordef=cdef1, value=2)
+        cv2 = SimpleColorValue(colordef=cdef2, value=3)
 
-        self.assertEquals(self.asset0.get_colorvalue(utxo), 5)
-        self.assertEquals(self.asset1.get_colorvalue(utxo), 2)
-        self.assertEquals(self.asset2.get_colorvalue(utxo), 4)
+        utxo = MockUTXO([cv0, cv1, cv2])
 
-        utxo = MockUTXO(5,[[5,2],[6,3],[3,4]])
+        self.assertEquals(self.asset0.get_colorvalue(utxo), cv0)
+        self.assertEquals(self.asset1.get_colorvalue(utxo), cv1)
+        self.assertEquals(self.asset2.get_colorvalue(utxo), cv2)
+
+        utxo = MockUTXO([cv0, cv2])
         self.assertRaises(Exception, self.asset1.get_colorvalue, utxo)
 
     def test_parse_value(self):
@@ -108,6 +124,55 @@ class TestAssetDefinition(unittest.TestCase):
         self.assertEquals(asset.__repr__(), self.asset0.__repr__())
         self.assertEquals(addr, address)
         self.assertRaises(Exception, self.adm.get_asset_and_address, '0@0')
+
+    def test_add(self):
+        assetvalue3 = self.assetvalue0 + self.assetvalue1
+        self.assertEqual(assetvalue3.get_value(), 11)
+        assetvalue3 = 0 + self.assetvalue1
+        self.assertEqual(assetvalue3.get_value(), 6)
+        self.assertRaises(IncompatibleTypesError, self.assetvalue0.__add__,
+                          self.assetvalue2)
+
+    def test_iadd(self):
+        assetvalue = self.assetvalue0.clone()
+        assetvalue += self.assetvalue1
+        self.assertEqual(assetvalue.get_value(), 11)
+
+    def test_sub(self):
+        assetvalue = self.assetvalue1 - self.assetvalue0
+        self.assertEqual(assetvalue.get_value(), 1)
+        assetvalue = self.assetvalue1 - 0
+        self.assertEqual(assetvalue.get_value(), self.assetvalue1.get_value())
+
+    def test_lt(self):
+        self.assertTrue(self.assetvalue0 < self.assetvalue1)
+        self.assertTrue(self.assetvalue1 > self.assetvalue0)
+        self.assertTrue(self.assetvalue1 >= self.assetvalue0)
+        self.assertTrue(self.assetvalue1 > 0)
+
+    def test_sum(self):
+        assetvalues = [self.assetvalue0, self.assetvalue1,
+                       AdditiveAssetValue(asset=self.asset0, value=3)]
+        self.assertEqual(AdditiveAssetValue.sum(assetvalues).get_value(), 14)
+
+    def test_get_asset(self):
+        self.assertEqual(self.assettarget0.get_asset(), self.asset0)
+
+    def test_get_value(self):
+        self.assertEqual(self.assettarget0.get_value(), self.assetvalue0.get_value())
+
+    def test_sum(self):
+        assettargets = [self.assettarget0, self.assettarget1,
+                        AssetTarget('address3',self.assettarget1)]
+        self.assertEqual(AssetTarget.sum(assettargets).get_value(), 17)
+        self.assertEqual(AssetTarget.sum([]), 0)
+
+    def test_get_address(self):
+        self.assertEqual(self.assettarget0.get_address(), 'address0')
+
+    def test_repr(self):
+        self.assertEqual(self.assettarget0.__repr__(), 'address0: Asset Value: 5')
+
 
 if __name__ == '__main__':
     unittest.main()

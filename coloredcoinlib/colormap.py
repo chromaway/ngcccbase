@@ -1,4 +1,5 @@
 from colordef import ColorDefinition, UNCOLORED_MARKER
+from txspec import InvalidColorIdError
 
 
 class ColorMap(object):
@@ -21,7 +22,7 @@ class ColorMap(object):
 
     def get_color_def(self, color_id_or_desc):
         """ Finds a color definition given an id or description """
-        if color_id_or_desc == 0:
+        if color_id_or_desc == 0 or color_id_or_desc == '':
             return UNCOLORED_MARKER
         color_id = color_id_or_desc
         color_desc = None
@@ -33,7 +34,7 @@ class ColorMap(object):
         if not color_desc:
             color_desc = self.find_color_desc(color_id)
             if not color_desc:
-                raise Exception("color id not found")
+                raise InvalidColorIdError("color id not found")
         cd = ColorDefinition.from_color_desc(
             color_id, color_desc)
         self.colordefs[color_id] = cd

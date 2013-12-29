@@ -8,7 +8,7 @@ BASE_URL = "http://abe.bitcontracts.org"
 def get_spends(tx, blockchain_state):
     """ Returns transactions which spend outputs from a given transaction
     """
-    url = 'http://explorer.tumak.cz/spends/%s' % tx
+    url = '%s/spends/%s' % (BASE_URL, tx)
     response = urllib2.urlopen(url)
     ret = []
     for i, tx_hash, output_n in json.load(response):
