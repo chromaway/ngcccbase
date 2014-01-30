@@ -8,7 +8,7 @@ This command will start a server at hostname/port that takes
 in JSON-RPC commands for execution.
 """
 
-from rpc_interface import RPCRequestHandler
+from ngcccbase.rpc_interface import RPCRequestHandler
 from BaseHTTPServer import HTTPServer
 import sys
 import getopt
