@@ -101,7 +101,7 @@ You need to configure a bitcoin.conf with rpcuser and rpcpassword in
 
 An easy way to install a python, PyQt4 and sip is with homebrew, `brew install python pyqt`
 
-If bugs persist intall pycoin library through github.
+Make sure to install the pycoin library through github.
 
 `git clone https://github.com/richardkiss/pycoin`
 
