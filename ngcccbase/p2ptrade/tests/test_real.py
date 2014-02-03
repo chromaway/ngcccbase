@@ -15,7 +15,7 @@ class MockComm(object):
     def add_peer(self, peer):
         self.peers.append(peer)
     def post_message(self, content):
-        print content
+        print (content)
         for peer in self.peers:
             peer.process_message(content)
     def process_message(self, content):

@@ -306,4 +306,4 @@ class UTXOManager(object):
 if __name__ == "__main__":
     # test the UTXOFetcher
     uf = UTXOFetcher(dict(interface='testnet'))
-    print uf.get_for_address("n3kJcsapnFU5Gna9Y1dMwDNpbTFVmYFR4o")
+    print (uf.get_for_address("n3kJcsapnFU5Gna9Y1dMwDNpbTFVmYFR4o"))

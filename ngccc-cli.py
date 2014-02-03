@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python
 """
 ngccc-cli.py
@@ -232,14 +233,14 @@ class Application(object):
         wc = self.wallet.wallet_config
         for name in kwargs['key'].split('.'):
             wc = wc[name]
-        print json.dumps(wc, indent=4)
+        print (json.dumps(wc, indent=4))
 
     def command_dump_config(self, **kwargs):
         """Returns a JSON dump of the current configuration.
         """
         config = self.wallet.wallet_config
         dict_config = dict(config.iteritems())
-        print json.dumps(dict_config, indent=4)
+        print (json.dumps(dict_config, indent=4))
 
     def command_addasset(self, **kwargs):
         """Imports a color definition. This is useful if someone else has
@@ -265,21 +266,21 @@ class Application(object):
         """
         asset = self.get_asset_definition(kwargs['moniker'])
         addr = self.controller.get_new_address(asset)
-        print addr.get_color_address()
+        print (addr.get_color_address())
 
     def command_alladdresses(self, **kwargs):
         """Lists all addresses for a given asset/color
         """
         asset = self.get_asset_definition(kwargs['moniker'])
         for addr in self.controller.get_all_addresses(asset):
-            print addr.get_color_address()
+            print (addr.get_color_address())
 
     def command_allassets(self, **kwargs):
         """Lists all assets (moniker/color_hash) registered
         """
         for asset in self.controller.get_all_assets():
-            print "%s: %s" % (', '.join(asset.monikers),
-                              asset.get_color_set().get_color_hash())
+            print ("%s: %s" % (', '.join(asset.monikers),
+                              asset.get_color_set().get_color_hash()))
 
     def command_addressbalance(self, **kwargs):
         """Returns the balance in Satoshi for a particular asset/color.
@@ -287,15 +288,15 @@ class Application(object):
         """
         asset = self.get_asset_definition(kwargs['moniker'])
         for row in self.controller.get_address_balance(asset):
-            print "%s: %s" % (row['color_address'],
-                              asset.format_value(row['value']))
+            print ("%s: %s" % (row['color_address'],
+                              asset.format_value(row['value'])))
 
     def command_balance(self, **kwargs):
         """Returns the balance in Satoshi for a particular asset/color.
         "bitcoin" is the generic uncolored coin.
         """
         asset = self.get_asset_definition(kwargs['moniker'])
-        print asset.format_value(self.controller.get_balance(asset))
+        print (asset.format_value(self.controller.get_balance(asset)))
 
     def command_send(self, **kwargs):
         """Send some amount of an asset/color to an address
@@ -316,8 +317,8 @@ class Application(object):
         history = self.controller.get_history(asset)
         for item in history:
             mempool = "(mempool)" if item['mempool'] else ""
-            print "%s %s %s %s" % (
-                item['action'], item['value'], item['address'], mempool)
+            print ("%s %s %s %s" % (
+                item['action'], item['value'], item['address'], mempool))
 
     def init_p2ptrade(self):
         from ngcccbase.p2ptrade.ewctrl import EWalletController
@@ -356,7 +357,7 @@ class Application(object):
         agent = self.init_p2ptrade()
         agent.update()
         for offer in agent.their_offers.values():
-            print offer.get_data()
+            print (offer.get_data())
 
     def command_p2p_sell(self, **kwargs):
         agent = self.init_p2ptrade()

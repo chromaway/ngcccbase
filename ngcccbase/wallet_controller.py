@@ -40,7 +40,7 @@ class WalletController(object):
         try:
             r_txhash = bitcoind.sendrawtransaction(txhex)
         except Exception as e:                      # pragma: no cover
-            print "got error %s from bitcoind" % e  # pragma: no cover
+            print ("got error %s from bitcoind" % e)  # pragma: no cover
         
         if r_txhash and (r_txhash != txhash) and not self.testing:
             raise Exception('bitcoind reports different txhash')  # pragma: no cover
@@ -82,12 +82,12 @@ class WalletController(object):
             tx_spec.add_target(assettarget)
         signed_tx_spec = self.model.transform_tx_spec(tx_spec, 'signed')
         if self.debug:
-            print "In:"
+            print ("In:")
             for txin in signed_tx_spec.composed_tx_spec.txins:
-                print txin.prevout
-            print "Out:"
+                print (txin.prevout)
+            print ("Out:")
             for txout in signed_tx_spec.composed_tx_spec.txouts:
-                print txout.value
+                print (txout.value)
         txhash = self.publish_tx(signed_tx_spec)
         # scan the tx so that the rest of the system knows
         self.model.ccc.colordata.cdbuilder_manager.scan_txhash(

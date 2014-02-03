@@ -60,7 +60,7 @@ class ElectrumInterface(object):
         self.sock = sock
         self.is_connected = True
         if self.debug:
-            print "connected to %s:%s" % self.connection  # pragma: no cover
+            print ("connected to %s:%s" % self.connection ) # pragma: no cover
         return True
 
     def wait_for_response(self, target_id):
@@ -73,9 +73,9 @@ class ElectrumInterface(object):
                 try:
                     msg = self.sock.recv(1024)
                     if self.debug:
-                        print msg  # pragma: no cover
+                        print (msg)  # pragma: no cover
                 except socket.timeout:         # pragma: no cover
-                    print "socket timed out"   # pragma: no cover
+                    print ("socket timed out")   # pragma: no cover
                     self.is_connected = False  # pragma: no cover
                     continue                   # pragma: no cover
                 except socket.error:                      # pragma: no cover
@@ -106,7 +106,7 @@ class ElectrumInterface(object):
                             return result
                     else:
                         # just print it for now
-                        print message                           # pragma: no cover
+                        print (message)                          # pragma: no cover
         except:                                   # pragma: no cover
             traceback.print_exc(file=sys.stdout)  # pragma: no cover
 

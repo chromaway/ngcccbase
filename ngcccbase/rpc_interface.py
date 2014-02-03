@@ -87,13 +87,13 @@ def setval(self, key, value):
     Key is expressed like so: key.subkey.subsubkey
     """
     if not (key and value):
-        print "setval command expects:  key value"
+        print ("setval command expects:  key value")
         return
     kpath = key.split('.')
     try:
         value = json.loads(value)
     except ValueError:
-        print "didn't understand the value: %s" % value
+        print ("didn't understand the value: %s" % value)
         return
     try:
         # traverse the path until we get to the value we
@@ -107,7 +107,7 @@ def setval(self, key, value):
             value = branch
         self.wallet.wallet_config[kpath[0]] = value
     except TypeError:
-        print "could not set the key: %s" % key
+        print ("could not set the key: %s" % key)
 
 
 def getval(self, key):
@@ -115,7 +115,7 @@ def getval(self, key):
     Key is expressed like so: key.subkey.subsubkey
     """
     if not key:
-        print "getval command expects:  key"
+        print ("getval command expects:  key")
         return
     kpath = key.split('.')
     cv = self.wallet.wallet_config
@@ -123,9 +123,9 @@ def getval(self, key):
         # traverse the path until we get the value
         for k in kpath:
             cv = cv[k]
-        print json.dumps(cv)
+        print (json.dumps(cv))
     except (KeyError, TypeError):
-        print "could not find the key: %s" % key
+        print ("could not find the key: %s" % key)
 
 
 def send(moniker, address, amount):

@@ -18,7 +18,7 @@ import getopt
 try:
     opts, args = getopt.getopt(sys.argv[1:], "", "")
 except getopt.GetoptError:
-    print "python ngccc.py hostname port"
+    print ("python ngccc-server.py hostname port")
     sys.exit(2)
 hostname = args[0]
 port = int(args[1])
@@ -29,5 +29,5 @@ http_server = HTTPServer(
 )
 
 # start the server
-print "Starting HTTP server on http://%s:%s" % (hostname, port)
+print ("Starting HTTP server on http://%s:%s" % (hostname, port))
 http_server.serve_forever()
