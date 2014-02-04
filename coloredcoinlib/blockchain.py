@@ -117,6 +117,9 @@ class BlockchainState(object):
             return None, False
         return raw.get('blockhash', None), True
 
+    def get_raw(self, txhash):
+        return self.bitcoind.getrawtransaction(txhash, 0)
+
     def get_tx(self, txhash):
         txhex = self.bitcoind.getrawtransaction(txhash, 0)
         txbin = bitcoin.core.x(txhex)
