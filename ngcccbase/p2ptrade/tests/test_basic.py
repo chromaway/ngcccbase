@@ -70,7 +70,7 @@ class MockComm(CommBase):
     def poll_and_dispatch(self):
         pass
     def post_message(self, message):
-        print message
+        print (message)
         self.messages_sent.append(message)
     def get_messages(self):
         return self.messages_sent
