@@ -134,9 +134,13 @@ class FullScanColorDataBuilder(BasicColorDataBuilder):
         self.scan_blockchain(blocklist)
 
 
-class AidedColorDataBuilder(FullScanColorDataBuilder):
+class AidedColorDataBuilder(BasicColorDataBuilder):
     """Color data builder based on following output spending transactions
         from the color's genesis transaction output, for one specific color"""
+
+    def __init__(self, cdstore, blockchain_state, colordef, metastore):
+        super(AidedColorDataBuilder, self).__init__(
+            cdstore, blockchain_state, colordef, metastore)
 
     def scan_blockchain(self, blocklist):
         txo = self.colordef.genesis.copy()

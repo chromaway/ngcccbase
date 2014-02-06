@@ -15,6 +15,7 @@ requires = [
     'bunch',
     'python-jsonrpc',
     'python-bitcoinlib',
+    'web.py',
 ]
 
 dependency_links = [

@@ -1,9 +1,11 @@
 from pycoin.encoding import hash160_sec_to_bitcoin_address
 
 from coloredcoinlib import (BlockchainState, ColorDataBuilderManager,
-                            FullScanColorDataBuilder, DataStoreConnection,
-                            ColorDataStore, ColorMetaStore, ColorMap,
-                            ThickColorData)
+                            AidedColorDataBuilder, FullScanColorDataBuilder,
+                            DataStoreConnection, ColorDataStore,
+                            ColorMetaStore, ColorMap,
+                            ThinColorData, ThickColorData)
+from services.chroma import ChromaBlockchainState
 from services.electrum import EnhancedBlockchainState
 
 
@@ -16,11 +18,21 @@ class ColoredCoinContext(object):
     def __init__(self, config):
         """Creates a Colored Coin Context given a config <config>
         """
-        params = config.get('ccc', {})
-        self.testnet = config.get('testnet', False)
-        self.blockchain_state = BlockchainState.from_url(None, self.testnet)
+        params = config.get('ccc', {'thin':True})
 
-        if not self.testnet:
+        color_data_class = ThickColorData
+        color_data_builder = FullScanColorDataBuilder
+        blockchain_state_class = BlockchainState
+        if params.get('thin'):
+            color_data_class = ThinColorData
+            color_data_builder = AidedColorDataBuilder
+            blockchain_state_class = ChromaBlockchainState
+
+        self.testnet = config.get('testnet', False)
+        self.blockchain_state = blockchain_state_class.from_url(
+            None, self.testnet)
+
+        if not params.get('thin') and not self.testnet:
             try:
                 # try fetching transaction from the second block of
                 # the bitcoin blockchain to see whether txindex works
@@ -40,9 +52,9 @@ class ColoredCoinContext(object):
 
         cdbuilder = ColorDataBuilderManager(
             self.colormap, self.blockchain_state, self.cdstore,
-            self.metastore, FullScanColorDataBuilder)
+            self.metastore, color_data_builder)
 
-        self.colordata = ThickColorData(
+        self.colordata = color_data_class(
             cdbuilder, self.blockchain_state, self.cdstore, self.colormap)
 
     def raw_to_address(self, raw_address):
