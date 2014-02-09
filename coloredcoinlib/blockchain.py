@@ -26,6 +26,7 @@ class COutpoint(object):
 class CTxIn(object):
     def __init__(self, op_hash, op_n):
         self.prevout = COutpoint(op_hash, op_n)
+        self.nSequence = None
 
     def get_txhash(self):
         if self.prevout.hash == 'coinbase':
@@ -35,6 +36,9 @@ class CTxIn(object):
 
     def get_outpoint(self):
         return (self.prevout.hash, self.prevout.n)
+
+    def set_nSequence(self, nSequence):
+        self.nSequence = nSequence
 
 
 class CTxOut(object):

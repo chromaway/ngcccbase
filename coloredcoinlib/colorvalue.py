@@ -60,6 +60,11 @@ class AdditiveColorValue(ColorValue, ComparableMixin):
         kwargs['value'] = self.get_value() + other.get_value()
         return self.__class__(**kwargs)
 
+    def __neg__(self):
+        kwargs = self.get_kwargs()
+        kwargs['value'] = - self.get_value()
+        return self.__class__(**kwargs)
+
     def __radd__(self, other):
         return self + other
 

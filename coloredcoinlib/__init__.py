@@ -8,7 +8,7 @@ from builder import (ColorDataBuilderManager,
 from colordata import ThickColorData, ThinColorData
 from colordef import (InvalidColorDefinitionError,
                       GENESIS_OUTPUT_MARKER, UNCOLORED_MARKER,
-                      ColorDefinition, OBColorDefinition, POBColorDefinition)
+                      ColorDefinition, OBColorDefinition, EPOBCColorDefinition)
 from colormap import ColorMap
 from colorset import ColorSet
 from colorvalue import (IncompatibleTypesError, InvalidValueError,

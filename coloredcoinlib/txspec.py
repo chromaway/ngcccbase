@@ -65,6 +65,12 @@ class OperationalTxSpec(object):
         a certain tx size"""
         raise Exception('not implemented')  # pragma: no cover
 
+    def get_dust_threshold(self):
+        """returns ColorValue object representing smallest 
+        satoshi value which isn't dust according to current
+        parameters"""
+        raise Exception('not implemented')  # pragma: no cover
+
     def is_monocolor(self):
         targets = self.get_targets()
         color_def = targets[0].get_colordef()

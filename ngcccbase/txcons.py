@@ -160,6 +160,9 @@ class SimpleOperationalTxSpec(OperationalTxSpec):
         # TODO: this should change to something dependent on tx_size
         return SimpleColorValue(colordef=UNCOLORED_MARKER, value=10000)
 
+    def get_dust_threshold(self):
+        return SimpleColorValue(colordef=UNCOLORED_MARKER, value=10000)
+
 
 class RawTxSpec(object):
     """Represents a transaction which can be serialized.

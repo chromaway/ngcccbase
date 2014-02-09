@@ -76,6 +76,19 @@ class ColorDefinition(object):
 GENESIS_OUTPUT_MARKER = ColorDefinition(-1)
 UNCOLORED_MARKER = ColorDefinition(0)
 
+def group_targets_by_color(targets, compat_cls):
+    # group targets by color
+    targets_by_color = defaultdict(list)
+    # group targets by color
+    for target in targets:
+        color_def = target.get_colordef()
+        if color_def == UNCOLORED_MARKER \
+                or isinstance(color_def, compat_cls):
+            targets_by_color[color_def.color_id].append(target)
+        else:
+            raise InvalidColorError('incompatible color definition')
+    return targets_by_color
+
 
 class GenesisColorDefinition(ColorDefinition):
 
@@ -207,17 +220,8 @@ class OBColorDefinition(GenesisColorDefinition):
         return txspec.ComposedTxSpec(inputs, txouts)
 
     def compose_tx_spec(self, op_tx_spec):
-        targets_by_color = defaultdict(list)
-        uncolored_targets = []
-        # group targets by color
-        for target in op_tx_spec.get_targets():
-            color_def = target.get_colordef()
-            if color_def == UNCOLORED_MARKER:
-                uncolored_targets.append(target)
-            elif isinstance(color_def, OBColorDefinition):
-                targets_by_color[color_def.color_id].append(target)
-            else:
-                raise InvalidColorError('incompatible color definition')
+        targets_by_color = group_targets_by_color(op_tx_spec.get_targets(), self.__class__)
+        uncolored_targets = targets_by_color.pop(UNCOLORED_MARKER.color_id, [])
         # get inputs for each color
         colored_inputs = []
         colored_targets = []
@@ -246,273 +250,257 @@ class OBColorDefinition(GenesisColorDefinition):
         return txspec.ComposedTxSpec(txins, txouts)
 
 
-class POBColorDefinition(GenesisColorDefinition):
+def uint_to_bit_list(n, bits=32):
+    """little-endian"""
+    return [1 & (n >> i) for i in range(bits)]
 
-    CLASS_CODE = 'pobc'
-    PADDING = 10000
+def bit_list_to_uint(bits):
+    number = 0
+    factor = 1
+    for b in bits:
+        if b == 1:
+            number += factor
+        factor *= 2
+    return number
+
+class EPOBCColorDefinition(GenesisColorDefinition):
+    CLASS_CODE = 'epobc'
+
+    class Tag(object):
+        XFER_TAG_BITS = [1, 1, 0, 0, 1, 1]
+        GENESIS_TAG_BITS = [1, 0, 1, 0, 0, 1]
+        def __init__(self, padding_code, is_genesis):
+            self.is_genesis = is_genesis
+            self.padding_code = padding_code
+
+        @classmethod
+        def closest_padding_code(cls, min_padding):
+            if min_padding <= 0:
+                return 0
+            padding_code = 1
+            while 2 ** padding_code < min_padding:
+                padding_code += 1
+            if padding_code > 63:
+                raise Exception('requires too much padding')
+            return padding_code
+
+        @classmethod
+        def from_nSequence(cls, nSequence):
+            print nSequence
+            bits = uint_to_bit_list(nSequence)
+            tag_bits = bits[0:6]
+            
+            if ((tag_bits != cls.XFER_TAG_BITS) and
+                (tag_bits != cls.GENESIS_TAG_BITS)):
+                return None
+            
+            padding_code = bit_list_to_uint(bits[6:12])
+            return cls(padding_code, tag_bits == cls.GENESIS_TAG_BITS)
+        
+        def to_nSequence(self):
+            if self.is_genesis:
+                bits = self.GENESIS_TAG_BITS[:]
+            else:
+                bits = self.XFER_TAG_BITS[:]
+            bits += uint_to_bit_list(self.padding_code,
+                                     6)
+            bits += [0] * (32 - 12)
+            return bit_list_to_uint(bits)
+
+        def get_padding(self):
+            if self.padding_code == 0:
+                return 0
+            else:
+                return 2 ** self.padding_code
+
+    @classmethod
+    def get_tag(cls, tx):
+        if tx.raw.vin[0].prevout.is_null():
+            # coinbase tx is neither genesis nor xfer
+            return None
+        else:
+            return cls.Tag.from_nSequence(tx.raw.vin[0].nSequence)
+
+    @classmethod
+    def get_xfer_affecting_inputs(cls, tx, padding, out_index):
+        tx.ensure_input_values()
+        out_prec_sum = 0
+        for oi in range(out_index):
+            value_wop = tx.outputs[oi].value - padding
+            if value_wop <= 0:
+                return set()
+            out_prec_sum += value_wop
+        out_value_wop = tx.outputs[out_index].value - padding
+        if out_value_wop <= 0:
+            return set()
+        affecting_inputs = set()
+        input_running_sum = 0
+        for ii, inp in enumerate(tx.inputs):
+            value_wop = tx.inputs[ii].value - padding
+            if value_wop <= 0:
+                break
+            if ((input_running_sum < (out_prec_sum + out_value_wop)) and
+                ((input_running_sum + value_wop) > out_prec_sum)):
+                affecting_inputs.add(ii)
+        return affecting_inputs
+
 
     def run_kernel(self, tx, in_colorvalues):
-        """Computes the output colorvalues"""
+        tag = self.get_tag(tx)
+        if tag is None:
+            return [None] * len(tx.outputs)
+        if tag.is_genesis:
+            if tx.hash == self.genesis['txhash']:
+                value_wop = tx.outputs[0].value - tag.get_padding()
+                if value_wop > 0:
+                    return ([SimpleColorValue(colordef=self,
+                                              value=value_wop)] + 
+                            [None] * (len(tx.outputs) - 1))
+            # we get here if it is a genesis for a different color
+            # or if genesis transaction is misconstructed
+            return [None] * len(tx.outputs)
 
-        is_genesis = (tx.hash == self.genesis['txhash'])
-
-        # it turns out having a running sum in an array is easier
-        #  than constructing segments
-        input_running_sums = []
-        ZERO_COLORVALUE = SimpleColorValue(colordef=self, value=0)
-        running_sum = ZERO_COLORVALUE.clone()
         tx.ensure_input_values()
-        for element in tx.inputs:
-            colorvalue = self.satoshi_to_color(element.value)
-            if colorvalue <= ZERO_COLORVALUE:
-                break
-            running_sum += colorvalue
-            input_running_sums.append(running_sum.clone())
-
-        output_running_sums = []
-        running_sum = ZERO_COLORVALUE.clone()
-        for element in tx.outputs:
-            colorvalue = self.satoshi_to_color(element.value)
-            if colorvalue <= ZERO_COLORVALUE:
-                break
-            running_sum += colorvalue
-            output_running_sums.append(running_sum.clone())
-
-        # default is that every output has a null colorvalue
-        out_colorvalues = [None for i in output_running_sums]
-
-        # see if this is a genesis transaction
-        if is_genesis:
-            # adjust the single genesis index to have the right value
-            #  and return it
-            i = self.genesis['outindex']
-            out_colorvalues[i] = self.satoshi_to_color(tx.outputs[i].value)
-            return out_colorvalues
-
-        # determine if the in_colorvalues are well-formed:
-        # after that, there should be some number of non-null values
-        # if another null is hit, there should be no more non-null values
-        nonnull_sequences = 0
-        if in_colorvalues[0] is None:
-            current_sequence_is_null = True
-            input_color_start = None
-        else:
-            current_sequence_is_null = False
-            input_color_start = 0
-        input_color_end = None
-        for i, colorvalue in enumerate(in_colorvalues):
-            if colorvalue is not None and current_sequence_is_null:
-                current_sequence_is_null = False
-                input_color_start = i
-            elif colorvalue is None and not current_sequence_is_null:
-                current_sequence_is_null = True
-                input_color_end = i - 1
-                nonnull_sequences += 1
-        if not current_sequence_is_null:
-            nonnull_sequences += 1
-            input_color_end = len(in_colorvalues) - 1
-
-        if nonnull_sequences > 1:
-            return out_colorvalues
-
-        # now figure out which segments correspond in the output
-        if input_color_start == 0:
-            sum_before_sequence = ZERO_COLORVALUE.clone()
-        else:
-            sum_before_sequence = input_running_sums[input_color_start - 1]
-        sum_after_sequence = input_running_sums[input_color_end]
-
-        # the sum of the segment before the sequence must be equal
-        #  as the sum of the sequence itself must also be equal
-        if (sum_before_sequence != ZERO_COLORVALUE
-            and sum_before_sequence not in output_running_sums) or \
-                sum_after_sequence not in output_running_sums:
-            # this means we don't have matching places to start and/or end
-            return out_colorvalues
-
-        # now we know exactly where the output color sequence should start
-        #  and end
-        if sum_before_sequence == ZERO_COLORVALUE:
-            output_color_start = 0
-        else:
-            output_color_start = output_running_sums.index(
-                sum_before_sequence) + 1
-        output_color_end = output_running_sums.index(sum_after_sequence)
-
-        # calculate what the color value at that point is
-        for i in range(output_color_start, output_color_end + 1):
-            previous_sum = ZERO_COLORVALUE if i == 0 \
-                else output_running_sums[i - 1]
-            out_colorvalues[i] = output_running_sums[i] - previous_sum
-
+        padding = tag.get_padding()
+        out_colorvalues = []
+        for out_idx, output in enumerate(tx.outputs):
+            out_value_wop = tx.outputs[out_idx].value - padding
+            if out_value_wop <= 0:
+                out_colorvalues.append(None)
+                continue
+            affecting_inputs = self.get_xfer_affecting_inputs(tx, tag.get_padding(),
+                                                              out_idx)
+            ai_colorvalue = SimpleColorValue(colordef=self, value=0)
+            all_colored = True
+            for ai in affecting_inputs:
+                if in_colorvalues[ai] is None:
+                    all_colored = False
+                    break
+                ai_colorvalue += in_colorvalues[ai]
+            if (not all_colored) or (ai_colorvalue.get_value() < out_value_wop):
+                out_colorvalues.append(None)
+                continue
+            out_colorvalues.append(SimpleColorValue(colordef=self, value=out_value_wop))
         return out_colorvalues
 
-    def satoshi_to_color(self, satoshivalue):
-        return SimpleColorValue(colordef=self,
-                                value=satoshivalue - self.PADDING)
-
-    @classmethod
-    def color_to_satoshi(cls, colorvalue):
-        return colorvalue.get_value() + cls.PADDING
-
-    @classmethod
-    def compose_genesis_tx_spec(cls, op_tx_spec):
-        targets = op_tx_spec.get_targets()[:]
-        if len(targets) != 1:
-            raise InvalidTargetError(
-                'genesis transaction spec needs exactly one target')
-        target = targets[0]
-        if target.get_colordef() != GENESIS_OUTPUT_MARKER:
-            raise InvalidColorError(
-                'genesis transaction target should use -1 color_id')
-        fee = op_tx_spec.get_required_fee(300)
-        amount = target.colorvalue.get_satoshi()
-        uncolored_value = SimpleColorValue(colordef=UNCOLORED_MARKER,
-                                           value=amount)
-        colorvalue = fee + uncolored_value
-        inputs, total = op_tx_spec.select_coins(colorvalue)
-        change = total - fee - uncolored_value
-        if change > 0:
-            targets.append(ColorTarget(
-                    op_tx_spec.get_change_addr(UNCOLORED_MARKER), change))
-        txouts = [txspec.ComposedTxSpec.TxOut(target.get_satoshi(),
-                                              target.get_address())
-                  for target in targets]
-        return txspec.ComposedTxSpec(inputs, txouts)
+    def get_affecting_inputs(self, tx, output_set):
+        tag = self.get_tag(tx)
+        if (tag is None) or tag.is_genesis:
+            return set()
+        tx.ensure_input_values()
+        aii = set()
+        for out_idx in output_set:
+            aii.update(self.get_xfer_affecting_inputs(
+                    tx, tag.get_padding(), out_idx))
+        inputs = set([tx.inputs[i] for i in aii])
+        return inputs
 
     def compose_tx_spec(self, op_tx_spec):
-        # group targets by color
-        targets_by_color = defaultdict(list)
-        # group targets by color
-        for target in op_tx_spec.get_targets():
-            color_def = target.get_colordef()
-            if color_def == UNCOLORED_MARKER \
-                    or isinstance(color_def, POBColorDefinition):
-                targets_by_color[color_def.color_id].append(target)
-            else:
-                raise InvalidColorError('incompatible color definition')
+        targets_by_color = group_targets_by_color(op_tx_spec.get_targets(), self.__class__)
         uncolored_targets = targets_by_color.pop(UNCOLORED_MARKER.color_id, [])
+        colored_txins = []
+        colored_txouts = []
+        if uncolored_targets:
+            uncolored_needed = ColorTarget.sum(uncolored_targets)
+        else:
+            uncolored_needed = SimpleColorValue(colordef=UNCOLORED_MARKER,
+                                                value=0)
 
-        # get inputs for each color
-        colored_inputs = []
-        colored_targets = []
+        dust_threshold = op_tx_spec.get_dust_threshold().get_value()
+
+        inputs_by_color = dict()
+
+        min_padding = 0
+        # step 1: get inputs, create change targets, compute min padding
         for color_id, targets in targets_by_color.items():
             color_def = targets[0].get_colordef()
             needed_sum = ColorTarget.sum(targets)
             inputs, total = op_tx_spec.select_coins(needed_sum)
+            inputs_by_color[color_id] = inputs
             change = total - needed_sum
             if change > 0:
-                targets.append(ColorTarget(
-                        op_tx_spec.get_change_addr(color_def), change))
-            colored_inputs += inputs
-            colored_targets += targets
+                targets.append(
+                    ColorTarget(op_tx_spec.get_change_addr(color_def), change))
+            for target in targets:
+                padding_needed = dust_threshold - target.get_value() 
+                if padding_needed > min_padding:
+                    min_padding = padding_needed
 
-        # we also need some amount of extra "uncolored" coins
-        # for padding purposes, possibly
-        padding_needed = (len(colored_targets) - len(colored_inputs)) \
-            * self.PADDING
-        uncolored_needed = ColorTarget.sum(uncolored_targets) \
-            + SimpleColorValue(colordef=UNCOLORED_MARKER, value=padding_needed)
-        fee = op_tx_spec.get_required_fee(250 * (len(colored_inputs) + 1))
-        amount_needed = uncolored_needed + fee
-        zero = SimpleColorValue(colordef=UNCOLORED_MARKER, value=0)
-        if amount_needed == zero:
-            uncolored_change = zero
-            uncolored_inputs = []
+        tag = self.Tag(self.Tag.closest_padding_code(min_padding), False)
+        padding = tag.get_padding()
+
+        # step 2: create txins & txouts, compute uncolored requirements
+        for color_id, targets in targets_by_color.items():
+            color_def = targets[0].get_colordef()
+            for inp in inputs_by_color[color_id]:
+                colored_txins.append(inp)
+                uncolored_needed -= SimpleColorValue(colordef=UNCOLORED_MARKER,
+                                               value=inp.value)
+                print uncolored_needed
+            for target in targets:
+                svalue = target.get_value() + padding
+                colored_txouts.append(
+                    txspec.ComposedTxSpec.TxOut(svalue,
+                                                target.get_address()))
+                uncolored_needed += SimpleColorValue(colordef=UNCOLORED_MARKER,
+                                               value=svalue)
+                print uncolored_needed
+
+        fee = op_tx_spec.get_required_fee(250 * (len(colored_txins) + 1))
+
+        uncolored_txouts = []
+        uncolored_inputs = []
+        uncolored_change = None
+
+        if uncolored_needed + fee > 0:
+            uncolored_inputs, uncolored_total = op_tx_spec.select_coins(uncolored_needed + fee)
+            uncolored_txouts = [txspec.ComposedTxSpec.TxOut(target.get_satoshi(),
+                                                            target.get_address())
+                                for target in uncolored_targets]
+            uncolored_change = uncolored_total - uncolored_needed - fee
         else:
-            uncolored_inputs, uncolored_total = op_tx_spec.select_coins(amount_needed)
-            uncolored_change = uncolored_total - amount_needed
-        if uncolored_change > zero:
-            uncolored_targets.append(
-                ColorTarget(op_tx_spec.get_change_addr(UNCOLORED_MARKER),
-                 uncolored_change))
-
-        # compose the TxIn and TxOut elements
-        txins = colored_inputs + uncolored_inputs
-        txouts = [
-            txspec.ComposedTxSpec.TxOut(target.get_satoshi(),
-                                        target.get_address())
-            for target in colored_targets]
-        txouts += [txspec.ComposedTxSpec.TxOut(target.get_satoshi(),
-                                               target.get_address())
-                   for target in uncolored_targets]
-        return txspec.ComposedTxSpec(txins, txouts)
-
-
-def ones(n):
-    """ finds indices for the 1's in an integer"""
-    while n:
-        b = n & (~n + 1)
-        i = int(math.log(b, 2))
-        yield i
-        n ^= b
-   
-class BFTColorDefinition (GenesisColorDefinition):
-    CLASS_CODE = 'btfc'
-
-    def run_kernel(self, tx, in_colorvalues):
-        """Computes the output colorvalues"""
-        # special case: genesis tx output
-        tx.ensure_input_values()
-        if tx.hash == self.genesis['txhash']:
-            return [SimpleColorValue(colordef=self, value=out.value)
-                    if self.genesis['outindex'] == i else None \
-                        for i, out in enumerate(tx.outputs)]
+            uncolored_change =  (- uncolored_needed) - fee
             
-        # start with all outputs having null colorvalue
-        nones = [None for _ in tx.outputs]
-        out_colorvalues = [None for _ in tx.outputs]
-        output_groups = {}
-        # go through all inputs
-        for inp_index in xrange(len(tx.inputs)):
-            # if input has non-null colorvalue, check its nSequence
-            color_value = in_colorvalues[inp_index]
-            if color_value:
-                nSequence = tx.raw.vin[inp_index].nSequence
-                # nSequence is converted to a set of output indices
-                output_group = list(ones(nSequence))
-                
-                # exceptions; If exceptional situation is detected, we return a list of null colorvalues.
-                # nSequence is 0
-                if nSequence == 0:
-                    return nones
-                
-                # nSequence has output indices exceeding number of outputs of this transactions
-                for out_idx in output_group:
-                    if out_idx >= len(tx.inputs):
-                        return nones
-                # there are intersecting 'output groups' (i.e output belongs to more than one group)
-                if not nSequence in output_groups:
-                    for og in output_groups:
-                        if len(set(ones(og)).intersection(output_group)) != 0:
-                            return nones
-                    output_groups[nSequence] = SimpleColorValue(colordef=self,
-                                                                value=0)
-                        
-                # add colorvalue of this input to colorvalue of output group
-                output_groups[nSequence] += color_value
+        if uncolored_change > 0:
+            uncolored_txouts.append(txspec.ComposedTxSpec.TxOut(
+                    uncolored_change.get_value(), 
+                    op_tx_spec.get_change_addr(UNCOLORED_MARKER)))
 
-        # At this step we have total colorvalue for each output group.
-        # For each output group:
-        for nSequence in output_groups:
-            output_group = list(ones(nSequence))
-            in_colorvalue = output_groups[nSequence]
-            # sum satoshi-values of outputs in it (let's call it ssvalue)
-            ssvalue = sum(tx.outputs[out_idx].value for out_idx in output_group)
-            #find n such that 2^n*ssvalue = total colorvalue (loop over all |n|<32, positive and negative)
-            for n in xrange(-31,32):
-                if ssvalue*2**n == in_colorvalue.get_value():
-                    # if n exists, each output of this group is assigned colorvalue svalue*2^n, where svalue is its satoshi-value
-                    for out_idx in output_group:
-                        svalue = tx.outputs[out_idx].value
-                        out_colorvalues[out_idx] = SimpleColorValue(colordef=self, value=svalue*2**n, label=in_colorvalue.get_label())
-                    break
-            else:
-                # if n doesn't exist, we treat is as an exceptional sitation and return a list of None values.
-                return nones  # pragma: no cover
+        all_inputs = colored_txins + uncolored_inputs
 
-        return out_colorvalues
+        all_inputs[0].set_nSequence(tag.to_nSequence())
+
+        return txspec.ComposedTxSpec(all_inputs,
+                                     colored_txouts + uncolored_txouts)
+
+    @classmethod
+    def compose_genesis_tx_spec(cls, op_tx_spec):
+        if len(op_tx_spec.get_targets()) != 1:
+            raise InvalidTargetError(
+                'genesis transaction spec needs exactly one target')
+        g_target = op_tx_spec.get_targets()[0]
+        if g_target.get_colordef() != GENESIS_OUTPUT_MARKER:
+            raise InvalidColorError(
+                'genesis transaction target should use -1 color_id')
+        fee = op_tx_spec.get_required_fee(300)
+        g_value = g_target.get_value()
+        padding_needed = g_value - op_tx_spec.get_dust_threshold().get_value()
+        tag = cls.Tag(cls.Tag.closest_padding_code(padding_needed), True)
+        padding = tag.get_padding()
+        uncolored_needed = SimpleColorValue(colordef=UNCOLORED_MARKER,
+                                           value=padding + g_value)
+        uncolored_inputs, uncolored_total = op_tx_spec.select_coins(uncolored_needed + fee)
+        change = uncolored_total - uncolored_needed - fee
+
+        txouts = []
+        txouts.append(txspec.ComposedTxSpec.TxOut(padding + g_value,
+                                                  g_target.get_address()))
+        if change > 0:
+            txouts.append(txspec.ComposedTxSpec.TxOut(
+                    change.get_value(), op_tx_spec.get_change_addr(UNCOLORED_MARKER)))
+        uncolored_inputs[0].set_nSequence(tag.to_nSequence())
+        return txspec.ComposedTxSpec(uncolored_inputs, txouts)
+
 
 ColorDefinition.register_color_def_class(OBColorDefinition)
-ColorDefinition.register_color_def_class(POBColorDefinition)
-ColorDefinition.register_color_def_class(BFTColorDefinition)
+ColorDefinition.register_color_def_class(EPOBCColorDefinition)

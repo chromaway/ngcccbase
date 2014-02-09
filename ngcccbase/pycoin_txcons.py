@@ -32,7 +32,11 @@ def construct_standard_tx(composed_tx_spec, is_test):
         txouts.append(TxOut(txout.value, script_bin))
     txins = []
     for cts_txin in composed_tx_spec.get_txins():
-        txins.append(TxIn(cts_txin.get_txhash(), cts_txin.prevout.n))
+        txin = TxIn(cts_txin.get_txhash(), cts_txin.prevout.n)
+        if cts_txin.nSequence:
+            print cts_txin.nSequence
+            txin.sequence = cts_txin.nSequence
+        txins.append(txin)
     version = 1
     lock_time = 0
     return Tx(version, txins, txouts, lock_time)
@@ -60,7 +64,8 @@ def sign_tx(tx, utxo_list, is_test):
         txin_script = solver(txout_script, signature_hash, hash_type)
         txins[txin_idx] = TxIn(blank_txin.previous_hash,
                                blank_txin.previous_index,
-                               txin_script)
+                               txin_script,
+                               blank_txin.sequence)
         if not verify_script(txin_script, txout_script,
                              signature_hash, hash_type=hash_type):
             raise Exception("invalid script")

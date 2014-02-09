@@ -3,6 +3,7 @@
 from logger import log
 from explorer import get_spends
 from toposort import toposorted
+from colorvalue import SimpleColorValue
 
 
 class ColorDataBuilder(object):
@@ -74,9 +75,13 @@ class BasicColorDataBuilder(ColorDataBuilder):
         for inp in tx.inputs:
             val = self.cdstore.get(
                 self.color_id, inp.prevout.hash, inp.prevout.n)
-            in_colorvalues.append(val)
+            cv = None
             if val:
                 empty = False
+                cv = SimpleColorValue(colordef=self.colordef,
+                                      value=val[0])
+                
+            in_colorvalues.append(cv)
         if empty and not self.colordef.is_special_tx(tx):
             return
         out_colorvalues = self.colordef.run_kernel(tx, in_colorvalues)

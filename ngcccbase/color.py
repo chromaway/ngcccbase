@@ -1,11 +1,11 @@
 from pycoin.encoding import hash160_sec_to_bitcoin_address
 
-from coloredcoinlib import (BlockchainState, ColorDataBuilderManager,
-                            AidedColorDataBuilder, FullScanColorDataBuilder,
-                            DataStoreConnection, ColorDataStore,
-                            ColorMetaStore, ColorMap,
-                            ThinColorData, ThickColorData)
 from services.chroma import ChromaBlockchainState
+from coloredcoinlib import (BlockchainState, ColorDataBuilderManager,
+                            AidedColorDataBuilder, 
+                            FullScanColorDataBuilder, DataStoreConnection,
+                            ColorDataStore, ColorMetaStore, ColorMap,
+                            ThickColorData, ThinColorData)
 from services.electrum import EnhancedBlockchainState
 
 
