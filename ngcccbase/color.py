@@ -18,7 +18,7 @@ class ColoredCoinContext(object):
     def __init__(self, config):
         """Creates a Colored Coin Context given a config <config>
         """
-        params = config.get('ccc', {'thin':True})
+        params = config.get('ccc', {'thin': False})
 
         color_data_class = ThickColorData
         color_data_builder = FullScanColorDataBuilder
