@@ -27,7 +27,7 @@ class ErrorThrowingRequestProcessor:
 class Tx(ErrorThrowingRequestProcessor):
     def POST(self):
         # data is sent in as json
-        data = json.loads(web.input().keys()[0])
+        data = json.loads(web.data())
         self.require(data, 'txhash', "TX requires txhash")
         txhash = data.get('txhash')
         return blockchainstate.get_raw(txhash)
@@ -36,7 +36,7 @@ class Tx(ErrorThrowingRequestProcessor):
 class Prefetch(ErrorThrowingRequestProcessor):
     def POST(self):
         # data is sent in as json
-        data = json.loads(web.input().keys()[0])
+        data = json.loads(web.data())
         self.require(data, 'txhash', "Prefetch requires txhash")
         self.require(data, 'output_set', "Prefetch requires output_set")
         self.require(data, 'color_desc', "Prefetch requires color_desc")
@@ -44,8 +44,12 @@ class Prefetch(ErrorThrowingRequestProcessor):
         output_set = data.get('output_set')
         color_desc = data.get('color_desc')
         limit = data.get('limit')
-        color_def = ColorDefinition.from_color_desc(17, color_desc)
 
+        # note the id doesn't actually matter we need to add it so
+        #  we have a valid color definition
+        color_def = ColorDefinition.from_color_desc(9999, color_desc)
+
+        # gather all the transactions and return them
         tx_lookup = {}
 
         def process(current_txhash, current_outindex):
@@ -72,6 +76,7 @@ class Prefetch(ErrorThrowingRequestProcessor):
         for oi in output_set:
             process(txhash, oi)
         return tx_lookup
+
 
 if __name__ == "__main__":
     app = web.application(urls, globals())
