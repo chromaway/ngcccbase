@@ -484,7 +484,7 @@ class EPOBCColorDefinition(GenesisColorDefinition):
                 'genesis transaction target should use -1 color_id')
         fee = op_tx_spec.get_required_fee(300)
         g_value = g_target.get_value()
-        padding_needed = g_value - op_tx_spec.get_dust_threshold().get_value()
+        padding_needed = op_tx_spec.get_dust_threshold().get_value() - g_value
         tag = cls.Tag(cls.Tag.closest_padding_code(padding_needed), True)
         padding = tag.get_padding()
         uncolored_needed = SimpleColorValue(colordef=UNCOLORED_MARKER,
