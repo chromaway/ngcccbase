@@ -18,12 +18,13 @@ class ColoredCoinContext(object):
     def __init__(self, config):
         """Creates a Colored Coin Context given a config <config>
         """
-        params = config.get('ccc', {'thin': False})
+        params = config.get('ccc', {})
+        thin = params.get('thin', True)
 
         color_data_class = ThickColorData
         color_data_builder = FullScanColorDataBuilder
         blockchain_state_class = BlockchainState
-        if params.get('thin'):
+        if thin:
             color_data_class = ThinColorData
             color_data_builder = AidedColorDataBuilder
             blockchain_state_class = ChromaBlockchainState
@@ -32,7 +33,7 @@ class ColoredCoinContext(object):
         self.blockchain_state = blockchain_state_class.from_url(
             None, self.testnet)
 
-        if not params.get('thin') and not self.testnet:
+        if not thin and not self.testnet:
             try:
                 # try fetching transaction from the second block of
                 # the bitcoin blockchain to see whether txindex works
