@@ -1,4 +1,4 @@
-from coloredcoinlib.store import DataStore, DataStoreConnection
+from coloredcoinlib.store import DataStore, DataStoreConnection, PersistentDictStore
 
 import utxodb
 
@@ -36,14 +36,7 @@ class TxDataStore(DataStore):
             self.execute(
                 "CREATE UNIQUE INDEX tx_data_txhash ON tx_data (txhash)")
         if not self.table_exists('tx_address'):
-            self.execute(create_address_table)
-        #if not self.table_exists('tx_addr_index'):
-        #    self.execute(
-        #        "CREATE TABLE tx_addr_index (tx_id INTEGER, address TEXT)")
-        #    self.execute(
-        #        "CREATE INDEX tx_addr_index_tx_id ON tx_addr_index (tx_id)")
-        #    self.execute(
-        #      "CREATE INDEX tx_addr_index_address ON tx_addr_index (address)")
+            self.execute(create_address_table)             
 
     def add_tx(self, txhash, txdata, status=TX_STATUS_UNKNOWN):
         return self.execute(
@@ -89,9 +82,20 @@ class TxDb(object):
     def __init__(self, model, config):
         self.model = model
         self.store = TxDataStore(self.model.store_conn.conn)
+        self.intents = PersistentDictStore(self.model.store_conn.conn,
+                                           "tx_intents")
 
     def add_tx(self, txhash, txdata, status=TX_STATUS_UNKNOWN):
         self.store.add_tx(txhash, txdata, status)
 
     def add_signed_tx(self, txhash, tx):
         self.store.add_signed_tx(txhash, tx)
+
+    def add_tx_intent(self, txhash, intent):
+        self.intents[txhash] = intent
+
+    def get_tx_intent(self, txhash):
+        if txhash in self.intents:
+            return self.intents[txhash]
+        else:
+            return None

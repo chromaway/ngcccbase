@@ -36,21 +36,21 @@ class WalletController(object):
         txhex = signed_tx_spec.get_hex_tx_data()
         txhash = signed_tx_spec.get_hex_txhash()
         r_txhash = None
-        bitcoind = self.model.ccc.blockchain_state.bitcoind
+        blockchain_state = self.model.ccc.blockchain_state
         try:
-            r_txhash = bitcoind.sendrawtransaction(txhex)
+            r_txhash = blockchain_state.publish_tx(txhex)
         except Exception as e:                      # pragma: no cover
             print ("got error %s from bitcoind" % e)  # pragma: no cover
         
         if r_txhash and (r_txhash != txhash) and not self.testing:
             raise Exception('bitcoind reports different txhash')  # pragma: no cover
         
-        if r_txhash is None:                                      # pragma: no cover
+        """if r_txhash is None:                                      # pragma: no cover
             # bitcoind did not eat our txn, check if it is mempool
             mempool = bitcoind.getrawmempool()                    # pragma: no cover
             if txhash not in mempool:                             # pragma: no cover
                 raise Exception(                                  # pragma: no cover
-                    "bitcoind didn't accept the transaction")     # pragma: no cover
+                    "bitcoind didn't accept the transaction")     # pragma: no cover"""
 
         if signed_tx_spec.composed_tx_spec:
             self.model.txdb.add_signed_tx(txhash, signed_tx_spec)
@@ -61,7 +61,8 @@ class WalletController(object):
         """Updates all Unspent Transaction Outs for addresses associated with
         this wallet.
         """
-        self.model.utxo_man.update_all()
+        self.model.utxo_fetcher.scan_all_addresses()
+        self.model.get_coin_manager().update_confirmations()
 
     def send_coins(self, asset, target_addrs, raw_colorvalues):
         """Sends coins to address <target_addr> of asset/color <asset>
@@ -89,9 +90,6 @@ class WalletController(object):
             for txout in signed_tx_spec.composed_tx_spec.txouts:
                 print (txout.value)
         txhash = self.publish_tx(signed_tx_spec)
-        # scan the tx so that the rest of the system knows
-        self.model.ccc.colordata.cdbuilder_manager.scan_txhash(
-            asset.color_set.color_id_set, txhash)
 
     def issue_coins(self, moniker, pck, units, atoms_in_unit):
         """Issues a new color of name <moniker> using coloring scheme
@@ -174,7 +172,7 @@ class WalletController(object):
         """Returns an integer value corresponding to the total number
         of Satoshis owned of asset/color <asset>.
         """
-        cq = self.model.make_coin_query({"asset": asset})
+        cq = self.model.make_coin_query({"asset": asset, "confirmed": True})
         utxo_list = cq.get_result()
         value_list = [asset.get_colorvalue(utxo) for utxo in utxo_list]
         if len(value_list) == 0:

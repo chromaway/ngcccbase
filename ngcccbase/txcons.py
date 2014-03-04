@@ -172,6 +172,10 @@ class RawTxSpec(object):
         self.pycoin_tx = pycoin_tx
         self.composed_tx_spec = composed_tx_spec
         self.update_tx_data()
+        self.intent = None
+
+    def get_intent(self):
+        return self.intent
 
     def get_hex_txhash(self):
         the_hash = self.pycoin_tx.hash()
@@ -258,21 +262,17 @@ class TransactionSpecTransformer(object):
             else:
                 return color_def.compose_tx_spec
         else:
-            # TODO: explicit support for OBC only, generalize!
-            obc_color_def = None
+            # grab the first color def and hope that its compose_tx_spec
+            # will be able to handle it. if transaction has incompatible
+            # colors, compose_tx_spec will throw an exception
             for target in op_tx_spec.get_targets():
-                color_def = target.get_colordef()
-                if color_def is UNCOLORED_MARKER:
+                tgt_color_def = target.get_colordef()
+                if tgt_color_def is UNCOLORED_MARKER:
                     continue
-                if isinstance(color_def, OBColorDefinition):
-                    obc_color_def = color_def
                 else:
-                    obc_color_def = None
-                    break
-            if obc_color_def:
-                return obc_color_def.compose_tx_spec
-            else:
-                return None
+                    return tgt_color_def.compose_tx_spec
+            return None
+
 
     def classify_tx_spec(self, tx_spec):
         """For a transaction <tx_spec>, returns a string that represents

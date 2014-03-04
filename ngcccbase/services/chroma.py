@@ -35,6 +35,18 @@ class ChromaBlockchainState:
         """
         self.url_stem = "http://%s:%s" % (url, port)
 
+    def publish_tx(self, txdata):
+        url = "%s/publish_tx" % self.url_stem
+        req = urllib2.Request(url, txdata,
+                              {'Content-Type': 'application/json'})
+        f = urllib2.urlopen(req)
+        reply = f.read()
+        f.close()
+        if reply[0] == 'E' or (len(reply) != 64):
+            raise Exception(reply)
+        else:
+            return reply            
+
     def prefetch(self, txhash, output_set, color_desc, limit):
         url = "%s/prefetch" % self.url_stem
         data = {'txhash': txhash, 'output_set': output_set,

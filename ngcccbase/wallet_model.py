@@ -15,7 +15,8 @@ from color import ColoredCoinContext
 from coloredcoinlib import ColorSet, toposorted
 from txdb import TxDb
 from txcons import TransactionSpecTransformer
-from utxodb import UTXOQuery, UTXOManager
+from coindb import CoinQuery, CoinManager
+from utxo_fetcher import UTXOFetcher
 
 
 class CoinQueryFactory(object):
@@ -28,7 +29,7 @@ class CoinQueryFactory(object):
         self.model = model
 
     def make_query(self, query):
-        """Create a UTXOQuery from query <query>. Queries are dicts with:
+        """Create a CoinQuery from query <query>. Queries are dicts with:
         color_set - color associated with this query
         """
         color_set = query.get('color_set')
@@ -40,7 +41,7 @@ class CoinQueryFactory(object):
                 color_set = query['asset'].get_color_set()
             else:
                 raise Exception('color set is not specified')
-        return UTXOQuery(self.model, color_set)
+        return CoinQuery(self.model, color_set, query)
 
 
 class WalletModel(object):
@@ -50,6 +51,7 @@ class WalletModel(object):
         """Creates a new wallet given a configuration <config>
         """
         self.store_conn = store_conn  # hackish!
+        self.testnet = config.get('testnet', False)
         self.ccc = ColoredCoinContext(config)
         self.ass_def_man = AssetDefinitionManager(self.ccc.colormap, config)
         if config.get('bip0032'):
@@ -60,9 +62,9 @@ class WalletModel(object):
             self.address_man = DWalletAddressManager(self.ccc.colormap, config)
 
         self.coin_query_factory = CoinQueryFactory(self, config)
-        self.utxo_man = UTXOManager(self, config)
+        self.coin_man = CoinManager(self, config)
+        self.utxo_fetcher = UTXOFetcher(self, config)
         self.txdb = TxDb(self, config)
-        self.testnet = config.get('testnet', False)
         self.tx_spec_transformer = TransactionSpecTransformer(self, config)
 
     def get_tx_db(self):
@@ -220,6 +222,9 @@ class WalletModel(object):
 
         return sorted(history, cmp=compare)
 
+    def get_coin_manager(self):
+        return self.coin_man
+
     def get_color_map(self):
         """Access method for ColoredCoinContext's colormap
         """
@@ -227,8 +232,3 @@ class WalletModel(object):
 
     def get_color_def(self, color):
         return self.ccc.colormap.get_color_def(color)
-
-    def get_utxo_manager(self):
-        """Access method for Unspent Transaction Out manager.
-        """
-        return self.utxo_man
