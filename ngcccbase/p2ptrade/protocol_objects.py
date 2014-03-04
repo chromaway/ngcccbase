@@ -95,9 +95,12 @@ class MyEProposal(EProposal):
     def process_reply(self, reply_ep):
         rtxs = RawTxSpec.from_tx_data(self.ewctrl.model,
                                       reply_ep.etx_data.decode('hex'))
-        rtxs.sign(self.etx_spec.my_utxo_list)
-        self.ewctrl.publish_tx(rtxs) # TODO: ???
-        self.etx_data = rtxs.get_hex_tx_data()
+        if self.ewctrl.check_tx(rtxs, self.etx_spec):
+            rtxs.sign(self.etx_spec.my_utxo_list)
+            self.ewctrl.publish_tx(rtxs) # TODO: ???
+            self.etx_data = rtxs.get_hex_tx_data()
+        else:
+            raise Exception('p2ptrade reply tx check failed')
 
 
 class MyReplyEProposal(EProposal):

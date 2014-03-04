@@ -2,14 +2,16 @@ from collections import defaultdict
 
 from coloredcoinlib import (ColorSet, ColorTarget, UNCOLORED_MARKER,
                             InvalidColorIdError, ZeroSelectError,
-                            OperationalTxSpec, SimpleColorValue)
+                            OperationalTxSpec, SimpleColorValue, CTransaction)
 from protocol_objects import ETxSpec
 from ngcccbase.asset import AdditiveAssetValue
 from ngcccbase.txcons import InsufficientFundsError
 from ngcccbase.utxodb import UTXO
 
+import bitcoin.core
 
-FEE = SimpleColorValue(colordef=UNCOLORED_MARKER, value=15000)
+FEE_VALUE=15000
+FEE = SimpleColorValue(colordef=UNCOLORED_MARKER, value=FEE_VALUE)
 
 class OperationalETxSpec(OperationalTxSpec):
     def __init__(self, model, ewctrl):
@@ -28,38 +30,64 @@ class OperationalETxSpec(OperationalTxSpec):
     def prepare_inputs(self, etx_spec):
         self.inputs = defaultdict(list)
         colordata = self.model.ccc.colordata
-        for colordef, inps in etx_spec.inputs.items():
-            if colordef == UNCOLORED_MARKER:
-                for inp in inps:
-                    tx = self.model.ccc.blockchain_state.get_tx(inp[0])
-                    value = tx.outputs[inp[1]].value
-                    self.inputs[0].append((value, inp))
-            else:
-                color_id_set = set([colordef.get_color_id()])
-                for inp in inps:
-                    
-                    css = colordata.get_colorvalues(color_id_set, inp[0], inp[1])
+        for color_spec, inps in etx_spec.inputs.items():
+            colordef = self.ewctrl.resolve_color_spec(color_spec)
+            color_id_set = set([colordef.get_color_id()])
+            for inp in inps:
+                txhash, outindex = inp
+                tx = self.model.ccc.blockchain_state.get_tx(txhash)
+                prevout = tx.outputs[outindex]
+                utxo = UTXO(txhash, outindex, prevout.value, prevout.script)
+                colorvalue = None
+                if colordef == UNCOLORED_MARKER:
+                    colorvalue = SimpleColorValue(colordef=UNCOLORED_MARKER,
+                                                  value=prevout.value)
+                else:
+                    css = colordata.get_colorvalues(color_id_set,
+                                                    txhash,
+                                                    outindex)
                     if (css and len(css) == 1):
-                        cs = css[0]
-                        self.inputs[cs.get_color_id()].append((cs.get_value(),
-                                                               inp))
+                        colorvalue = css[0]
+                if colorvalue:
+                    self.inputs[colordef.get_color_id()].append(
+                        (colorvalue, utxo))
 
     def prepare_targets(self, etx_spec, their):
-        self.targets = etx_spec.targets
+        self.targets = []
+        for address, color_spec, value in etx_spec.targets:
+            colordef = self.ewctrl.resolve_color_spec(color_spec)
+            self.targets.append(ColorTarget(address, 
+                                       SimpleColorValue(colordef=colordef,
+                                                        value=value)))
         wam = self.model.get_address_manager()
         colormap = self.model.get_color_map()
+        their_colordef = self.ewctrl.resolve_color_spec(their['color_spec'])
         their_color_set = ColorSet.from_color_ids(self.model.get_color_map(),
-                                                  [their.get_color_id()]) 
+                                                  [their_colordef.get_color_id()])
         ct = ColorTarget(wam.get_change_address(their_color_set).get_address(),
-                         their)
+                         SimpleColorValue(colordef=their_colordef,
+                                          value=their['value']))
         self.targets.append(ct)
 
     def get_required_fee(self, tx_size):
         return FEE
 
+    def get_dust_threshold(self):
+        return SimpleColorValue(colordef=UNCOLORED_MARKER, value=10000)
+
     def select_coins(self, colorvalue):
         colordef = colorvalue.get_colordef()
         color_id = colordef.get_color_id()
+
+        if color_id in self.inputs:
+            total = SimpleColorValue.sum([cv_u[0]
+                                          for cv_u in self.inputs[color_id]])
+            if total < colorvalue:
+                raise InsufficientFundsError('not enough coins: %s requested, %s found'
+                                             % (colorvalue, total))
+            return [cv_u[1]
+                    for cv_u in self.inputs[color_id]], total
+
         cq = self.model.make_coin_query({"color_id_set": set([color_id])})
         utxo_list = cq.get_result()
 
@@ -68,10 +96,11 @@ class OperationalETxSpec(OperationalTxSpec):
         if colorvalue == zero:
             raise ZeroSelectError('cannot select 0 coins')
         for utxo in utxo_list:
-            ssum += SimpleColorValue.sum(utxo.colorvalues)
-            selection.append(utxo)
-            if ssum >= colorvalue:
-                return selection, ssum
+            if utxo.colorvalues:
+                ssum += utxo.colorvalues[0]
+                selection.append(utxo)
+                if ssum >= colorvalue:
+                    return selection, ssum
         raise InsufficientFundsError('not enough coins: %s requested, %s found'
                                      % (colorvalue, ssum))
 
@@ -84,12 +113,61 @@ class EWalletController(object):
     def publish_tx(self, raw_tx):
         self.wctrl.publish_tx(raw_tx)
 
+    def check_tx(self, raw_tx, etx_spec):
+        """check if raw tx satisfies spec's targets"""
+        bctx = bitcoin.core.CTransaction.deserialize(raw_tx.get_tx_data())
+        ctx = CTransaction.from_bitcoincore(raw_tx.get_hex_txhash(),
+                                            bctx,
+                                            self.model.ccc.blockchain_state)
+        color_id_set = set([])
+        targets = []
+        for target in etx_spec.targets:
+            our_address, color_spec, value = target
+            raw_addr = bitcoin.core.CBitcoinAddress(our_address)
+            color_def = self.resolve_color_spec(color_spec)
+            color_id = color_def.get_color_id()
+            color_id_set.add(color_id)
+            targets.append((raw_addr, color_id, value))
+
+        used_outputs = set([])
+        satisfied_targets = set([])
+        
+        for color_id in color_id_set:
+            if color_id == 0:
+                continue
+            out_colorvalues = self.model.ccc.colordata.get_colorvalues_raw(
+                color_id, ctx)
+            print out_colorvalues
+            for oi in range(len(ctx.outputs)):
+                if oi in used_outputs:
+                    continue
+                if out_colorvalues[oi]:
+                    for target in targets:
+                        if target in satisfied_targets:
+                            continue
+                        raw_address, tgt_color_id, value = target
+                        if ((tgt_color_id == color_id) and
+                            (value == out_colorvalues[oi].get_value()) and
+                            (raw_address == ctx.outputs[oi].raw_address)):
+                                satisfied_targets.add(target)
+                                used_outputs.add(oi)
+        for target in targets:
+            if target in satisfied_targets:
+                continue
+            raw_address, tgt_color_id, value = target
+            if tgt_color_id == 0:
+                for oi in range(len(ctx.outputs)):
+                    if oi in used_outputs:
+                        continue
+                    if ((value == ctx.outputs[oi].value) and
+                        (raw_address == ctx.outputs[oi].raw_address)):
+                        satisfied_targets.add(target)
+                        used_outputs.add(oi)
+        return len(targets) == len(satisfied_targets)
+
     def resolve_color_spec(self, color_spec):
         colormap = self.model.get_color_map()
-        color_id = colormap.resolve_color_desc(color_spec, False)
-        if color_id is None:
-            raise InvalidColorIdError("color spec not recognized")
-        return ColorSet.from_color_ids(self.model.get_color_map(), [color_id])
+        return colormap.get_color_def(color_spec)
 
     def select_inputs(self, colorvalue):
         cs = ColorSet.from_color_ids(self.model.get_color_map(),
@@ -108,23 +186,31 @@ class EWalletController(object):
         if csum < colorvalue:
             raise InsufficientFundsError('not enough money')
         return selection, (csum - colorvalue)
-
+    
+    
     def make_etx_spec(self, our, their):
-        fee = FEE if our.get_colordef() == UNCOLORED_MARKER else 0
-        c_utxos, c_change = self.select_inputs(our + fee)
-        inputs = {our.get_colordef(): 
+        our_color_def = self.resolve_color_spec(our['color_spec'])
+        our_color_set = ColorSet.from_color_ids(self.model.get_color_map(),
+                                                  [our_color_def.get_color_id()])
+        their_color_def = self.resolve_color_spec(their['color_spec'])
+        their_color_set = ColorSet.from_color_ids(self.model.get_color_map(),
+                                                  [their_color_def.get_color_id()])
+        extra_value = 0
+        if our_color_def == UNCOLORED_MARKER:
+            extra_value = FEE_VALUE + FEE_VALUE + FEE_VALUE
+        c_utxos, c_change = self.select_inputs(
+            SimpleColorValue(colordef=our_color_def,
+                             value=our['value'] + extra_value))
+        inputs = {our['color_spec']: 
                   [utxo.get_outpoint() for utxo in c_utxos]}
         wam = self.model.get_address_manager()
-        our_color_set = ColorSet.from_color_ids(self.model.get_color_map(),
-                                                [our.get_color_id()]) 
-        their_color_set = ColorSet.from_color_ids(self.model.get_color_map(),
-                                                  [their.get_color_id()]) 
         our_address = wam.get_change_address(their_color_set)
-        targets = [ColorTarget(our_address.get_address(), their)]
+        targets = [(our_address.get_address(),
+                    their['color_spec'], their['value'])]
         if c_change > 0:
             our_change_address = wam.get_change_address(our_color_set)
-            targets.append(ColorTarget(our_change_address.get_address(),
-                                       c_change))
+            targets.append((our_change_address.get_address(),
+                            our['color_spec'], c_change.get_value()))
         return ETxSpec(inputs, targets, c_utxos)
 
     def make_reply_tx(self, etx_spec, our, their):
