@@ -2,7 +2,7 @@
 coloredcoinlib module provides the core colored coin functionality and tools.
 """
 
-from blockchain import BlockchainState
+from blockchain import BlockchainState, CTransaction
 from builder import (ColorDataBuilderManager,
                      FullScanColorDataBuilder, AidedColorDataBuilder)
 from colordata import ThickColorData, ThinColorData

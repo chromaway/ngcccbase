@@ -7,6 +7,7 @@ from collections import defaultdict
 from colorvalue import SimpleColorValue
 from txspec import ColorTarget
 
+from logger import log
 
 class InvalidTargetError(Exception):
     pass
@@ -336,7 +337,10 @@ class EPOBCColorDefinition(GenesisColorDefinition):
         affecting_inputs = set()
         input_running_sum = 0
         for ii, inp in enumerate(tx.inputs):
-            value_wop = tx.inputs[ii].value - padding
+            prev_tag = cls.get_tag(inp.prevtx)
+            if not prev_tag:
+                break
+            value_wop = tx.inputs[ii].value - prev_tag.get_padding()
             if value_wop <= 0:
                 break
             if ((input_running_sum < (out_prec_sum + out_value_wop)) and

@@ -80,6 +80,7 @@ class CTransaction(object):
             prev_tx_hash = inp.prevout.hash
             if prev_tx_hash != 'coinbase':
                 prevtx = self.bs.get_tx(prev_tx_hash)
+                inp.prevtx = prevtx
                 inp.value = prevtx.outputs[inp.prevout.n].value
             else:
                 inp.value = 0  # TODO: value of coinbase tx?
@@ -91,6 +92,9 @@ class BlockchainState(object):
     obtain information of transactions, addresses, and blocks. """
     def __init__(self, bitcoind):
         self.bitcoind = bitcoind
+
+    def publish_tx(self, txdata):
+        return self.bitcoind.sendrawtransaction(txdata)
 
     @classmethod
     def from_url(cls, url, testnet=False):
