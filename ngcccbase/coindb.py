@@ -140,8 +140,7 @@ class Coin(ComposedTxSpec.TxIn):
 class CoinQuery(object):
     """Query object for getting data out of the UTXO data-store.
     """
-    def __init__(self, model, color_set,
-                 filter_options={'confimed':True, 'unspent':True}):
+    def __init__(self, model, color_set, filter_options):
         """Create a query object given a wallet_model <model> and
         a list of colors in <color_set>
         """
@@ -149,6 +148,16 @@ class CoinQuery(object):
         self.color_set = color_set
         self.coin_manager = model.get_coin_manager()
         self.filter_options = filter_options
+        assert 'spent' in filter_options
+
+    def coin_matches_filter(self, coin):
+        if self.filter_options['spent'] != coin.is_spent():
+            return False
+        if self.filter_options.get('only_unconfirmed', False):
+            return not coin.is_confirmed()
+        if self.filter_options.get('include_unconfirmed', False):
+            return True
+        return coin.is_confirmed()    
 
     def get_coins_for_address(self, address_rec):
         """Given an address <address_rec>, return the list of coin's
@@ -157,8 +166,9 @@ class CoinQuery(object):
         """
         color_set = self.color_set
         addr_color_set = address_rec.get_color_set()
-        all_coins = self.coin_manager.get_coins_for_address(
-            address_rec.get_address(), self.filter_options)
+        all_coins = filter(
+            self.coin_matches_filter,
+            self.coin_manager.get_coins_for_address(address_rec.get_address()))
         cdata = self.model.ccc.colordata
         address_is_uncolored = addr_color_set.color_id_set == set([0])
         if address_is_uncolored:
@@ -221,7 +231,7 @@ class CoinManager(object):
             return None
 
     def is_spent(self, coin):
-        return not self.store.get_coin_spends(coin.coin_id)
+        return len(self.store.get_coin_spends(coin.coin_id)) > 0
 
     def is_confirmed(self, coin):
         if self.full_spv:
@@ -233,18 +243,12 @@ class CoinManager(object):
     def notify_confirmations(self, txhash, confirmations):
         self.store.set_tx_confirmations(txhash, confirmations)
 
-    def get_coins_for_address(self, address, filter_options={}):
+    def get_coins_for_address(self, address):
         """Returns a list of UTXO objects for a given address <address>
         """
         coins = []
         for coin_rec in self.store.get_coins_for_address(address):
             coin = Coin(self, coin_rec)
-            if 'unspent' in filter_options:
-                if filter_options['unspent'] == coin.is_spent():
-                    continue
-            if 'confirmed' in filter_options:
-                if filter_options['confirmed'] != coin.is_confirmed():
-                    continue
             coins.append(coin)
         return coins
 

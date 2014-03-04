@@ -189,12 +189,12 @@ class TradePage(QtGui.QWidget):
             return
 
         asset = wallet.get_asset_definition('bitcoin')
-        value = asset.format_value(wallet.get_balance(asset))
+        value = asset.format_value(wallet.get_available_balance(asset))
         text = '<b>Buy</b> {0} (Available: {1} bitcoin)'.format(moniker, value)
         self.lblBuy.setText(text)
 
         asset = wallet.get_asset_definition(moniker)
-        value = asset.format_value(wallet.get_balance(asset))
+        value = asset.format_value(wallet.get_available_balance(asset))
         text = '<b>Sell</b> {0} (Available: {1} {0})'.format(moniker, value)
         self.lblSell.setText(text)
 
@@ -226,9 +226,9 @@ class TradePage(QtGui.QWidget):
         value = self.edtBuyQuantity.text().toDouble()[0]
         bitcoin = wallet.get_asset_definition('bitcoin')
         price = self.edtBuyPrice.text().toDouble()[0]
-        delta = wallet.get_balance(bitcoin) - value*bitcoin.parse_value(price)
+        delta = wallet.get_available_balance(bitcoin) - value*bitcoin.parse_value(price)
         if delta < 0:
-            message = 'The transaction amount exceeds the balance by %s bitcoin' % \
+            message = 'The transaction amount exceeds available balance by %s bitcoin' % \
                 bitcoin.format_value(-delta)
             QtGui.QMessageBox.critical(self, '', message, QtGui.QMessageBox.Ok)
             return
@@ -251,7 +251,7 @@ class TradePage(QtGui.QWidget):
         if oid in wallet.p2p_agent.their_offers:
             offer = wallet.p2p_agent.their_offers[oid]
             bitcoin = wallet.get_asset_definition('bitcoin')
-            if wallet.get_balance(bitcoin) < offer.get_data()['B']['value']:
+            if wallet.get_available_balance(bitcoin) < offer.get_data()['B']['value']:
                 QtGui.QMessageBox.warning(self, '', "Not enough money...",
                     QtGui.QMessageBox.Cancel)
                 return
@@ -301,9 +301,9 @@ bitcoin (Total: <b>{total}</b> bitcoin)".format(**{
         value = self.edtSellQuantity.text().toDouble()[0]
         bitcoin = wallet.get_asset_definition('bitcoin')
         price = self.edtSellPrice.text().toDouble()[0]
-        delta = wallet.get_balance(asset) - asset.parse_value(value)
+        delta = wallet.get_available_balance(asset) - asset.parse_value(value)
         if delta < 0:
-            message = 'The transaction amount exceeds the balance by %s %s' % \
+            message = 'The transaction amount exceeds available balance by %s %s' % \
                 (asset.format_value(-delta), moniker)
             QtGui.QMessageBox.critical(self, '', message, QtGui.QMessageBox.Ok)
             return
@@ -327,7 +327,7 @@ bitcoin (Total: <b>{total}</b> bitcoin)".format(**{
             offer = wallet.p2p_agent.their_offers[oid]
             moniker = str(self.cbMoniker.currentText())
             asset = wallet.get_asset_definition(moniker)
-            if wallet.get_balance(asset) < offer.get_data()['A']['value']:
+            if wallet.get_available_balance(asset) < offer.get_data()['A']['value']:
                 QtGui.QMessageBox.warning(self, '', "Not enough money...",
                     QtGui.QMessageBox.Cancel)
                 return

@@ -99,7 +99,7 @@ class TestWalletController(unittest.TestCase):
         self.assertTrue(self.asset in self.wc.get_all_assets())
 
     def test_get_balance(self):
-        self.assertEqual(self.wc.get_balance(self.asset), 10000)
+        self.assertEqual(self.wc.get_total_balance(self.asset), 10000)
 
     def test_add_asset(self):
         moniker = 'addtest'
@@ -109,7 +109,7 @@ class TestWalletController(unittest.TestCase):
         asset = self.model.get_asset_definition_manager(
             ).get_asset_by_moniker(moniker)
         
-        self.assertEqual(self.wc.get_balance(asset), 0)
+        self.assertEqual(self.wc.get_total_balance(asset), 0)
         self.assertEqual(self.wc.get_history(asset), [])
 
     def test_send(self):

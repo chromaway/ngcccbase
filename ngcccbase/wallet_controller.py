@@ -152,11 +152,11 @@ class WalletController(object):
         """
         self.model.get_asset_definition_manager().add_asset_definition(params)
 
-    def get_address_balance(self, asset):
+    def get_address_balance(self, asset, options):
         """Returns an integer value corresponding to the total number
         of Satoshis owned of asset/color <asset>.
         """
-        cq = self.model.make_coin_query({"asset": asset})
+        cq = self.model.make_coin_query({"asset": asset}.union(options))
         utxo_list = cq.get_result()
         ars = self.get_all_addresses(asset)
         addresses = [ar.get_address() for ar in ars]
@@ -168,11 +168,13 @@ class WalletController(object):
             retval[i]['value'] += asset.get_colorvalue(utxo).get_value()
         return retval
 
-    def get_balance(self, asset):
+    def _get_balance(self, asset, options):
         """Returns an integer value corresponding to the total number
         of Satoshis owned of asset/color <asset>.
         """
-        cq = self.model.make_coin_query({"asset": asset, "confirmed": True})
+        query = {"asset": asset}
+        query.update(options)
+        cq = self.model.make_coin_query(query)
         utxo_list = cq.get_result()
         value_list = [asset.get_colorvalue(utxo) for utxo in utxo_list]
         if len(value_list) == 0:
@@ -180,10 +182,22 @@ class WalletController(object):
         else:
             return SimpleColorValue.sum(value_list).get_value()
 
+    def get_available_balance(self, asset):
+        return self._get_balance(asset, {"spent": False})
+    
+    def get_total_balance(self, asset):
+        return self._get_balance(asset, {"spent": False, 
+                                        "include_unconfirmed": True})
+
+    def get_unconfirmed_balance(self, asset):
+        return self._get_balance(asset, {"spent": False, 
+                                        "only_unconfirmed": True})
+    
+
     def get_history(self, asset):
         """Returns the history of an asset for all addresses of that color
         in this wallet
         """
         # update everything first
-        self.get_balance(asset)
+        self.get_available_balance(asset)
         return self.model.get_history_for_asset(asset)

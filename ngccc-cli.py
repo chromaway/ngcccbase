@@ -101,6 +101,8 @@ class Application(object):
             'balance', description=
             "Returns the balance in Satoshi for a particular asset/color.")
         parser.add_argument('moniker')
+        parser.add_argument('--unconfirmed', action='store_true')
+        parser.add_argument('--available', action='store_true')
 
         parser = subparsers.add_parser(
             'addressbalance', description=
@@ -290,7 +292,12 @@ class Application(object):
         "bitcoin" is the generic uncolored coin.
         """
         asset = self.get_asset_definition(kwargs['moniker'])
-        print (asset.format_value(self.controller.get_balance(asset)))
+        fn = self.controller.get_total_balance
+        if kwargs['unconfirmed']:
+            fn = self.controller.get_unconfirmed_balance
+        if kwargs['available']:
+            fn = self.controller.get_available_balance
+        print (asset.format_value(fn(asset)))
 
     def command_send(self, **kwargs):
         """Send some amount of an asset/color to an address

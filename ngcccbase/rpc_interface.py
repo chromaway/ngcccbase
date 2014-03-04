@@ -37,7 +37,7 @@ def balance(moniker):
     "bitcoin" is the generic uncolored coin.
     """
     asset = get_asset_definition(moniker)
-    return controller.get_balance(asset)
+    return controller.get_available_balance(asset)
 
 
 def addressbalance(moniker):

@@ -72,7 +72,7 @@ class IssueCoinsDialog(QtGui.QDialog):
         self.edtUnits.textChanged.connect(self.changeTotalBTC)
         self.edtAtoms.textChanged.connect(self.changeTotalBTC)
 
-        self.availableBTC = wallet.get_balance('bitcoin')
+        self.availableBTC = wallet.get_available_balance('bitcoin')
         self.lblTotalBTC.setToolTip('Available: %s bitcoin' % \
             wallet.get_asset_definition('bitcoin').format_value(self.availableBTC))
 

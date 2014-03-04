@@ -36,7 +36,8 @@ class OverviewPage(QtGui.QWidget):
         for moniker in wallet.get_all_monikers():
             asset = wallet.get_asset_definition(moniker)
             address = wallet.get_some_address(asset)
-            balance = wallet.get_balance(asset)
+            total_balance = wallet.get_total_balance(asset)
+            unconfirmed_balance = wallet.get_unconfirmed_balance(asset)
 
             groupBox = QtGui.QGroupBox(moniker, self.scrollAreaContents)
             layout = QtGui.QFormLayout(groupBox)
@@ -45,10 +46,16 @@ class OverviewPage(QtGui.QWidget):
             label.setText('Balance:')
             layout.setWidget(0, QtGui.QFormLayout.LabelRole, label)
 
+            balance_text = asset.format_value(total_balance)
+            if not (unconfirmed_balance == 0):
+                balance_text += " (%s unconfirmed, %s available)" % \
+                    (asset.format_value(unconfirmed_balance),
+                     asset.format_value(wallet.get_available_balance(asset)))
+
             label = QtGui.QLabel(groupBox)
             label.setTextInteractionFlags(allowTextSelection)
             label.setCursor(QtGui.QCursor(QtCore.Qt.IBeamCursor))
-            label.setText(asset.format_value(balance))
+            label.setText(balance_text)
             layout.setWidget(0, QtGui.QFormLayout.FieldRole, label)
 
             label = QtGui.QLabel(groupBox)

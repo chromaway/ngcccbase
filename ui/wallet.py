@@ -66,8 +66,17 @@ class Wallet(object):
         monikers = ['bitcoin'] + monikers
         return monikers
 
-    def get_balance(self, color):
-        return self.controller.get_balance(self.get_asset_definition(color))
+    def get_available_balance(self, color):
+        return self.controller.get_available_balance(
+            self.get_asset_definition(color))
+
+    def get_total_balance(self, color):
+        return self.controller.get_total_balance(
+            self.get_asset_definition(color))
+
+    def get_unconfirmed_balance(self, color):
+        return self.controller.get_unconfirmed_balance(
+            self.get_asset_definition(color))
 
     def get_all_addresses(self, color):
         return [addr.get_color_address() for addr in

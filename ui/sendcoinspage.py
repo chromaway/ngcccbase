@@ -40,7 +40,7 @@ class SendcoinsEntry(QtGui.QFrame):
         moniker = str(self.cbMoniker.currentText())
         if moniker:
             asset = wallet.get_asset_definition(moniker)
-            balance = wallet.get_balance(moniker)
+            balance = wallet.get_available_balance(moniker)
             self.edtAmount.setMaximum(balance)
             self.lblAvailaleBalance.setText(
                 '%s %s' % (asset.format_value(balance), moniker))
@@ -143,10 +143,10 @@ class SendcoinsPage(QtGui.QWidget):
         for recipient in data:
             currency[recipient['moniker']] += recipient['value']
         for moniker, value in currency.items():
-            if value > wallet.get_balance(moniker):
+            if value > wallet.get_available_balance(moniker):
                 QtGui.QMessageBox.warning(
                     self, 'Send coins',
-                    'The amount for <b>%s</b> exceeds your balance.' % moniker,
+                    'The amount for <b>%s</b> exceeds your available balance.' % moniker,
                     QtGui.QMessageBox.Ok)
                 return
         wallet.send_coins(data)
