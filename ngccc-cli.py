@@ -41,6 +41,7 @@ class _ApplicationHelpFormatter(argparse.HelpFormatter):
 
 class Application(object):
     def __init__(self):
+        self.data = {}
         self.args = None
         self.parser = argparse.ArgumentParser(
             description="Next-Generation Colored Coin Client "
@@ -141,23 +142,16 @@ class Application(object):
 
     def __getattribute__(self, name):
         if name in ['controller', 'model', 'wallet']:
-            try:
-                data = self.data
-            except AttributeError:
-                self.data = data = {}
-
-                pw = PersistentWallet(self.args.get('wallet_path'))
-                pw.init_model()
-
-                wallet_model = pw.get_model()
-
-                data.update({
-                    'controller': WalletController(wallet_model)
-                    if wallet_model else None,
-                    'wallet': pw,
-                    'model': wallet_model if pw else None,
-                    })
-            return data[name]
+            if name in self.data:
+                return self.data[name]
+            if name == 'wallet':
+                self.data['wallet'] = PersistentWallet(self.args.get('wallet_path'))
+                return self.data['wallet']
+            else:
+                self.wallet.init_model()
+                self.data['model'] = self.data['wallet'].get_model()
+                self.data['controller'] = WalletController(self.data['model'])
+                return self.data[name]
         return object.__getattribute__(self, name)
 
     def get_asset_definition(self, moniker):
