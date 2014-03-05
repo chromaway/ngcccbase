@@ -21,10 +21,6 @@ class ChromaBlockchainState:
 
     tx_lookup = {}
 
-    @classmethod
-    def from_url(cls, url, testnet=False):
-        return cls()
-
     def __init__(self, url="localhost", port=28832):
         """Initialization takes the url and port of the chroma server.
         We have to use the chroma server for everything that we would
@@ -59,6 +55,11 @@ class ChromaBlockchainState:
             self.tx_lookup[txhash] = txraw
         f.close()
         return
+
+    def get_block_count(self):
+        url = "%s/blockcount" % self.url_stem
+        data = urllib2.urlopen(url).read()
+        return int(data)
 
     def get_raw(self, txhash):
         if self.tx_lookup.get(txhash):

@@ -20,18 +20,20 @@ class ColoredCoinContext(object):
         """
         params = config.get('ccc', {})
         thin = params.get('thin', True)
+        self.testnet = config.get('testnet', False)
 
         color_data_class = ThickColorData
         color_data_builder = FullScanColorDataBuilder
-        blockchain_state_class = BlockchainState
+        
         if thin:
             color_data_class = ThinColorData
             color_data_builder = AidedColorDataBuilder
-            blockchain_state_class = ChromaBlockchainState
-
-        self.testnet = config.get('testnet', False)
-        self.blockchain_state = blockchain_state_class.from_url(
-            None, self.testnet)
+            self.blockchain_state = ChromaBlockchainState(
+                "http://chromanode.bitcontracts.org",
+                self.testnet)
+        else:
+            self.blockchain_state = BlockchainState.from_url(
+                None, self.testnet)
 
         if not thin and not self.testnet:
             try:
