@@ -8,8 +8,8 @@ import os.path
 from cx_Freeze import setup, Executable
 
 base = None
-if sys.platform == "win32":
-    base = "Win32GUI"
+# if sys.platform == "win32":
+#    base = "Win32GUI"
 
 def ls(path):
     for name in os.listdir(path):
@@ -23,7 +23,7 @@ build_exe_options = {
 
 setup(
     name='ngcccbase',
-    version='0.0.2',
+    version='0.0.4',
     description='A flexible and modular base for colored coin software.',
     classifiers=[
         "Programming Language :: Python",
@@ -32,9 +32,8 @@ setup(
     keywords='bitcoinx bitcoin coloredcoins',
     packages=["ngcccbase", "ngcccbase.services", "ngcccbase.p2ptrade", "ecdsa", "coloredcoinlib", "ui"],
     options = {"build_exe": build_exe_options},
-    executables = [Executable("ngccc-server.py", base=base),
-        Executable("ngccc-gui.py", base=base),
-        Executable("ngccc-cli.py", base=base),
-        Executable("ngccc.py", base=base),
+    executables = [
+        Executable("ngccc-gui.py", base=base, targetName="chromawallet"),
+        Executable("ngccc-cli.py", base=base, targetName="cw-cli"),
     ]
 )
