@@ -49,6 +49,7 @@ class Application(object):
             formatter_class=_ApplicationHelpFormatter)
 
         self.parser.add_argument("--wallet", dest="wallet_path")
+        self.parser.add_argument("--testnet", action="store_true")
 
         subparsers = self.parser.add_subparsers(
             title='subcommands', dest='command')
@@ -147,8 +148,10 @@ class Application(object):
             if name in self.data:
                 return self.data[name]
             if name == 'wallet':
-                self.data['wallet'] = PersistentWallet(self.args.get('wallet_path'))
-                return self.data['wallet']
+                wallet = PersistentWallet(self.args.get('wallet_path'),
+                                          self.args.get('testnet'))
+                self.data['wallet'] = wallet
+                return wallet
             else:
                 self.wallet.init_model()
                 self.data['model'] = self.data['wallet'].get_model()
@@ -204,7 +207,12 @@ class Application(object):
     def command_import_config(self, **kwargs):
         """Special command for importing a JSON config.
         """
-        pw = PersistentWallet(kwargs.get('wallet_path'), kwargs['path'])
+        pw = PersistentWallet(kwargs.get('wallet_path'),
+                              kwargs.get('testnet'))
+        with open(kwargs['path'], 'r') as fp:
+            config = json.load(fp)
+            for k in config:
+                self.wallet_config[k] = config[k]
 
     def command_setval(self, **kwargs):
         """Sets a value in the configuration.

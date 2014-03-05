@@ -16,23 +16,26 @@ class PersistentWallet(object):
     That is, it doesn't go away every time you run the program.
     """
 
-    def __init__(self, wallet_path=None, import_config=None):
+    def __init__(self, wallet_path, testnet):
         """Create a persistent wallet. If a configuration is passed
         in, put that configuration into the db by overwriting
         the relevant data, never deleting. Otherwise, load with
         the configuration from the persistent data-store.
         """
         if wallet_path is None:
-            wallet_path = "wallet.db"
+            if testnet:
+                wallet_path = "testnet.wallet"
+            else:
+                wallet_path = "mainnet.wallet"
         new_wallet = not os.path.exists(wallet_path)
         self.store_conn = store.DataStoreConnection(wallet_path, True)
         self.store_conn.conn.row_factory = sqlite3.Row
         self.wallet_config = store.PersistentDictStore(
             self.store_conn.conn, "wallet")
-        if import_config:
-            self.import_config(import_config)
-        elif new_wallet:
-            self.initialize_new_wallet()
+        if new_wallet:
+            self.initialize_new_wallet(testnet)
+        if testnet and not self.wallet_config['testnet']:
+            raise Exception("not a testnet wallet")
         self.wallet_model = None
 
     def init_model(self):
@@ -42,18 +45,11 @@ class PersistentWallet(object):
         self.wallet_model = WalletModel(
             self.wallet_config, self.store_conn)
 
-    def import_config(self, config):
-        """Import JSON configuration <config> into the
-        persistent data-store.
-        """
-        for k in config.iterkeys():
-            self.wallet_config[k] = config[k]
-
-    def initialize_new_wallet(self):
+    def initialize_new_wallet(self, testnet):
         """New wallets are born in testnet mode until we have a version 
         which is safe to be used on mainnet.
         """
-        self.wallet_config['testnet'] = True
+        self.wallet_config['testnet'] = testnet
 
     def get_model(self):
         """Pass back the model associated with the persistent

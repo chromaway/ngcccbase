@@ -16,9 +16,11 @@ class Wallet(object):
     def __init__(self):
         parser = argparse.ArgumentParser()
         parser.add_argument("--wallet", dest="wallet_path")
+        parser.add_argument("--testnet", action='store_true')
         parsed_args = vars(parser.parse_args())
 
-        self.wallet = PersistentWallet(parsed_args.get('wallet_path'))
+        self.wallet = PersistentWallet(parsed_args.get('wallet_path'),
+                                       parsed_args.get('testnet'))
         self.wallet.init_model()
         self.model = self.wallet.get_model()
         self.controller = WalletController(self.wallet.get_model())
