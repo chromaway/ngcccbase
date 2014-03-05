@@ -207,12 +207,11 @@ class Application(object):
     def command_import_config(self, **kwargs):
         """Special command for importing a JSON config.
         """
-        pw = PersistentWallet(kwargs.get('wallet_path'),
-                              kwargs.get('testnet'))
-        with open(kwargs['path'], 'r') as fp:
-            config = json.load(fp)
-            for k in config:
-                self.wallet_config[k] = config[k]
+        # conversion happens at time of validation
+        imp_config = kwargs['path']
+        wallet_config = self.wallet.wallet_config
+        for k in imp_config:
+            wallet_config[k] = imp_config[k]
 
     def command_setval(self, **kwargs):
         """Sets a value in the configuration.
