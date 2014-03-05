@@ -110,6 +110,9 @@ class BlockchainState(object):
         block = self.bitcoind.getblock(blockhash)
         return block['height']
 
+    def get_block_count(self):
+        return self.bitcoind.getblockcount()
+
     def get_blockhash_at_height(self, height):
         return self.bitcoind.getblockhash(height)
 

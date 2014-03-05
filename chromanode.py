@@ -13,6 +13,7 @@ urls = (
     '/tx', 'Tx',
     '/publish_tx', 'PublishTx',
     '/prefetch', 'Prefetch',
+    '/blockcount', 'BlockCount'
 )
 
 
@@ -35,6 +36,9 @@ class PublishTx(ErrorThrowingRequestProcessor):
             reply = ("Error: " + str(e))
         return reply
 
+class BlockCount(ErrorThrowingRequestProcessor):
+    def GET(self):
+        return str(blockchainstate.get_block_count())
 
 class Tx(ErrorThrowingRequestProcessor):
     def POST(self):

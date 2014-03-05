@@ -110,8 +110,7 @@ class WalletController(object):
         op_tx_spec.add_target(color_target)
         genesis_ctxs = color_definition_cls.compose_genesis_tx_spec(op_tx_spec)
         genesis_tx = self.model.transform_tx_spec(genesis_ctxs, 'signed')
-        height = self.model.ccc.blockchain_state.bitcoind.getblockcount() \
-            - 1
+        height = self.model.ccc.blockchain_state.get_block_count() - 1
         genesis_tx_hash = self.publish_tx(genesis_tx)
         color_desc = ':'.join([pck, genesis_tx_hash, '0', str(height)])
         adm = self.model.get_asset_definition_manager()
