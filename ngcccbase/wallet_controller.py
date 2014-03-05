@@ -152,10 +152,11 @@ class WalletController(object):
         """
         self.model.get_asset_definition_manager().add_asset_definition(params)
 
-    def get_address_balance(self, asset, options):
+    def get_address_balance(self, asset):
         """Returns an integer value corresponding to the total number
         of Satoshis owned of asset/color <asset>.
         """
+        return []
         cq = self.model.make_coin_query({"asset": asset}.union(options))
         utxo_list = cq.get_result()
         ars = self.get_all_addresses(asset)

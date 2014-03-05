@@ -61,6 +61,7 @@ class IssueCoinsDialog(QtGui.QDialog):
         QtGui.QDialog.__init__(self, parent)
         uic.loadUi(uic.getUiPath('issuedialog.ui'), self)
 
+        self.cbScheme.addItem('epobc')
         self.cbScheme.addItem('obc')
 
         for wname in ['edtMoniker', 'edtUnits', 'edtAtoms']:

@@ -32,6 +32,7 @@ class CoinQueryFactory(object):
         """Create a CoinQuery from query <query>. Queries are dicts with:
         color_set - color associated with this query
         """
+        query = query.copy()
         color_set = query.get('color_set')
         if not color_set:
             if 'color_id_set' in query:
@@ -41,6 +42,8 @@ class CoinQueryFactory(object):
                 color_set = query['asset'].get_color_set()
             else:
                 raise Exception('color set is not specified')
+        if 'spent' not in query:
+            query['spent'] = False
         return CoinQuery(self.model, color_set, query)
 
 
