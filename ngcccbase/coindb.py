@@ -284,7 +284,7 @@ class CoinManager(object):
                          self.model.get_address_manager().get_all_addresses()]
 
         bs = self.model.ccc.blockchain_state
-        if self.block_spv:
+        if self.full_spv:
             block_hash = bs.get_tx_blockhash(txhash)
         else:
             block_hash = None

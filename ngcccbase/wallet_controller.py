@@ -54,7 +54,7 @@ class WalletController(object):
 
         if signed_tx_spec.composed_tx_spec:
             self.model.txdb.add_signed_tx(txhash, signed_tx_spec)
-            self.model.utxo_man.apply_tx(txhash, signed_tx_spec)
+            self.model.get_coin_manager().apply_tx(txhash, signed_tx_spec)
         return txhash
 
     def scan_utxos(self):

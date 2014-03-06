@@ -42,7 +42,8 @@ class UTXOFetcher(object):
             raise Exception('unknown service for UTXOFetcher')
 
     def add_utxo(self, address, data):
-        self.coin_manager.add_coin(address, *data)
+        self.coin_manager.apply_tx(data[0])
+        #self.coin_manager.add_coin(address, *data)
 
     def scan_address(self, address):
         try:
