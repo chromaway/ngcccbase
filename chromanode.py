@@ -12,6 +12,7 @@ blockchainstate = BlockchainState.from_url(None, True)
 urls = (
     '/tx', 'Tx',
     '/publish_tx', 'PublishTx',
+    '/tx_blockhash', 'TxBlockhash',
     '/prefetch', 'Prefetch',
     '/blockcount', 'BlockCount'
 )
@@ -49,6 +50,15 @@ class Tx(ErrorThrowingRequestProcessor):
         print txhash
         return blockchainstate.get_raw(txhash)
 
+class TxBlockhash(ErrorThrowingRequestProcessor):
+    def POST(self):
+        # data is sent in as json
+        data = json.loads(web.data())
+        self.require(data, 'txhash', "TX requires txhash")
+        txhash = data.get('txhash')
+        print txhash
+        blockhash, in_mempool = blockchainstate.get_tx_blockhash(txhash)
+        return json.dumps([blockhash, in_mempool])
 
 class Prefetch(ErrorThrowingRequestProcessor):
     def POST(self):

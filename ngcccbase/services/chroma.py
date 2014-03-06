@@ -56,6 +56,17 @@ class ChromaBlockchainState:
         f.close()
         return
 
+    def get_tx_blockhash(self, txhash):
+        url = "%s/tx_blockhash" % self.url_stem
+        data = {'txhash': txhash}
+        req = urllib2.Request(url, json.dumps(data),
+                              {'Content-Type': 'application/json'})
+        f = urllib2.urlopen(req)
+        payload = f.read()
+        f.close()
+        data = json.loads(payload)
+        return data[0], data[1]
+
     def get_block_count(self):
         url = "%s/blockcount" % self.url_stem
         data = urllib2.urlopen(url).read()

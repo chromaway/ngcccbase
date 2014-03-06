@@ -44,16 +44,16 @@ class CoinStore(DataStore):
             self.execute("""
                  CREATE TABLE coin_spends (coin_id INTEGER, txhash TEXT,
                                FOREIGN KEY (coin_id) REFERENCES coin_data(id))""")
-            self.execute("CREATE INDEX coin_spends_id ON coin_spends "
-                         "(coin_id)")
+            self.execute("CREATE UNIQUE INDEX coin_spends_id ON coin_spends "
+                         "(coin_id, txhash)")
             self.execute("CREATE INDEX coin_spends_txhash ON coin_spends "
                          "(txhash)")
         if not self.table_exists("coin_blocks"):
             self.execute("""CREATE TABLE coin_blocks
                     (coin_id INTEGER, block_hash TEXT,
                      FOREIGN KEY (coin_id) REFERENCES coin_data(id))""")
-            self.execute("CREATE INDEX coin_blocks_id ON coin_blocks "
-                         "(coin_id)")
+            self.execute("CREATE UNIQUE INDEX coin_blocks_id ON coin_blocks "
+                         "(coin_id, block_hash)")
         if not self.table_exists("tx_confirmations"):
             self.execute("""CREATE TABLE tx_confirmations (txhash TEXT PRIMARY KEY,
                             confirmations INTEGER)""")
@@ -74,11 +74,11 @@ class CoinStore(DataStore):
             (address, txhash, outindex, value, script))
     
     def add_spend(self, coin_id, spend_txhash):
-        self.execute("INSERT INTO coin_spends (coin_id, txhash) VALUES (?, ?)",
+        self.execute("INSERT OR IGNORE INTO coin_spends (coin_id, txhash) VALUES (?, ?)",
                      (coin_id, spend_txhash))
 
     def add_coin_block(self, coin_id, block_hash):
-        self.execute("INSERT INTO coin_blocks (coin_id, block_hash) VALUES (?, ?)",
+        self.execute("INSERT OR IGNORE INTO coin_blocks (coin_id, block_hash) VALUES (?, ?)",
                      (coin_id, block_hash))
     
     def find_coin(self, txhash, outindex):
@@ -219,7 +219,7 @@ class CoinManager(object):
         """
         params = config.get('utxodb', {})
         self.model = model
-        self.full_spv = params.get('full_spv', False)
+        self.full_spv = params.get('full_spv', model.testnet)
         self.store = CoinStore(self.model.store_conn.conn)
         self.tx_confirmations = dict()
 
@@ -285,7 +285,7 @@ class CoinManager(object):
 
         bs = self.model.ccc.blockchain_state
         if self.full_spv:
-            block_hash = bs.get_tx_blockhash(txhash)
+            block_hash, _ = bs.get_tx_blockhash(txhash)
         else:
             block_hash = None
         if not tx:
