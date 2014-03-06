@@ -346,10 +346,12 @@ class EPOBCColorDefinition(GenesisColorDefinition):
             if ((input_running_sum < (out_prec_sum + out_value_wop)) and
                 ((input_running_sum + value_wop) > out_prec_sum)):
                 affecting_inputs.add(ii)
+            input_running_sum += value_wop
         return affecting_inputs
 
 
     def run_kernel(self, tx, in_colorvalues):
+        log("in_colorvalues: %s", in_colorvalues)
         tag = self.get_tag(tx)
         if tag is None:
             return [None] * len(tx.outputs)
@@ -374,6 +376,7 @@ class EPOBCColorDefinition(GenesisColorDefinition):
                 continue
             affecting_inputs = self.get_xfer_affecting_inputs(tx, tag.get_padding(),
                                                               out_idx)
+            log("affecting inputs: %s", affecting_inputs)
             ai_colorvalue = SimpleColorValue(colordef=self, value=0)
             all_colored = True
             for ai in affecting_inputs:
@@ -381,10 +384,12 @@ class EPOBCColorDefinition(GenesisColorDefinition):
                     all_colored = False
                     break
                 ai_colorvalue += in_colorvalues[ai]
+            log("all colored: %s, colorvalue:%s", all_colored, ai_colorvalue.get_value())
             if (not all_colored) or (ai_colorvalue.get_value() < out_value_wop):
                 out_colorvalues.append(None)
                 continue
             out_colorvalues.append(SimpleColorValue(colordef=self, value=out_value_wop))
+        log("out_colorvalues: %s", out_colorvalues)
         return out_colorvalues
 
     def get_affecting_inputs(self, tx, output_set):

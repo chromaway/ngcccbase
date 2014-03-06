@@ -126,7 +126,7 @@ class ThinColorData(StoredColorData):
                                                    [current_outindex]))
             for i in inputs:
                 process(i.prevout.hash, i.prevout.n)
-            log("%s: %s", current_txhash, current_outindex)
+            log("scan %s: %s", current_txhash, current_outindex)
             self.cdbuilder_manager.scan_txhash(color_id_set, current_tx.hash)
 
         process(txhash, outindex)
