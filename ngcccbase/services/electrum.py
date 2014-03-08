@@ -10,7 +10,8 @@ UTXO's (Unspent Transaction Outputs) are the record of transactions
 for an address that haven't been spent yet.
 """
 
-from bitcoin.core import CBitcoinAddress, CTransaction
+from bitcoin.core import CTransaction
+from bitcoin.wallet import CBitcoinAddress
 from bitcoin.core import x as to_binary
 from bitcoin.core import b2lx as to_little_endian_hex
 from bitcoin.core import b2x as to_hex

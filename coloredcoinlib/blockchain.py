@@ -3,7 +3,7 @@ Data structures to model bitcoin blockchain objects.
 """
 
 import bitcoin.core
-import bitcoin.serialize
+import bitcoin.core.serialize
 import bitcoin.rpc
 
 from toposort import toposorted
