@@ -86,7 +86,19 @@ class BasicTxSpec(object):
         return op_tx_spec
 
 
-class SimpleOperationalTxSpec(OperationalTxSpec):
+class BaseOperationalTxSpec(OperationalTxSpec):
+    def get_required_fee(self, tx_size):
+        """Given a transaction that is of size <tx_size>,
+        return the transaction fee in Satoshi that needs to be
+        paid out to miners.
+        """
+        # TODO: this should change to something dependent on tx_size
+        return SimpleColorValue(colordef=UNCOLORED_MARKER, value=10000)
+
+    def get_dust_threshold(self):
+        return SimpleColorValue(colordef=UNCOLORED_MARKER, value=10000)
+
+class SimpleOperationalTxSpec(BaseOperationalTxSpec):
     """Subclass of OperationalTxSpec which uses wallet model.
     Represents a transaction that's ready to be composed
     and then signed. The parent is an abstract class.
@@ -151,17 +163,6 @@ class SimpleOperationalTxSpec(OperationalTxSpec):
                 return selection, ssum
         raise InsufficientFundsError('not enough coins: %s requested, %s found'
                                      % (colorvalue, ssum))
-
-    def get_required_fee(self, tx_size):
-        """Given a transaction that is of size <tx_size>,
-        return the transaction fee in Satoshi that needs to be
-        paid out to miners.
-        """
-        # TODO: this should change to something dependent on tx_size
-        return SimpleColorValue(colordef=UNCOLORED_MARKER, value=10000)
-
-    def get_dust_threshold(self):
-        return SimpleColorValue(colordef=UNCOLORED_MARKER, value=10000)
 
 
 class RawTxSpec(object):

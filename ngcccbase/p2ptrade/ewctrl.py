@@ -2,18 +2,17 @@ from collections import defaultdict
 
 from coloredcoinlib import (ColorSet, ColorTarget, UNCOLORED_MARKER,
                             InvalidColorIdError, ZeroSelectError,
-                            OperationalTxSpec, SimpleColorValue, CTransaction)
+                            SimpleColorValue, CTransaction)
 from protocol_objects import ETxSpec
 from ngcccbase.asset import AdditiveAssetValue
-from ngcccbase.txcons import InsufficientFundsError
+from ngcccbase.txcons import BaseOperationalTxSpec, InsufficientFundsError
 from ngcccbase.utxodb import UTXO
 
 import bitcoin.core
+from bitcoin.wallet import CBitcoinAddress
 
-FEE_VALUE=15000
-FEE = SimpleColorValue(colordef=UNCOLORED_MARKER, value=FEE_VALUE)
 
-class OperationalETxSpec(OperationalTxSpec):
+class OperationalETxSpec(BaseOperationalTxSpec):
     def __init__(self, model, ewctrl):
         self.model = model
         self.ewctrl = ewctrl
@@ -69,12 +68,6 @@ class OperationalETxSpec(OperationalTxSpec):
                                           value=their['value']))
         self.targets.append(ct)
 
-    def get_required_fee(self, tx_size):
-        return FEE
-
-    def get_dust_threshold(self):
-        return SimpleColorValue(colordef=UNCOLORED_MARKER, value=10000)
-
     def select_coins(self, colorvalue):
         colordef = colorvalue.get_colordef()
         color_id = colordef.get_color_id()
@@ -123,7 +116,7 @@ class EWalletController(object):
         targets = []
         for target in etx_spec.targets:
             our_address, color_spec, value = target
-            raw_addr = bitcoin.core.CBitcoinAddress(our_address)
+            raw_addr = CBitcoinAddress(our_address)
             color_def = self.resolve_color_spec(color_spec)
             color_id = color_def.get_color_id()
             color_id_set.add(color_id)
@@ -197,7 +190,8 @@ class EWalletController(object):
                                                   [their_color_def.get_color_id()])
         extra_value = 0
         if our_color_def == UNCOLORED_MARKER:
-            extra_value = FEE_VALUE + FEE_VALUE + FEE_VALUE
+            # pay fee + padding for two colored outputs
+            extra_value = 10000 + 8192 * 2
         c_utxos, c_change = self.select_inputs(
             SimpleColorValue(colordef=our_color_def,
                              value=our['value'] + extra_value))
