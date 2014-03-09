@@ -6,9 +6,6 @@ import web
 
 from coloredcoinlib import BlockchainState, ColorDefinition
 
-
-blockchainstate = BlockchainState.from_url(None, True)
-
 urls = (
     '/tx', 'Tx',
     '/publish_tx', 'PublishTx',
@@ -16,6 +13,8 @@ urls = (
     '/prefetch', 'Prefetch',
     '/blockcount', 'BlockCount'
 )
+
+blockchainstate = None
 
 
 class ErrorThrowingRequestProcessor:
@@ -106,5 +105,9 @@ class Prefetch(ErrorThrowingRequestProcessor):
 
 
 if __name__ == "__main__":
+    testnet = False
+    if (len(sys.argv) > 2) and (sys.args[2] == 'testnet'):
+        testnet = True
+    blockchainstate = BlockchainState.from_url(None, testnet)
     app = web.application(urls, globals())
     app.run()
