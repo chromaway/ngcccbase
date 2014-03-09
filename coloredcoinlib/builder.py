@@ -47,16 +47,17 @@ class ColorDataBuilderManager(object):
             builder = self.get_builder(color_id)
             builder.ensure_scanned_upto(blockhash)
 
-    def scan_txhash(self, color_id_set, txhash):
+    def scan_txhash(self, color_id_set, txhash, output_indices=None):
         tx = self.blockchain_state.get_tx(txhash)
-        self.scan_tx(color_id_set, tx)
+        self.scan_tx(color_id_set, tx, output_indices)
 
-    def scan_tx(self, color_id_set, tx):
-        for color_id in color_id_set:
-            if color_id == 0:
-                continue
-            builder = self.get_builder(color_id)
-            builder.scan_tx(tx)
+    def scan_tx(self, color_id_set, tx, output_indices=None):
+        with self.cdstore.transaction():
+            for color_id in color_id_set:
+                if color_id == 0:
+                    continue
+                builder = self.get_builder(color_id)
+                builder.scan_tx(tx, output_indices)
 
 
 class BasicColorDataBuilder(ColorDataBuilder):
@@ -68,7 +69,7 @@ class BasicColorDataBuilder(ColorDataBuilder):
         self.color_id = colordef.color_id
         self.metastore = metastore
 
-    def scan_tx(self, tx):
+    def scan_tx(self, tx, output_indices=None):
         """ Scan transaction to obtain color data for its outputs. """
         in_colorvalues = []
         empty = True
@@ -86,6 +87,9 @@ class BasicColorDataBuilder(ColorDataBuilder):
             return
         out_colorvalues = self.colordef.run_kernel(tx, in_colorvalues)
         for o_index, val in enumerate(out_colorvalues):
+            log("%s: %s, %s", o_index, val, output_indices and not (o_index in output_indices))
+            if output_indices and not (o_index in output_indices):
+                continue
             if val:
                 self.cdstore.add(
                     self.color_id, tx.hash, o_index, val.get_value(), val.get_label())

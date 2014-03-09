@@ -105,16 +105,20 @@ class ThinColorData(StoredColorData):
         """
         color_def_map = self.cdbuilder_manager.get_color_def_map(color_id_set)
 
-        tx_lookup = {}
+        scanned_outputs = set()
 
         def process(current_txhash, current_outindex):
             """For any tx out, process the colorvalues of the affecting
             inputs first and then scan that tx.
             """
-            if tx_lookup.get(current_txhash):
+            if (current_txhash, current_outindex) in scanned_outputs:
                 return
+            scanned_outputs.add((current_txhash, current_outindex))
+
+            if self._fetch_colorvalues(color_id_set, current_txhash, current_outindex):
+                return
+
             current_tx = self.blockchain_state.get_tx(current_txhash)
-            tx_lookup[current_txhash] = current_tx
             if not current_tx:
                 raise UnfoundTransactionError("can't find transaction %s" % current_txhash)
 
@@ -127,7 +131,7 @@ class ThinColorData(StoredColorData):
             for i in inputs:
                 process(i.prevout.hash, i.prevout.n)
             log("scan %s: %s", current_txhash, current_outindex)
-            self.cdbuilder_manager.scan_txhash(color_id_set, current_tx.hash)
+            self.cdbuilder_manager.scan_tx(color_id_set, current_tx, [current_outindex])
 
         process(txhash, outindex)
         return self._fetch_colorvalues(color_id_set, txhash, outindex)
