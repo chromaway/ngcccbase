@@ -14,7 +14,10 @@ urls = (
     '/blockcount', 'BlockCount'
 )
 
-blockchainstate = None
+testnet = False
+if (len(sys.argv) > 2) and (sys.argv[2] == 'testnet'):
+    testnet = True
+blockchainstate = BlockchainState.from_url(None, testnet)
 
 
 class ErrorThrowingRequestProcessor:
@@ -105,9 +108,5 @@ class Prefetch(ErrorThrowingRequestProcessor):
 
 
 if __name__ == "__main__":
-    testnet = False
-    if (len(sys.argv) > 2) and (sys.argv[2] == 'testnet'):
-        testnet = True
-    blockchainstate = BlockchainState.from_url(None, testnet)
     app = web.application(urls, globals())
     app.run()
