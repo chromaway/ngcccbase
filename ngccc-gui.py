@@ -12,6 +12,7 @@ Use this command in ubuntu to install:
    apt-get install python-qtp python-sip
 """
 
+import Install_https
 from ui.qtui import QtUI
 
 

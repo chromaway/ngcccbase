@@ -51,7 +51,7 @@ class WebBlockchainInterface(object):
 class BlockchainInfoInterface(WebBlockchainInterface):
     """Interface for blockchain.info. DO NOT USE FOR TESTNET!
     """
-    URL_TEMPLATE = "http://blockchain.info/unspent?active=%s"
+    URL_TEMPLATE = "https://blockchain.info/unspent?active=%s"
     REVERSE_TXHASH = True
 
     def __init__(self, coin_manager):

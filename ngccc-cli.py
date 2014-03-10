@@ -7,6 +7,7 @@ command-line interface to the Next-Generation Colored Coin Client
 You can manage your colored coins using this command.
 """
 
+import install_https
 import argparse
 import os
 import json
