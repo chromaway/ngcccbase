@@ -19,7 +19,7 @@ requires = [
 ]
 
 dependency_links = [
-    "https://github.com/petertodd/python-bitcoinlib/archive/master.zip" +
+    "https://github.com/jimmysong/python-bitcoinlib/archive/v0.1.zip" +
     "#egg=python-bitcoinlib",
 ]
 

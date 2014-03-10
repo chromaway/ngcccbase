@@ -159,7 +159,7 @@ class BlockchainState(object):
             block_hex = None
             for tx in block.vtx:
                 txhash = bitcoin.core.b2lx(
-                    bitcoin.serialize.Hash(tx.serialize()))
+                    bitcoin.core.serialize.Hash(tx.serialize()))
                 yield CTransaction.from_bitcoincore(txhash, tx, self)
         else:
             txhashes = self.bitcoind.getblock(blockhash)['tx']
