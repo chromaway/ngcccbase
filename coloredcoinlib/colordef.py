@@ -1,7 +1,6 @@
 """ Color definition schemes """
 
 import txspec
-import math
 from collections import defaultdict
 
 from colorvalue import SimpleColorValue
@@ -104,10 +103,6 @@ class GenesisColorDefinition(ColorDefinition):
 
     def is_special_tx(self, tx):
         return tx.hash == self.genesis['txhash']
-
-    def satoshi_to_color(self, satoshivalue):
-        return SimpleColorValue(colordef=self,
-                                value=satoshivalue)
 
     @classmethod
     def from_color_desc(cls, color_id, color_desc):
@@ -287,7 +282,6 @@ class EPOBCColorDefinition(GenesisColorDefinition):
 
         @classmethod
         def from_nSequence(cls, nSequence):
-            print nSequence
             bits = uint_to_bit_list(nSequence)
             tag_bits = bits[0:6]
             
@@ -324,6 +318,11 @@ class EPOBCColorDefinition(GenesisColorDefinition):
 
     @classmethod
     def get_xfer_affecting_inputs(cls, tx, padding, out_index):
+        """
+        Returns a set of indices that correspond to the inputs
+        for an output in the transaction tx with output index out_index
+        which has a padding of padding (2^n for some n>0 or 0).
+        """
         tx.ensure_input_values()
         out_prec_sum = 0
         for oi in range(out_index):
@@ -351,6 +350,9 @@ class EPOBCColorDefinition(GenesisColorDefinition):
 
 
     def run_kernel(self, tx, in_colorvalues):
+        """Given a transaction tx and the colorvalues in a list
+        in_colorvalues, output the colorvalues of the outputs in a list
+        """
         log("in_colorvalues: %s", in_colorvalues)
         tag = self.get_tag(tx)
         if tag is None:
