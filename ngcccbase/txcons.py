@@ -96,7 +96,7 @@ class BaseOperationalTxSpec(OperationalTxSpec):
         return SimpleColorValue(colordef=UNCOLORED_MARKER, value=10000)
 
     def get_dust_threshold(self):
-        return SimpleColorValue(colordef=UNCOLORED_MARKER, value=10000)
+        return SimpleColorValue(colordef=UNCOLORED_MARKER, value=5600)
 
 class SimpleOperationalTxSpec(BaseOperationalTxSpec):
     """Subclass of OperationalTxSpec which uses wallet model.
