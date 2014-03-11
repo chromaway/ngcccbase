@@ -121,7 +121,11 @@ class Application(object):
 
         parser = subparsers.add_parser(
             'scan', description=
-            "Update the database of transactions (amount in each address).")
+            "Check for received payments (unspent transaction outputs).")
+
+        parser = subparsers.add_parser(
+            'full_rescan', description=
+            "Rebuild information about unspent outputs and wallet transactions.")
 
         parser = subparsers.add_parser(
             'history', description="Shows the history of transactions "
@@ -318,6 +322,12 @@ class Application(object):
         """Update the database of transactions (amount in each address).
         """
         self.controller.scan_utxos()
+
+    def command_full_rescan(self, **kwargs):
+        """Update the database of transactions (amount in each address).
+        """
+        self.controller.full_rescan()
+
 
     def command_history(self, **kwargs):
         """print the history of transactions for this color

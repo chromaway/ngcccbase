@@ -58,6 +58,12 @@ class CoinStore(DataStore):
             self.execute("""CREATE TABLE tx_confirmations (txhash TEXT PRIMARY KEY,
                             confirmations INTEGER)""")
 
+    def purge_coins(self):
+        self.execute("DELETE FROM coin_blocks")
+        self.execute("DELETE FROM coin_spends")
+        self.execute("DELETE FROM tx_confirmations")
+        self.execute("DELETE FROM coin_data")
+
     def add_coin(self, address, txhash, outindex, value, script):
         """Record a coin into the sqlite3 DB. We record the following
         values:
@@ -222,6 +228,10 @@ class CoinManager(object):
         self.full_spv = params.get('full_spv', model.testnet)
         self.store = CoinStore(self.model.store_conn.conn)
         self.tx_confirmations = dict()
+
+    def purge_coins(self):
+        """full rescan"""
+        self.store.purge_coins()
 
     def get_coin(self, coin_id):
         coin_rec = self.store.get_coin(coin_id)

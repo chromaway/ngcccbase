@@ -56,10 +56,16 @@ class WalletController(object):
             self.model.get_coin_manager().apply_tx(txhash, signed_tx_spec)
         return txhash
 
-    def scan_utxos(self):
+    def full_rescan(self):
         """Updates all Unspent Transaction Outs for addresses associated with
         this wallet.
         """
+        self.model.get_coin_manager().purge_coins()
+        # scan utxos twice
+        self.scan_utxos()
+        self.scan_utxos()
+
+    def scan_utxos(self):
         self.model.utxo_fetcher.scan_all_addresses()
         self.model.get_coin_manager().update_confirmations()
 
