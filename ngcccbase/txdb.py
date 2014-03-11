@@ -1,7 +1,5 @@
 from coloredcoinlib.store import DataStore, DataStoreConnection, PersistentDictStore
 
-import utxodb
-
 TX_STATUS_UNKNOWN = 0
 
 create_transaction_table = """\
@@ -44,38 +42,16 @@ class TxDataStore(DataStore):
             (txhash, txdata, status))
 
     def add_signed_tx(self, txhash, tx):
-        insert_transaction = """\
-        INSERT INTO tx_address (
-            address,
-            type,
-            txid
-        ) VALUES(?, ?, ?)"""
-        with self.transaction():
-            txid = self.add_tx(txhash, tx.get_hex_tx_data()).lastrowid
-
-            for txin in tx.composed_tx_spec.txins:
-                if isinstance(txin, utxodb.UTXO) and txin.address_rec:
-                    self.execute(
-                        insert_transaction,
-                        (txin.address_rec.address, TXIN, txid))
-
-            for txout in tx.composed_tx_spec.txouts:
-                if isinstance(txout.target_addr, str):
-                    self.execute(
-                        insert_transaction, (txout.target_addr, TXOUT, txid))
+        """we no longer need to populate tx_address, 
+        we use coindb instead"""
+        return self.add_tx(txhash, tx.get_hex_tx_data())
 
     def get_tx_by_hash(self, txhash):
         return self.execute("SELECT * FROM tx_data WHERE txhash = ?",
                             (txhash, )).fetchone()
 
     def get_tx_by_output_address(self, address):
-        select_tx = """\
-        SELECT txhash, data, status
-         FROM tx_data
-        JOIN tx_address ON tx_data.id = tx_address.txid
-        WHERE tx_address.address = ?
-        """
-        return self.execute(select_tx, (address,))
+        return []
 
 
 class TxDb(object):
