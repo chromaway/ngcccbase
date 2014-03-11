@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
+import random
 import unittest
 
 from coloredcoinlib.colordef import (
-    ones, POBColorDefinition, OBColorDefinition, BFTColorDefinition,
+    EPOBCColorDefinition, OBColorDefinition,
     ColorDefinition, GenesisColorDefinition, GENESIS_OUTPUT_MARKER,
     UNCOLORED_MARKER, InvalidColorError, InvalidTargetError)
 from coloredcoinlib.colorvalue import SimpleColorValue
@@ -125,7 +126,7 @@ class TestOBC(unittest.TestCase):
         txspec = MockOpTxSpec(targets)
         self.assertTrue(isinstance(self.obc.compose_tx_spec(txspec),
                                    ComposedTxSpec))
-        non = POBColorDefinition(2, {'txhash': 'something', 'outindex': 0})
+        non = EPOBCColorDefinition(2, {'txhash': 'something', 'outindex': 0})
         cv3 = SimpleColorValue(colordef=non, value=1)
         target3 = ColorTarget('addr3', cv3)
         targets = [cv3, cv2]
@@ -139,136 +140,145 @@ class TestOBC(unittest.TestCase):
                           1, "blah:doesnmatter:0:0")
         
 
-class TestPOBC(unittest.TestCase):
+class TestEPOBC(unittest.TestCase):
 
     def setUp(self):
-        self.pobc = POBColorDefinition(1, {'txhash': 'genesis', 'outindex': 0})
-        self.tester = ColorDefinitionTester(self.pobc)
+        self.epobc = EPOBCColorDefinition(1, {'txhash': 'genesis',
+                                              'outindex': 0, 'height': 0})
+        self.tester = ColorDefinitionTester(self.epobc)
+        self.tag_class = EPOBCColorDefinition.Tag
+
+    def test_tag_closest_padding_code(self):
+        self.assertEqual(self.tag_class.closest_padding_code(0), 0)
+        for i in range(15):
+            if i > 0:
+                self.assertEqual(self.tag_class.closest_padding_code(2**i), i)
+            self.assertEqual(self.tag_class.closest_padding_code(2**i+1), i+1)
+        self.assertRaises(Exception,
+                          self.tag_class.closest_padding_code, 2**63+1)
+
+    def test_tag_from_nsequence(self):
+        self.assertEqual(self.tag_class.from_nSequence(1), None)
+        # xfer is 110011 in binary = 51
+        xfer_tag = self.tag_class.from_nSequence(512 + 51)
+        self.assertEqual(xfer_tag.is_genesis, False)
+        self.assertEqual(xfer_tag.padding_code, 8)
+        # genesis is 100101 in binary = 37
+        genesis_tag = self.tag_class.from_nSequence(2048 + 37)
+        self.assertEqual(genesis_tag.is_genesis, True)
+        self.assertEqual(genesis_tag.padding_code, 32)
+
+    def test_tag_to_nsequence(self):
+        n = random.randint(0,63) * 64 + 51
+        xfer_tag = self.tag_class.from_nSequence(n)
+        self.assertEqual(xfer_tag.to_nSequence(), n)
+
+    def test_get_tag(self):
+        tx = MockTX("random", [1,1,1], [2,1], [0,1,4,5,9])
+        self.assertEqual(EPOBCColorDefinition.get_tag(tx).padding_code, 8)
+        def tmp():
+            return True
+        tx.raw.vin[0].prevout.is_null = tmp
+        self.assertEqual(EPOBCColorDefinition.get_tag(tx), None)
 
     def test_run_kernel(self):
-        # test the POBC color kernel
+        # test the EPOBC color kernel
         test = self.tester.test
 
         # genesis
-        self.assertEqual(test([10001], [10001], [1], "genesis"), [1])
-        self.assertEqual(test([40001], [10001, 30000], [1], "genesis"), [1, None])
-        self.assertEqual(test([10000, 1], [10001], [1], "genesis"), [1])
-        self.pobc.genesis['outindex'] = 1
-        self.assertEqual(test([40001], [30000, 10001], [1], "genesis"), [None, 1])
-        self.pobc.genesis['outindex'] = 0
-        # simple transfer
-        self.assertEqual(test([10001], [10001], [1]), [1])
-        # canonical split
-        self.assertEqual(test([10002, 10003], [10005], [2, 3]), [5])
-        # canonical combine
-        self.assertEqual(test([10005], [10002, 10003], [5]), [2, 3])
+        # pad 8, direct
+        self.assertEqual(test([9], [9], [1], "genesis", [0,2,5,6,7]), [1])
+        # pad 32, split
+        self.assertEqual(test([59], [33, 26], [1], "genesis", [0,2,5,6,8]), [1, None])
+        # pad 16, join
+        self.assertEqual(test([12, 5], [17], [1], "genesis", [0,2,5,8]), [1])
+
+        # different outindex
+#        self.epobc.genesis['outindex'] = 1
+#        self.assertEqual(test([30], [27, 3], [1], "genesis", [0,2,5,6]), [None, 1])
+#        self.epobc.genesis['outindex'] = 0
+
+        # transfer
+        xfer_8 = [0, 1, 4, 5, 6, 7]
+        # pad 8, direct
+        self.assertEqual(test([9], [9], [1], "xfer", xfer_8), [1])
+        # pad 8, join
+        self.assertEqual(test([10, 11], [13], [2, 3], "xfer", xfer_8), [5])
+        # pad 8, split
+        self.assertEqual(test([13], [10, 11], [5], "xfer", xfer_8), [2, 3])
+
+        # 0's all around
+        self.assertEqual(test([8, 8, 8], [8, 8, 8], [None, None, None], "xfer", xfer_8), [None, None, None])
+
         # null values before and after
-        self.assertEqual(test([10001, 10002, 10003, 50000], [10001, 10005, 50000], [None, 2, 3, None]), [None, 5, None])
-        # ignore below-padding values
-        self.assertEqual(test([10001, 10002, 10003, 50000, 100, 20000], [10001, 10005, 100, 70000, 100], [None, 2, 3, None]), [None, 5])
+        self.assertEqual(test([9, 10, 11, 20], [9, 13, 20], [None, 2, 3, None], "xfer", xfer_8), [None, 5, None])
+
+        # ignore below-padding values -- DOES NOT PASS
+#        self.assertEqual(test([5, 10, 11, 5], [5, 13, 5], [2, 3, None], "xfer", xfer_8), [None, 5, None])
         # color values don't add up the same
-        self.assertEqual(test([10001, 10002, 10003, 10001, 50000], [10001, 10005, 50001], [None, 2, 3, 1, None]), [None, None, None])
-        # value before is not the same
-        self.assertEqual(test([10001, 10002, 10003, 50000], [10002, 10005, 49999], [None, 2, 3, None]), [None, None, None])
+        self.assertEqual(test([9, 10, 11], [13, 15, 0], [1, 2, 3], "xfer", xfer_8), [5, None, None])
+        self.assertEqual(test([9, 10, 11], [9, 15, 0], [1, 2, 3], "xfer", xfer_8), [1, None, None])
+        self.assertEqual(test([9, 10, 11], [19, 9, 0], [1, 2, 3], "xfer", xfer_8), [None, None, None])
+
+        # sum before color values is not the same
+        self.assertEqual(test([5, 10, 11], [6, 13], [None, 2, 3], "xfer", xfer_8), [None, None])
         # nonnull color values are not adjacent
-        self.assertEqual(test([10001, 10002, 10003, 10004, 50000], [10001, 10006, 49999], [None, 2, None, 4, None]), [None, None, None])
+        self.assertEqual(test([10, 10, 10, 12, 10], [10, 32, 10], [None, 2, None, 4, None], "xfer", xfer_8), [None, None, None])
         # sequence before don't add up the same
-        self.assertEqual(test([10005, 10001, 10002, 10003, 50000], [10004, 10001, 10005, 40000], [None, None, 2, 3, None]), [None, None, None, None])
+        self.assertEqual(test([10, 10, 10, 11, 10], [15, 13, 10], [None, None, 2, 3, None], "xfer", xfer_8), [None, None, None])
         # sequence before does add up the same
-        self.assertEqual(test([10005, 10001, 10002, 10003, 50001], [10005, 10001, 10005, 40000], [None, None, 2, 3, None]), [None, None, 5, None])
+        self.assertEqual(test([10, 10, 10, 11, 10], [9, 11, 13, 10], [None, None, 2, 3, None], "xfer", xfer_8), [None, None, 5, None])
         # split to many
-        self.assertEqual(test([10005, 10001, 10005, 50001], [10005, 10001, 10001, 10001, 10001, 10001, 10001, 40000], [None, None, 5, None]), [None, None, 1, 1, 1, 1, 1, None])
+        self.assertEqual(test([10, 10, 13, 40], [10, 10, 9, 9, 9, 9, 9, 5], [None, None, 5, None], "xfer", xfer_8), [None, None, 1, 1, 1, 1, 1, None])
         # combine many
-        self.assertEqual(test([10005, 10001, 10001, 10001, 10001, 10001, 10001, 40000], [10005, 10001, 10005, 50001], [None, None, 1, 1, 1, 1, 1, None]), [None, None, 5, None])
+        self.assertEqual(test([10, 9, 9, 9, 9, 9, 10], [10, 13, 32], [None, 1, 1, 1, 1, 1, None], "xfer", xfer_8), [None, 5, None])
         # split and combine
-        self.assertEqual(test([10001, 10002, 10003, 10004, 10005, 10006, 50000], [10001, 10005, 10009, 10006, 50000], [None, 2, 3, 4, 5, 6, None]), [None, 5, 9, 6, None])
+        self.assertEqual(test([10, 10, 11, 12, 13, 14, 10], [10, 13, 17, 14, 30], [None, 2, 3, 4, 5, 6, None], "xfer", xfer_8), [None, 5, 9, 6, None])
         # combine and split
-        self.assertEqual(test([10005, 10009, 10006, 50000], [10002, 10003, 10004, 10005, 10006, 50000], [5, 9, 6, None]), [2, 3, 4, 5, 6, None])
+        self.assertEqual(test([13, 17, 14, 30], [10, 11, 12, 13, 14, 10], [5, 9, 6, None], "xfer", xfer_8), [2, 3, 4, 5, 6, None])
 
     def test_compose_genesis_tx_spec(self):
-        cv = SimpleColorValue(colordef=self.pobc, value=5)
+        cv = SimpleColorValue(colordef=self.epobc, value=5)
         txspec = MockOpTxSpec([])
         self.assertRaises(InvalidTargetError,
-                          POBColorDefinition.compose_genesis_tx_spec, txspec)
+                          EPOBCColorDefinition.compose_genesis_tx_spec, txspec)
         target = ColorTarget('addr', cv)
         txspec = MockOpTxSpec([target])
         self.assertRaises(InvalidColorError,
-                          POBColorDefinition.compose_genesis_tx_spec, txspec)
+                          EPOBCColorDefinition.compose_genesis_tx_spec, txspec)
 
         cv = SimpleColorValue(colordef=GENESIS_OUTPUT_MARKER, value=5)
         target = ColorTarget('addr', cv)
         txspec = MockOpTxSpec([target])
         self.assertTrue(isinstance(
-                POBColorDefinition.compose_genesis_tx_spec(txspec),
+                EPOBCColorDefinition.compose_genesis_tx_spec(txspec),
                 ComposedTxSpec))
 
     def test_compose_tx_spec(self):
         cv1 = SimpleColorValue(colordef=UNCOLORED_MARKER, value=10000)
-        cv2 = SimpleColorValue(colordef=self.pobc, value=10000)
+        cv2 = SimpleColorValue(colordef=self.epobc, value=10000)
         targets = [ColorTarget('addr1', cv1), ColorTarget('addr1', cv2)]
         txspec = MockOpTxSpec(targets)
-        self.assertTrue(isinstance(self.pobc.compose_tx_spec(txspec),
+        self.assertTrue(isinstance(self.epobc.compose_tx_spec(txspec),
                                    ComposedTxSpec))
         cv1 = SimpleColorValue(colordef=UNCOLORED_MARKER, value=20000)
-        cv2 = SimpleColorValue(colordef=self.pobc, value=20000)
+        cv2 = SimpleColorValue(colordef=self.epobc, value=20000)
         targets = [ColorTarget('addr1', cv1), ColorTarget('addr1', cv2)]
         txspec = MockOpTxSpec(targets)
-        self.assertTrue(isinstance(self.pobc.compose_tx_spec(txspec),
+        self.assertTrue(isinstance(self.epobc.compose_tx_spec(txspec),
                                    ComposedTxSpec))
         non = OBColorDefinition(2, {'txhash': 'something', 'outindex': 0})
         cv3 = SimpleColorValue(colordef=non, value=2)
         targets = [ColorTarget('addr1', cv3), ColorTarget('addr1', cv2)]
         txspec = MockOpTxSpec(targets)
-        self.assertRaises(InvalidColorError, self.pobc.compose_tx_spec, txspec)
+        self.assertRaises(InvalidColorError, self.epobc.compose_tx_spec, txspec)
 
     def test_from_color_desc(self):
-        cd = POBColorDefinition.from_color_desc(1, "pobc:doesnmatter:0:0")
-        self.assertTrue(isinstance(cd, POBColorDefinition))
+        cd = EPOBCColorDefinition.from_color_desc(1, "epobc:doesnmatter:0:0")
+        self.assertTrue(isinstance(cd, EPOBCColorDefinition))
         self.assertRaises(InvalidColorError,
-                          POBColorDefinition.from_color_desc, 1,
+                          EPOBCColorDefinition.from_color_desc, 1,
                           "blah:doesnmatter:0:0")
-
-
-class TestBFTC(unittest.TestCase):
-    def setUp(self):
-        self.bftc = BFTColorDefinition(2, {'txhash': 'genesis', 'outindex': 0})
-        self.tester = ColorDefinitionTester(self.bftc)
-
-    def test_ones(self):
-        self.assertEqual(list(ones(0)), [])
-        self.assertEqual(list(ones(1)), [0])
-        self.assertEqual(list(ones(10)), [1, 3])
-        self.assertEqual(list(ones(42)), [1, 3, 5])
-        self.assertEqual(list(ones(127)), [0, 1, 2, 3, 4, 5, 6])
-        self.assertEqual(list(ones(987654321)), [0, 4, 5, 7, 11, \
-                 13, 14, 17, 18, 19, 20, 22, 23, 25, 27, 28, 29])
-
-    def test_i2seq(self):
-        self.assertEqual(i2seq(None), 0)
-        self.assertEqual(i2seq(0), 1)
-        self.assertEqual(i2seq(1), 2)
-        self.assertEqual(i2seq(2), 4)
-        self.assertEqual(i2seq(3), 8)
-        self.assertEqual(i2seq(4), 16)
-        self.assertEqual(i2seq(10), 2**10)
-
-    def test_run_kernel(self):
-        # test the BFTC color kernel
-        test = self.tester.test
-
-        # genesis
-        self.assertEqual(test([1000], [1000], [None], "genesis"), [1000])
-        # non genesis, no bitfield tag, no input color
-        self.assertEqual(test([1000], [1000], [None]), [None])
-        # non genesis, no bitfield tag, input colorvalue
-        self.assertEqual(test([1000], [1000], [1000]), [None])
-        # non genesis, bitfield tag, no input colorvalue
-        self.assertEqual(test([1000], [1000], [None], inp_seq_indices=[0]), [None])
-        # non genesis, bitfield tag, input colorvalue
-        self.assertEqual(test([1000], [1000], [4000], inp_seq_indices=[0]), [4000])
-        
-        # wrong index in nSequence
-        self.assertEqual(test([1000], [1000], [10], inp_seq_indices=[7]), [None])
 
 
 

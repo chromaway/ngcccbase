@@ -4,7 +4,7 @@ import unittest
 
 from coloredcoinlib.colorvalue import SimpleColorValue
 from coloredcoinlib.colordef import (UNCOLORED_MARKER, OBColorDefinition,
-                                     POBColorDefinition)
+                                     EPOBCColorDefinition)
 from coloredcoinlib.txspec import (ColorTarget, OperationalTxSpec,
                                    ComposedTxSpec)
 
@@ -12,17 +12,23 @@ from coloredcoinlib.txspec import (ColorTarget, OperationalTxSpec,
 class MicroMock(object):
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
+        self.prevout = MockTXIn('2', 1)
 
 
 class MockTXIn(object):
     def __init__(self, h, n):
         self.hash = h
         self.n = n
+    def is_null(self):
+        return False
 
 class MockTXElement:
-    def __init__(self, value):
+    def __init__(self, value, inp_seq_indices=None):
         self.value = value
         self.prevout = MockTXIn('2', 1)
+        if inp_seq_indices is None:
+            inp_seq_indices = [0,1,4,5,6,7]
+        self.prevtx = MockTX('tmp', [], [], inp_seq_indices)
     def __repr__(self):
         return "<MockTXElement: %s>" % self.value
 
@@ -35,13 +41,16 @@ def i2seq(i):
 
 class MockRawTX:
     def __init__(self, inp_seq_indices):
-        self.vin = [MicroMock(nSequence=i2seq(i)) for i in inp_seq_indices]
+        nSequence = 0
+        for i in inp_seq_indices:
+            nSequence += i2seq(i)
+        self.vin = [MicroMock(nSequence=nSequence)]
 
 
 class MockTX:
-    def __init__(self, h, inputs, outputs, inp_seq_indices=None):
+    def __init__(self, h, inputs, outputs, inp_seq_indices=None, prev_seq_indices=None):
         self.hash = h
-        self.inputs = [MockTXElement(satoshis) for satoshis in inputs]
+        self.inputs = [MockTXElement(satoshis, prev_seq_indices) for satoshis in inputs]
         self.outputs = [MockTXElement(satoshis) for satoshis in outputs]
         self.raw = MockRawTX(inp_seq_indices or [None for _ in inputs])
     def ensure_input_values(self):
@@ -52,6 +61,8 @@ class MockUTXO:
     def __init__(self, colorvalues):
         self.colorvalues = colorvalues
         self.value = sum([cv.get_value() for cv in colorvalues])
+    def set_nSequence(self, nSequence):
+        self.nSequence = nSequence
 
 
 class MockOpTxSpec(OperationalTxSpec):
@@ -63,6 +74,8 @@ class MockOpTxSpec(OperationalTxSpec):
         return SimpleColorValue(colordef=UNCOLORED_MARKER, value=10000)
     def get_change_addr(self, addr):
         return 'changeaddr'
+    def get_dust_threshold(self):
+        return SimpleColorValue(colordef=UNCOLORED_MARKER, value=10000)
     def select_coins(self, colorvalue):
         cvs = [
             SimpleColorValue(colordef=colorvalue.get_colordef(), value=10000),
@@ -76,7 +89,7 @@ class MockOpTxSpec(OperationalTxSpec):
 
 class TestTxSpec(unittest.TestCase):
     def setUp(self):
-        self.colordef1 = POBColorDefinition(
+        self.colordef1 = EPOBCColorDefinition(
             1, {'txhash': 'genesis', 'outindex': 0})
         self.colordef2 = OBColorDefinition(
             2, {'txhash': 'genesis', 'outindex': 0})
