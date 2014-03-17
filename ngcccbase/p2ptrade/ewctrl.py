@@ -6,7 +6,6 @@ from coloredcoinlib import (ColorSet, ColorTarget, UNCOLORED_MARKER,
 from protocol_objects import ETxSpec
 from ngcccbase.asset import AdditiveAssetValue
 from ngcccbase.txcons import BaseOperationalTxSpec, InsufficientFundsError
-from ngcccbase.utxodb import UTXO
 
 import bitcoin.core
 from bitcoin.wallet import CBitcoinAddress
