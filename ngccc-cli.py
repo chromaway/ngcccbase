@@ -97,6 +97,11 @@ class Application(object):
         parser.add_argument('moniker')
 
         parser = subparsers.add_parser(
+            'privatekeys', description=
+            "Lists all private keys for a given asset/color.")
+        parser.add_argument('moniker')
+
+        parser = subparsers.add_parser(
             'allassets', description="Lists all assets registered.")
 
         parser = subparsers.add_parser(
@@ -282,6 +287,13 @@ class Application(object):
         asset = self.get_asset_definition(kwargs['moniker'])
         for addr in self.controller.get_all_addresses(asset):
             print (addr.get_color_address())
+
+    def command_privatekeys(self, **kwargs):
+        """Lists all private keys for a given asset/color
+        """
+        asset = self.get_asset_definition(kwargs['moniker'])
+        for addr in self.controller.get_all_addresses(asset):
+            print (addr.get_private_key())
 
     def command_allassets(self, **kwargs):
         """Lists all assets (moniker/color_hash) registered
