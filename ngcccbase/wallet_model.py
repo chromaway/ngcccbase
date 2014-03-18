@@ -105,6 +105,11 @@ class WalletModel(object):
         """
         return self.address_man
 
+    def get_coin_manager(self):
+        """Access method for coin manager
+        """
+        return self.coin_man
+
     def get_history_for_asset(self, asset):
         """Returns the history of how an address got its coins.
         """
