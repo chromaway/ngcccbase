@@ -113,6 +113,10 @@ class Application(object):
         parser.add_argument('moniker')
 
         parser = subparsers.add_parser(
+            'coinlog', description=
+            "Returns the coin transaction log for this wallet.")
+
+        parser = subparsers.add_parser(
             'send', description=
             "Send some amount of an asset/color to an address.")
         parser.add_argument('moniker')
@@ -298,6 +302,19 @@ class Application(object):
         for row in self.controller.get_address_balance(asset):
             print ("%s: %s" % (row['color_address'],
                               asset.format_value(row['value'])))
+
+    def command_coinlog(self, **kwargs):
+        """Returns the entire contents of the coin_data table.
+        """
+        moniker = ''
+        for coin in self.controller.get_coinlog():
+            if coin.asset.get_monikers()[0] != moniker:
+                moniker = coin.asset.get_monikers()[0]
+                print "-" * 79
+                print moniker
+                print "-" * 79
+            print ("%s %s:%s %s %s" % (coin.address, coin.txhash, coin.outindex,
+                                       coin.value, coin.is_confirmed()))
 
     def command_balance(self, **kwargs):
         """Returns the balance in Satoshi for a particular asset/color.

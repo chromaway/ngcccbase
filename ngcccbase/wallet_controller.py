@@ -173,6 +173,20 @@ class WalletController(object):
             retval[i]['value'] += asset.get_colorvalue(utxo).get_value()
         return retval
 
+    def get_coins_for_address(self, address):
+        addr = address.get_address()
+        return self.model.get_coin_manager().get_coins_for_address(addr)
+
+    def get_coinlog(self):
+        coinlog = []
+        for asset in self.get_all_assets():
+            for address in self.get_all_addresses(asset):
+                for coin in self.get_coins_for_address(address):
+                    coin.asset = asset
+                    coin.address = address.get_address()
+                    coinlog.append(coin)
+        return coinlog
+
     def _get_balance(self, asset, options):
         """Returns an integer value corresponding to the total number
         of Satoshis owned of asset/color <asset>.
