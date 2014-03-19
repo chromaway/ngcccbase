@@ -1,7 +1,7 @@
 from pycoin.ecdsa.secp256k1 import generator_secp256k1 as BasePoint
 from pycoin.encoding import (b2a_hashed_base58, from_bytes_32, to_bytes_32, 
                              a2b_hashed_base58, public_pair_to_bitcoin_address,
-                             public_pair_to_hash160_sec)
+                             public_pair_to_hash160_sec, secret_exponent_to_wif)
 
 
 class InvalidAddressError(Exception):
@@ -33,6 +33,9 @@ class AddressRecord(object):
         raw = self.prefix + to_bytes_32(self.rawPrivKey)
         return {"color_set": self.color_set.get_data(),
                 "address_data": b2a_hashed_base58(raw)}
+
+    def get_private_key(self):
+        return secret_exponent_to_wif(self.rawPrivKey, False, self.testnet)
 
     def get_address(self):
         """Get the actual bitcoin address
