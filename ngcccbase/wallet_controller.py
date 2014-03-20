@@ -6,11 +6,12 @@ Executes high level tasks such as get balance
 """
 
 from asset import AssetTarget, AdditiveAssetValue
+from coindb import CoinQuery
 from coloredcoinlib import (InvalidColorDefinitionError, ColorDefinition,
                             GENESIS_OUTPUT_MARKER,
                             ColorTarget, SimpleColorValue)
-from wallet_model import ColorSet
 from txcons import BasicTxSpec, SimpleOperationalTxSpec
+from wallet_model import ColorSet
 
 
 class AssetMismatchError(Exception):
@@ -173,17 +174,21 @@ class WalletController(object):
             retval[i]['value'] += asset.get_colorvalue(utxo).get_value()
         return retval
 
-    def get_coins_for_address(self, address):
-        addr = address.get_address()
-        return self.model.get_coin_manager().get_coins_for_address(addr)
-
     def get_coinlog(self):
         coinlog = []
         for asset in self.get_all_assets():
+            query_1 = CoinQuery(self.model, asset.get_color_set(),
+                                {'spent': True, 'include_unconfirmed': True})
+            query_2 = CoinQuery(self.model, asset.get_color_set(),
+                                {'spent': False, 'include_unconfirmed': True})
             for address in self.get_all_addresses(asset):
-                for coin in self.get_coins_for_address(address):
+                for coin in query_1.get_coins_for_address(address):
                     coin.asset = asset
-                    coin.address = address.get_address()
+                    coin.address_rec = address
+                    coinlog.append(coin)
+                for coin in query_2.get_coins_for_address(address):
+                    coin.asset = asset
+                    coin.address_rec = address
                     coinlog.append(coin)
         return coinlog
 

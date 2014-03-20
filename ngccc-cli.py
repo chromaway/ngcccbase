@@ -325,8 +325,10 @@ class Application(object):
                 print "-" * 79
                 print moniker
                 print "-" * 79
-            print ("%s %s:%s %s %s" % (coin.address, coin.txhash, coin.outindex,
-                                       coin.value, coin.is_confirmed()))
+            print ("%s %s:%s %s (%s) %s %s" % (
+                    coin.get_address(), coin.txhash, coin.outindex,
+                    coin.colorvalues[0], coin.value,
+                    coin.is_confirmed(), coin.get_spending_txs()))
 
     def command_balance(self, **kwargs):
         """Returns the balance in Satoshi for a particular asset/color.
