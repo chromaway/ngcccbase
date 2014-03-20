@@ -84,6 +84,9 @@ class CoinStore(DataStore):
                      (coin_id, spend_txhash))
 
     def add_coin_block(self, coin_id, block_hash):
+        # if block_hash is not a string, the sql statement will barf
+        if type(block_hash) != str:
+            return
         self.execute("INSERT OR IGNORE INTO coin_blocks (coin_id, block_hash) VALUES (?, ?)",
                      (coin_id, block_hash))
     
@@ -136,6 +139,15 @@ class Coin(ComposedTxSpec.TxIn):
         self.colorvalues = None
         self.coin_id = coin_data['id']
         self.coin_manager = coin_manager
+
+    def get_address(self):
+        if self.address_rec:
+            return self.address_rec.get_address()
+        else:
+            return "not set"
+
+    def get_spending_txs(self):
+        return self.coin_manager.get_spending_txs(self)
 
     def is_spent(self):
         return self.coin_manager.is_spent(self)
@@ -239,6 +251,9 @@ class CoinManager(object):
             return Coin(self.store, coin_rec)
         else:
             return None
+
+    def get_spending_txs(self, coin):
+        return self.store.get_coin_spends(coin.coin_id)
 
     def is_spent(self, coin):
         return len(self.store.get_coin_spends(coin.coin_id)) > 0
