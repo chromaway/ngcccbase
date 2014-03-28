@@ -96,7 +96,7 @@ class BaseOperationalTxSpec(OperationalTxSpec):
         return SimpleColorValue(colordef=UNCOLORED_MARKER, value=10000)
 
     def get_dust_threshold(self):
-        return SimpleColorValue(colordef=UNCOLORED_MARKER, value=5600)
+        return SimpleColorValue(colordef=UNCOLORED_MARKER, value=5500)
 
 class SimpleOperationalTxSpec(BaseOperationalTxSpec):
     """Subclass of OperationalTxSpec which uses wallet model.
@@ -228,7 +228,7 @@ def compose_uncolored_tx(tx_spec):
     txouts = [ComposedTxSpec.TxOut(target.get_satoshi(), target.get_address())
               for target in targets]
     # give ourselves the change
-    if change > 0:
+    if change > tx_spec.get_dust_threshold():
         change_addr = tx_spec.get_change_addr(UNCOLORED_MARKER)
         txouts.append(
             ComposedTxSpec.TxOut(change.get_satoshi(), change_addr))

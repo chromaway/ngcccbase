@@ -207,7 +207,7 @@ class OBColorDefinition(GenesisColorDefinition):
         colorvalue = fee + uncolored_value
         inputs, total = op_tx_spec.select_coins(colorvalue)
         change = total - fee - uncolored_value
-        if change > 0:
+        if change > op_tx_spec.get_dust_threshold():
             targets.append(ColorTarget(
                     op_tx_spec.get_change_addr(UNCOLORED_MARKER), change))
         txouts = [txspec.ComposedTxSpec.TxOut(target.get_satoshi(),
@@ -235,7 +235,7 @@ class OBColorDefinition(GenesisColorDefinition):
         fee = op_tx_spec.get_required_fee(250 * (len(colored_inputs) + 1))
         uncolored_inputs, uncolored_total = op_tx_spec.select_coins(uncolored_needed + fee)
         uncolored_change = uncolored_total - uncolored_needed - fee
-        if uncolored_change > 0:
+        if uncolored_change > op_tx_spec.get_dust_threshold():
             uncolored_targets.append(
                 ColorTarget(op_tx_spec.get_change_addr(UNCOLORED_MARKER),
                             uncolored_change))
@@ -472,7 +472,7 @@ class EPOBCColorDefinition(GenesisColorDefinition):
         else:
             uncolored_change =  (- uncolored_needed) - fee
             
-        if uncolored_change > 0:
+        if uncolored_change > op_tx_spec.get_dust_threshold():
             uncolored_txouts.append(txspec.ComposedTxSpec.TxOut(
                     uncolored_change.get_value(), 
                     op_tx_spec.get_change_addr(UNCOLORED_MARKER)))
@@ -506,7 +506,7 @@ class EPOBCColorDefinition(GenesisColorDefinition):
         txouts = []
         txouts.append(txspec.ComposedTxSpec.TxOut(padding + g_value,
                                                   g_target.get_address()))
-        if change > 0:
+        if change > op_tx_spec.get_dust_threshold():
             txouts.append(txspec.ComposedTxSpec.TxOut(
                     change.get_value(), op_tx_spec.get_change_addr(UNCOLORED_MARKER)))
         uncolored_inputs[0].set_nSequence(tag.to_nSequence())
