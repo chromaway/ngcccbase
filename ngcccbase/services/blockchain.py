@@ -47,6 +47,9 @@ class WebBlockchainInterface(object):
                 return []             
             raise                       # pragma: no cover
 
+    def get_address_history(self, address):
+        raise Exception('not implemented')
+
 
 class BlockchainInfoInterface(WebBlockchainInterface):
     """Interface for blockchain.info. DO NOT USE FOR TESTNET!
@@ -60,6 +63,13 @@ class BlockchainInfoInterface(WebBlockchainInterface):
     def notify_confirmations(self, txhash, confirmations):
         self.coin_manager.notify_confirmations(txhash, confirmations)
 
+    def get_address_history(self, address):
+        url = "https://blockchain.info/rawaddr/?" % address
+        jsonData = urllib2.urlopen(url).read()
+        data = json.loads(jsonData)
+        return [tx['hash'] for tx in data['txs']]
+        
+
 
 class AbeInterface(WebBlockchainInterface):
     """Interface for an Abe server, which is an open-source
@@ -67,3 +77,9 @@ class AbeInterface(WebBlockchainInterface):
     See https://github.com/bitcoin-abe/bitcoin-abe for more information.
     """
     URL_TEMPLATE = "http://abe.bitcontracts.org/unspent/%s"
+
+    def get_address_history(self, address):
+        url = "http://abe.bitcontracts.org/unspent/%s" % address
+        jsonData = urllib2.urlopen(url).read()
+        data = json.loads(jsonData)
+        return [tx['hash'] for tx in data['txs']]

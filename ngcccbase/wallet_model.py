@@ -70,6 +70,9 @@ class WalletModel(object):
         self.txdb = TxDb(self, config)
         self.tx_spec_transformer = TransactionSpecTransformer(self, config)
 
+    def get_blockchain_state(self):
+        return self.ccc.blockchain_state
+
     def get_tx_db(self):
         """Access method for transaction data store.
         """
