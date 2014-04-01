@@ -290,10 +290,10 @@ class CoinManager(object):
             return
         for coin_id in self.store.get_unconfirmed():
             coin = self.get_coin(coin_id)
-            block_hash = self.model.ccc.blockchain_state.get_tx_blockhash(coin.txhash)
+            block_hash, _ = self.model.ccc.blockchain_state.get_tx_blockhash(coin.txhash)
             if block_hash:
                 self.update_coin_block_hash(coin_id, block_hash)
-        
+
     def update_coin_block_hash(self, coin_id, block_hash):
         if not self.full_spv:
             return
