@@ -84,12 +84,9 @@ class CoinStore(DataStore):
                      (coin_id, spend_txhash))
 
     def add_coin_block(self, coin_id, block_hash):
-        # if block_hash is not a string, the sql statement will barf
-        if type(block_hash) != str:
-            return
         self.execute("INSERT OR IGNORE INTO coin_blocks (coin_id, block_hash) VALUES (?, ?)",
                      (coin_id, block_hash))
-    
+
     def find_coin(self, txhash, outindex):
          return unwrap1(self.execute("SELECT id FROM coin_data WHERE txhash = ? and outindex = ?",
                                      (txhash, outindex)).fetchone())
