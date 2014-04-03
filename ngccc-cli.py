@@ -112,8 +112,8 @@ class Application(object):
         parser.add_argument('--available', action='store_true')
 
         parser = subparsers.add_parser(
-            'addressbalance', description=
-            "Returns the balance in Satoshi for each address "
+            'received_by_address', description=
+            "Returns total received amount for each address "
             "of a particular asset/color.")
         parser.add_argument('moniker')
 
@@ -306,12 +306,12 @@ class Application(object):
             print ("%s: %s" % (', '.join(asset.monikers),
                               asset.get_color_set().get_color_hash()))
 
-    def command_addressbalance(self, **kwargs):
+    def command_received_by_address(self, **kwargs):
         """Returns the balance in Satoshi for a particular asset/color.
         "bitcoin" is the generic uncolored coin.
         """
         asset = self.get_asset_definition(kwargs['moniker'])
-        for row in self.controller.get_address_balance(asset):
+        for row in self.controller.get_received_by_address(asset):
             print ("%s: %s" % (row['color_address'],
                               asset.format_value(row['value'])))
 

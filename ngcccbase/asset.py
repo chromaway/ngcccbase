@@ -1,4 +1,5 @@
-from coloredcoinlib import ColorSet, IncompatibleTypesError, InvalidValueError
+from coloredcoinlib import (ColorSet, IncompatibleTypesError, InvalidValueError, 
+                            SimpleColorValue, ColorValue)
 from coloredcoinlib.comparable import ComparableMixin
 
 
@@ -11,6 +12,7 @@ class AssetDefinition(object):
         <params>. Note params has the color definitions used for this
         Asset.
         """
+        self.colormap = colormap
         self.monikers = params.get('monikers', [])
         self.color_set = ColorSet(colormap, params.get('color_set'))
         self.unit = int(params.get('unit', 1))
@@ -31,6 +33,12 @@ class AssetDefinition(object):
         """
         return self.color_set
 
+    def get_null_colorvalue(self):
+        color_set = self.get_color_set() 
+        assert len(color_set.color_desc_list) == 1
+        cd = self.colormap.get_color_def(color_set.color_desc_list[0])
+        return SimpleColorValue(colordef=cd, value=0)
+
     def get_colorvalue(self, utxo):
         """ return colorvalue for a given utxo"""
         if utxo.colorvalues:
@@ -46,10 +54,14 @@ class AssetDefinition(object):
         """
         return int(float(portion) * self.unit)
 
-    def format_value(self, atoms):
+    def format_value(self, value):
         """Returns a string representation of the portion of the asset.
         can involve rounding.  doesn't display insignificant zeros
         """
+        if isinstance(value, ColorValue):
+            atoms = value.get_value()
+        else:
+            atoms = value
         return '{0:g}'.format(atoms / float(self.unit))
 
     def get_data(self):

@@ -24,7 +24,7 @@ class ColorValue(object):
 
     def check_compatibility(self, other):
         if self.get_color_id() != other.get_color_id():
-            raise IncompatibleTypesError        
+            raise IncompatibleTypesError
 
     def get_colordef(self):
         return self.colordef

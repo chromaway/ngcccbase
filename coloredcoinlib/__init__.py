@@ -2,7 +2,7 @@
 coloredcoinlib module provides the core colored coin functionality and tools.
 """
 
-from blockchain import BlockchainState, CTransaction
+from blockchain import BlockchainState, BlockchainStateBase, CTransaction
 from builder import (ColorDataBuilderManager,
                      FullScanColorDataBuilder, AidedColorDataBuilder)
 from colordata import ThickColorData, ThinColorData
@@ -12,7 +12,7 @@ from colordef import (InvalidColorDefinitionError,
 from colormap import ColorMap
 from colorset import ColorSet
 from colorvalue import (IncompatibleTypesError, InvalidValueError,
-                        SimpleColorValue)
+                        ColorValue, AdditiveColorValue, SimpleColorValue)
 from store import DataStoreConnection, ColorDataStore, ColorMetaStore
 from txspec import (ColorTarget, ZeroSelectError, InvalidColorIdError,
                     OperationalTxSpec, ComposedTxSpec)

@@ -91,7 +91,7 @@ class TestWalletController(unittest.TestCase):
         addrs = self.wc.get_all_addresses(self.asset)
         self.assertEqual(len(addr.get_address()), 34)
         self.assertTrue(addr in addrs)
-        for d in self.wc.get_address_balance(self.asset):
+        for d in self.wc.get_received_by_address(self.asset):
             if d['address'] == addr.get_address():
                 self.assertEqual(d['value'], 0)
 

@@ -297,7 +297,7 @@ class CoinManager(object):
         if coin_id and (block_hash not in self.store.get_coin_blocks(coin_id)):
             self.store.add_coin_block(coin_id, block_hash)
 
-    def apply_tx(self, txhash, tx=None):
+    def apply_tx(self, txhash, raw_tx=None):
         """Given a transaction <composed_tx_spec>, delete any
         utxos that it spends and add any utxos that are new
         """
@@ -310,20 +310,22 @@ class CoinManager(object):
             block_hash, _ = bs.get_tx_blockhash(txhash)
         else:
             block_hash = None
-        if not tx:
-            raw_tx = bs.get_raw(txhash).decode('hex')
-            tx = RawTxSpec.from_tx_data(self.model, raw_tx)
+        if not raw_tx:
+            raw_tx_data = bs.get_raw(txhash).decode('hex')
+            raw_tx = RawTxSpec.from_tx_data(self.model, raw_tx_data)
+
+        ctxs = raw_tx.composed_tx_spec
 
         # record spends
-        for txin in tx.composed_tx_spec.txins:
+        for txin in ctxs.txins:
             prev_txhash, prev_outindex = txin.get_outpoint()
             coin_id = self.store.find_coin(prev_txhash, prev_outindex)
             if coin_id:
                 self.store.add_spend(coin_id, txhash)
                 
         # put the new utxo into the db
-        for i, txout in enumerate(tx.composed_tx_spec.txouts):
-            script = tx.pycoin_tx.txs_out[i].script.encode('hex')
+        for i, txout in enumerate(ctxs.txouts):
+            script = raw_tx.pycoin_tx.txs_out[i].script.encode('hex')
             if txout.target_addr in all_addresses:
                 self.add_coin(txout.target_addr, txhash, i,
                               txout.value, script, block_hash)

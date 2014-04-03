@@ -64,7 +64,7 @@ class BlockchainInfoInterface(WebBlockchainInterface):
         self.coin_manager.notify_confirmations(txhash, confirmations)
 
     def get_address_history(self, address):
-        url = "https://blockchain.info/rawaddr/?" % address
+        url = "https://blockchain.info/rawaddr/%s" % address
         jsonData = urllib2.urlopen(url).read()
         data = json.loads(jsonData)
         return [tx['hash'] for tx in data['txs']]

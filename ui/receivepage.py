@@ -63,7 +63,7 @@ class ReceivePage(QtGui.QWidget):
         self.model.removeRows(0, self.model.rowCount())
         for moniker in wallet.get_all_monikers():
             asset = wallet.get_asset_definition(moniker)
-            for row in wallet.get_address_balance(asset):
+            for row in wallet.get_received_by_address(asset):
                 self.model.addRow([moniker, row['color_address'], asset.format_value(row['value'])])
 
         moniker = self.cbMoniker.currentText()

@@ -10,14 +10,15 @@ import bitcoin
 import json
 import urllib2
 
-from coloredcoinlib.blockchain import CTransaction
+
+from coloredcoinlib import CTransaction, BlockchainStateBase
 
 
 class UnimplementedError(RuntimeError):
     pass
 
 
-class ChromaBlockchainState:
+class ChromaBlockchainState(BlockchainStateBase):
 
     tx_lookup = {}
 

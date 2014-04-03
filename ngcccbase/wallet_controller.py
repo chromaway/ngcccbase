@@ -62,9 +62,15 @@ class WalletController(object):
         this wallet.
         """
         self.model.get_coin_manager().purge_coins()
-        # scan utxos twice
-        self.scan_utxos()
-        self.scan_utxos()
+        wam = self.model.get_address_manager()
+        bc_interface = self.model.utxo_fetcher.interface
+        tx_hashes = []
+        for ar in wam.get_all_addresses():
+            tx_hashes.extend(bc_interface.get_address_history(ar.get_address()))
+        sorted_txs = self.model.get_blockchain_state().sort_txs(tx_hashes)
+        coinman = self.model.get_coin_manager()
+        for tx in sorted_txs:
+            coinman.apply_tx(tx.hash)
 
     def scan_utxos(self):
         self.model.utxo_fetcher.scan_all_addresses()
@@ -157,21 +163,19 @@ class WalletController(object):
         """
         self.model.get_asset_definition_manager().add_asset_definition(params)
 
-    def get_address_balance(self, asset):
-        """Returns an integer value corresponding to the total number
-        of Satoshis owned of asset/color <asset>.
-        """
-        return []
-        cq = self.model.make_coin_query({"asset": asset}.union(options))
-        utxo_list = cq.get_result()
+    def get_received_by_address(self, asset):
+        utxo_list = \
+            (self.model.make_coin_query({"asset": asset, "spent": False}).get_result()
+             +
+             self.model.make_coin_query({"asset": asset, "spent": True}).get_result())
         ars = self.get_all_addresses(asset)
         addresses = [ar.get_address() for ar in ars]
         retval = [{'address': ar.get_address(),
                    'color_address': ar.get_color_address(),
-                   'value': 0} for ar in ars]
+                   'value': asset.get_null_colorvalue()} for ar in ars]
         for utxo in utxo_list:
             i = addresses.index(utxo.address_rec.get_address())
-            retval[i]['value'] += asset.get_colorvalue(utxo).get_value()
+            retval[i]['value'] += asset.get_colorvalue(utxo)
         return retval
 
     def get_coinlog(self):

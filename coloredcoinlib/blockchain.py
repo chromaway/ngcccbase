@@ -87,7 +87,23 @@ class CTransaction(object):
         self.have_input_values = True
 
 
-class BlockchainState(object):
+class BlockchainStateBase(object):
+    def sort_txs(self, tx_list):
+        block_txs = {h:self.get_tx(h) for h in tx_list}
+
+        def get_dependent_txs(tx):
+            """all transactions from current block this transaction
+            directly depends on"""
+            dependent_txs = []
+            for inp in tx.inputs:
+                if inp.prevout.hash in block_txs:
+                    dependent_txs.append(block_txs[inp.prevout.hash])
+            return dependent_txs
+
+        return toposorted(block_txs.values(), get_dependent_txs)
+
+
+class BlockchainState(BlockchainStateBase):
     """ Represents a blockchain state, using bitcoin-RPC to
     obtain information of transactions, addresses, and blocks. """
     def __init__(self, bitcoind):
