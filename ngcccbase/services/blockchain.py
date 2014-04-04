@@ -64,11 +64,18 @@ class BlockchainInfoInterface(WebBlockchainInterface):
         self.coin_manager.notify_confirmations(txhash, confirmations)
 
     def get_address_history(self, address):
+
+        block_count = int(
+            urllib2.urlopen("https://blockchain.info/q/getblockcount").read())        
+
         url = "https://blockchain.info/rawaddr/%s" % address
         jsonData = urllib2.urlopen(url).read()
         data = json.loads(jsonData)
-        return [tx['hash'] for tx in data['txs']]
-        
+        for tx in data['txs']:
+            if 'block_height' in tx:
+                confirmations = block_count - tx['block_height'] + 1
+                self.notify_confirmations(tx['hash'], confirmations)
+        return [tx['hash'] for tx in data['txs']]        
 
 
 class AbeInterface(WebBlockchainInterface):

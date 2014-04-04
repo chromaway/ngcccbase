@@ -5,7 +5,7 @@ from tablemodel import TableModel, ProxyModel
 
 
 class AddressTableModel(TableModel):
-    _columns = ['Moniker', 'Address', 'Balance']
+    _columns = ['Moniker', 'Address', 'Received']
     _alignment = [
         QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter,
         QtCore.Qt.AlignCenter | QtCore.Qt.AlignVCenter,
