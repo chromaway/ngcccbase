@@ -34,6 +34,7 @@ class WalletController(object):
         side effect. Returns the transaction hash.
         """
         txhex = signed_tx_spec.get_hex_tx_data()
+        print txhex
         txhash = signed_tx_spec.get_hex_txhash()
         r_txhash = None
         blockchain_state = self.model.ccc.blockchain_state

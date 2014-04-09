@@ -56,22 +56,25 @@ class BaseTxDb(object):
     def purge_tx_db(self):
         self.store.purge_tx_data()
 
-    def add_raw_tx(self, raw_tx):
+    def add_raw_tx(self, raw_tx, status=TX_STATUS_UNCONFIRMED):
         self.add_tx(raw_tx.get_hex_txhash(),
                     raw_tx.get_hex_tx_data(),
-                    raw_tx)
+                    raw_tx,
+                    status)
 
-    def add_tx_by_hash(self, txhash):
+    def add_tx_by_hash(self, txhash, status=None):
         bs = self.model.get_blockchain_state()
         txdata = bs.get_raw(txhash)
         raw_tx = RawTxSpec.from_tx_data(self.model,
                                         txdata.decode('hex'))
-        self.add_tx(txhash, txdata, raw_tx)
+        self.add_tx(txhash, txdata, raw_tx, status)
 
-    def add_tx(self, txhash, txdata, raw_tx):
+    def add_tx(self, txhash, txdata, raw_tx, status=None):
         if not self.store.get_tx_by_hash(txhash):
-            status = self.identify_tx_status(txhash)
+            if not status:
+                status = self.identify_tx_status(txhash)
             self.store.add_tx(txhash, txdata, status)
+            self.last_status_check[txhash] = time()
             self.model.get_coin_manager().apply_tx(txhash, raw_tx)
         else:
             self.maybe_recheck_tx_status(txhash, 

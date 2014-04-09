@@ -113,7 +113,7 @@ class Coin(ComposedTxSpec.TxIn):
             return "not set"
 
     def get_spending_txs(self):
-        return self.coin_manager.get_spending_txs(self)
+        return self.coin_manager.get_coin_spending_txs(self)
 
     def is_spent(self):
         return self.coin_manager.is_coin_spent(self)
