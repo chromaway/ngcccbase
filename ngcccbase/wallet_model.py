@@ -13,10 +13,12 @@ from collections import defaultdict
 from asset import AssetDefinitionManager
 from color import ColoredCoinContext
 from coloredcoinlib import ColorSet, toposorted
-from txdb import TxDb
+from txdb import NaiveTxDb, BCI_TxDb
 from txcons import TransactionSpecTransformer
 from coindb import CoinQuery, CoinManager
 from utxo_fetcher import UTXOFetcher
+from coloredcoinlib import BlockchainState
+from services.chroma import ChromaBlockchainState
 
 
 class CoinQueryFactory(object):
@@ -55,7 +57,15 @@ class WalletModel(object):
         """
         self.store_conn = store_conn  # hackish!
         self.testnet = config.get('testnet', False)
-        self.ccc = ColoredCoinContext(config)
+        self.init_blockchain_state(config)
+
+        if self.testnet:
+            txdb_class = NaiveTxDb
+        else:
+            txdb_class = BCI_TxDb
+        self.txdb = txdb_class(self, config)
+        self.ccc = ColoredCoinContext(config, 
+                                      self.blockchain_state)
         self.ass_def_man = AssetDefinitionManager(self.ccc.colormap, config)
         if config.get('bip0032'):
             from bip0032 import HDWalletAddressManager
@@ -67,11 +77,38 @@ class WalletModel(object):
         self.coin_query_factory = CoinQueryFactory(self, config)
         self.coin_man = CoinManager(self, config)
         self.utxo_fetcher = UTXOFetcher(self, config)
-        self.txdb = TxDb(self, config)
         self.tx_spec_transformer = TransactionSpecTransformer(self, config)
 
+    def init_blockchain_state(self, config):
+        thin = config.get('thin', True)
+        if thin and not config.get('use_bitcoind', False):
+            chromanode_url = config.get('chromanode_url', None)
+            if not chromanode_url:
+                if self.testnet:
+                    chromanode_url = "http://chromanode-tn.bitcontracts.org"
+                else:
+                    chromanode_url = "http://chromanode.bitcontracts.org"
+            self.blockchain_state = ChromaBlockchainState(
+                chromanode_url,
+                self.testnet)
+        else:
+            self.blockchain_state = BlockchainState.from_url(
+                None, self.testnet)
+
+        if not thin and not self.testnet:
+            try:
+                # try fetching transaction from the second block of
+                # the bitcoin blockchain to see whether txindex works
+                self.blockchain_state.bitcoind.getrawtransaction(
+                    "9b0fc92260312ce44e74ef369f5c66bbb85848f2eddd5"
+                    "a7a1cde251e54ccfdd5")
+            except Exception as e:
+                # use Electrum to request transactions
+                self.blockchain_state = EnhancedBlockchainState(
+                    "electrum.cafebitcoin.com", 50001)
+
     def get_blockchain_state(self):
-        return self.ccc.blockchain_state
+        return self.blockchain_state
 
     def get_tx_db(self):
         """Access method for transaction data store.

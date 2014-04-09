@@ -48,21 +48,14 @@ class CoinStore(DataStore):
                          "(coin_id, txhash)")
             self.execute("CREATE INDEX coin_spends_txhash ON coin_spends "
                          "(txhash)")
-        if not self.table_exists("coin_blocks"):
-            self.execute("""CREATE TABLE coin_blocks
-                    (coin_id INTEGER, block_hash TEXT,
-                     FOREIGN KEY (coin_id) REFERENCES coin_data(id))""")
-            self.execute("CREATE UNIQUE INDEX coin_blocks_id ON coin_blocks "
-                         "(coin_id, block_hash)")
-        if not self.table_exists("tx_confirmations"):
-            self.execute("""CREATE TABLE tx_confirmations (txhash TEXT PRIMARY KEY,
-                            confirmations INTEGER)""")
 
     def purge_coins(self):
-        self.execute("DELETE FROM coin_blocks")
         self.execute("DELETE FROM coin_spends")
-        self.execute("DELETE FROM tx_confirmations")
         self.execute("DELETE FROM coin_data")
+
+    def delete_coin(self, coin_id):
+        self.execute("DELETE FROM coin_spends WHERE coin_id = ?", (coin_id,))
+        self.execute("DELETE FROM coin_data WHERE id = ?", (coin_id,))
 
     def add_coin(self, address, txhash, outindex, value, script):
         """Record a coin into the sqlite3 DB. We record the following
@@ -83,36 +76,12 @@ class CoinStore(DataStore):
         self.execute("INSERT OR IGNORE INTO coin_spends (coin_id, txhash) VALUES (?, ?)",
                      (coin_id, spend_txhash))
 
-    def add_coin_block(self, coin_id, block_hash):
-        self.execute("INSERT OR IGNORE INTO coin_blocks (coin_id, block_hash) VALUES (?, ?)",
-                     (coin_id, block_hash))
-
     def find_coin(self, txhash, outindex):
          return unwrap1(self.execute("SELECT id FROM coin_data WHERE txhash = ? and outindex = ?",
                                      (txhash, outindex)).fetchone())
 
     def get_coin_spends(self, coin_id):
         return flatten1(self.execute("SELECT txhash FROM coin_spends WHERE coin_id = ?",
-                                     (coin_id, )).fetchall())
-
-    def get_unconfirmed(self):
-        return flatten1(self.execute("SELECT coin_data.id FROM coin_data LEFT JOIN\
- coin_blocks ON coin_data.id = coin_blocks.coin_id WHERE coin_id IS NULL").fetchall())
-
-    def get_tx_confirmations(self, txhash):
-        res = self.execute("SELECT confirmations FROM tx_confirmations WHERE txhash = ?",
-                           (txhash, )).fetchone()
-        if res:
-            return res[0]
-        else:
-            return 0
-
-    def set_tx_confirmations(self, txhash, confirmations):
-        self.execute("""INSERT OR REPLACE INTO tx_confirmations (txhash, confirmations)
-                        VALUES (?, ?)""", (txhash, confirmations))
-    
-    def get_coin_blocks(self, coin_id):
-        return flatten1(self.execute("SELECT block_hash FROM coin_blocks WHERE coin_id = ?",
                                      (coin_id, )).fetchall())
 
     def get_coins_for_address(self, address):
@@ -147,10 +116,13 @@ class Coin(ComposedTxSpec.TxIn):
         return self.coin_manager.get_spending_txs(self)
 
     def is_spent(self):
-        return self.coin_manager.is_spent(self)
+        return self.coin_manager.is_coin_spent(self)
     
     def is_confirmed(self):
-        return self.coin_manager.is_confirmed(self)
+        return self.coin_manager.is_coin_confirmed(self)
+
+    def is_valid(self):
+        return self.coin_manager.is_coin_valid(self)
         
 class CoinQuery(object):
     """Query object for getting data out of the UTXO data-store.
@@ -166,6 +138,8 @@ class CoinQuery(object):
         assert 'spent' in filter_options
 
     def coin_matches_filter(self, coin):
+        if not coin.is_valid():
+            return False
         if self.filter_options['spent'] != coin.is_spent():
             return False
         if self.filter_options.get('only_unconfirmed', False):
@@ -234,9 +208,7 @@ class CoinManager(object):
         """
         params = config.get('utxodb', {})
         self.model = model
-        self.full_spv = params.get('full_spv', model.testnet)
         self.store = CoinStore(self.model.store_conn.conn)
-        self.tx_confirmations = dict()
 
     def purge_coins(self):
         """full rescan"""
@@ -249,21 +221,18 @@ class CoinManager(object):
         else:
             return None
 
-    def get_spending_txs(self, coin):
-        return self.store.get_coin_spends(coin.coin_id)
+    def is_coin_valid(self, coin):
+        return self.model.get_tx_db().is_tx_valid(coin.txhash)
 
-    def is_spent(self, coin):
-        return len(self.store.get_coin_spends(coin.coin_id)) > 0
+    def get_coin_spending_txs(self, coin):
+        return filter(self.model.get_tx_db().is_tx_valid, 
+                      self.store.get_coin_spends(coin.coin_id))
 
-    def is_confirmed(self, coin):
-        if self.full_spv:
-            blocks = self.store.get_coin_blocks(coin.coin_id)
-            return len(blocks) > 0
-        else:
-            return self.store.get_tx_confirmations(coin.txhash) > 0
+    def is_coin_spent(self, coin):
+        return len(self.get_coin_spending_txs(coin)) > 0
 
-    def notify_confirmations(self, txhash, confirmations):
-        self.store.set_tx_confirmations(txhash, confirmations)
+    def is_coin_confirmed(self, coin):
+        return self.model.get_tx_db().is_tx_confirmed(coin.txhash)
 
     def get_coins_for_address(self, address):
         """Returns a list of UTXO objects for a given address <address>
@@ -274,45 +243,19 @@ class CoinManager(object):
             coins.append(coin)
         return coins
 
-    def add_coin(self, address, txhash, outindex, value, script, block_hash=None):
+    def add_coin(self, address, txhash, outindex, value, script):
         coin_id = self.store.find_coin(txhash, outindex)
         if coin_id is None:
             self.store.add_coin(address, txhash, outindex, value, script)
             coin_id = self.store.find_coin(txhash, outindex)
-        if block_hash:
-            self.update_coin_block_hash(coin_id, block_hash)
 
-    def update_confirmations(self):
-        if not self.full_spv:
-            return
-        for coin_id in self.store.get_unconfirmed():
-            coin = self.get_coin(coin_id)
-            block_hash, _ = self.model.ccc.blockchain_state.get_tx_blockhash(coin.txhash)
-            if block_hash:
-                self.update_coin_block_hash(coin_id, block_hash)
-
-    def update_coin_block_hash(self, coin_id, block_hash):
-        if not self.full_spv:
-            return
-        if coin_id and (block_hash not in self.store.get_coin_blocks(coin_id)):
-            self.store.add_coin_block(coin_id, block_hash)
-
-    def apply_tx(self, txhash, raw_tx=None):
+    def apply_tx(self, txhash, raw_tx):
         """Given a transaction <composed_tx_spec>, delete any
         utxos that it spends and add any utxos that are new
         """
 
         all_addresses = [a.get_address() for a in
                          self.model.get_address_manager().get_all_addresses()]
-
-        bs = self.model.ccc.blockchain_state
-        if self.full_spv:
-            block_hash, _ = bs.get_tx_blockhash(txhash)
-        else:
-            block_hash = None
-        if not raw_tx:
-            raw_tx_data = bs.get_raw(txhash).decode('hex')
-            raw_tx = RawTxSpec.from_tx_data(self.model, raw_tx_data)
 
         ctxs = raw_tx.composed_tx_spec
 
@@ -328,5 +271,5 @@ class CoinManager(object):
             script = raw_tx.pycoin_tx.txs_out[i].script.encode('hex')
             if txout.target_addr in all_addresses:
                 self.add_coin(txout.target_addr, txhash, i,
-                              txout.value, script, block_hash)
+                              txout.value, script)
                              

@@ -22,14 +22,13 @@ class UTXOFetcher(object):
         """Create a fetcher object given configuration in <params>
         """
         self.model = model
-        self.coin_manager = model.get_coin_manager()
         params = config.get('utxo_fetcher', {})
         if model.testnet:
             use = 'testnet'
         else:
             use = params.get('interface', 'blockchain.info')
         if use == 'blockchain.info':
-            self.interface = BlockchainInfoInterface(self.coin_manager)
+            self.interface = BlockchainInfoInterface(model.get_tx_db())
         elif use == 'testnet':
             self.interface = AbeInterface()
         elif use == 'electrum':
@@ -42,8 +41,8 @@ class UTXOFetcher(object):
             raise Exception('unknown service for UTXOFetcher')
 
     def add_utxo(self, address, data):
-        self.coin_manager.apply_tx(data[0])
-        #self.coin_manager.add_coin(address, *data)
+        txhash = data[0]
+        self.model.get_tx_db().add_tx_by_hash(txhash)
 
     def scan_address(self, address):
         try:

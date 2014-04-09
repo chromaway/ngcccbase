@@ -57,17 +57,30 @@ class BlockchainInfoInterface(WebBlockchainInterface):
     URL_TEMPLATE = "https://blockchain.info/unspent?active=%s"
     REVERSE_TXHASH = True
 
-    def __init__(self, coin_manager):
-        self.coin_manager = coin_manager
+    def __init__(self, tx_db=None):
+        self.tx_db = tx_db
 
     def notify_confirmations(self, txhash, confirmations):
-        self.coin_manager.notify_confirmations(txhash, confirmations)
+        if self.tx_db:
+            self.tx_db.notify_confirmations(txhash, confirmations)
+
+    def get_block_count(self):
+        return int(urllib2.urlopen("https://blockchain.info/q/getblockcount").read())
+    
+    def get_tx_confirmations(self, txhash):
+        try:
+            url = "https://blockchain.info/rawtx/%s" % txhash
+            data = json.loads(urllib2.urlopen(url).read())
+            if 'block_height' in data:
+                block_count = self.get_block_count()
+                return block_count - tx['block_height'] + 1
+            else:
+                return 0
+        except:
+            return None
 
     def get_address_history(self, address):
-
-        block_count = int(
-            urllib2.urlopen("https://blockchain.info/q/getblockcount").read())        
-
+        block_count = self.get_block_count()
         url = "https://blockchain.info/rawaddr/%s" % address
         jsonData = urllib2.urlopen(url).read()
         data = json.loads(jsonData)

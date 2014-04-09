@@ -53,8 +53,7 @@ class WalletController(object):
                     "bitcoind didn't accept the transaction")     # pragma: no cover"""
 
         if signed_tx_spec.composed_tx_spec:
-            self.model.txdb.add_signed_tx(txhash, signed_tx_spec)
-            self.model.get_coin_manager().apply_tx(txhash, signed_tx_spec)
+            self.model.txdb.add_raw_tx(signed_tx_spec)
         return txhash
 
     def full_rescan(self):
@@ -62,19 +61,19 @@ class WalletController(object):
         this wallet.
         """
         self.model.get_coin_manager().purge_coins()
+        self.model.get_tx_db().purge_tx_db()
         wam = self.model.get_address_manager()
         bc_interface = self.model.utxo_fetcher.interface
         tx_hashes = []
         for ar in wam.get_all_addresses():
             tx_hashes.extend(bc_interface.get_address_history(ar.get_address()))
         sorted_txs = self.model.get_blockchain_state().sort_txs(tx_hashes)
-        coinman = self.model.get_coin_manager()
+        txdb = self.model.get_tx_db()
         for tx in sorted_txs:
-            coinman.apply_tx(tx.hash)
+            txdb.add_tx_by_hash(tx.hash)
 
     def scan_utxos(self):
         self.model.utxo_fetcher.scan_all_addresses()
-        self.model.get_coin_manager().update_confirmations()
 
     def send_coins(self, asset, target_addrs, raw_colorvalues):
         """Sends coins to address <target_addr> of asset/color <asset>
