@@ -8,6 +8,7 @@ CoinManager.
 
 from ngcccbase.services.blockchain import BlockchainInfoInterface, AbeInterface
 from ngcccbase.services.electrum import ElectrumInterface
+from ngcccbase.services.helloblock import HelloBlockInterface
 
 DEFAULT_ELECTRUM_SERVER = "btc.it-zone.org"
 DEFAULT_ELECTRUM_PORT = 50001
@@ -18,18 +19,19 @@ class UTXOFetcher(object):
     testnet    - an open-source block explorer using JSON
     electrum   - stratum-protocol servers
     """
-    def __init__(self, model, config):
+    def __init__(self, model, params):
         """Create a fetcher object given configuration in <params>
         """
         self.model = model
-        params = config.get('utxo_fetcher', {})
+        use = params.get('interface', 'helloblock')
         if model.testnet:
-            use = 'testnet'
-        else:
-            use = params.get('interface', 'blockchain.info')
-        if use == 'blockchain.info':
+            if use != 'helloblock':
+                use = 'abe_testnet'
+        if use == 'helloblock':
+            self.interface = HelloBlockInterface(model.testnet)
+        elif use == 'blockchain.info':
             self.interface = BlockchainInfoInterface(model.get_tx_db())
-        elif use == 'testnet':
+        elif use == 'abe_testnet':
             self.interface = AbeInterface()
         elif use == 'electrum':
             electrum_server = params.get(

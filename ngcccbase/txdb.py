@@ -124,6 +124,7 @@ class BCI_TxDb(BaseTxDb):
     def __init__(self, model, config):
         super(BCI_TxDb, self).__init__(model, config)
         self.confirmed_txs = set()
+        self.bci_interface = None # initialized later
 
     def notify_confirmations(self, txhash, confirmations):
         if confirmations >= 1:
@@ -132,9 +133,7 @@ class BCI_TxDb(BaseTxDb):
     def identify_tx_status(self, txhash):
         if txhash in self.confirmed_txs:
             return TX_STATUS_CONFIRMED
-        bci_interface = self.model.utxo_fetcher.interface
-        assert isinstance(bci_interface, BlockchainInfoInterface)
-        confirmations = bci_interface.get_tx_confirmations(txhash)
+        confirmations = self.bci_interface.get_tx_confirmations(txhash)
         if confirmations > 0:
             self.confirmed_txs.add(txhash)
             return TX_STATUS_CONFIRMED

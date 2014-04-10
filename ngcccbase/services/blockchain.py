@@ -73,10 +73,10 @@ class BlockchainInfoInterface(WebBlockchainInterface):
             data = json.loads(urllib2.urlopen(url).read())
             if 'block_height' in data:
                 block_count = self.get_block_count()
-                return block_count - tx['block_height'] + 1
+                return block_count - data['block_height'] + 1
             else:
                 return 0
-        except:
+        except Exception as e:
             return None
 
     def get_address_history(self, address):

@@ -18,7 +18,8 @@ from txcons import TransactionSpecTransformer
 from coindb import CoinQuery, CoinManager
 from utxo_fetcher import UTXOFetcher
 from coloredcoinlib import BlockchainState
-from services.chroma import ChromaBlockchainState
+from ngcccbase.services.chroma import ChromaBlockchainState
+from ngcccbase.services.blockchain import BlockchainInfoInterface
 
 
 class CoinQueryFactory(object):
@@ -58,26 +59,35 @@ class WalletModel(object):
         self.store_conn = store_conn  # hackish!
         self.testnet = config.get('testnet', False)
         self.init_blockchain_state(config)
-
-        if self.testnet:
-            txdb_class = NaiveTxDb
-        else:
-            txdb_class = BCI_TxDb
-        self.txdb = txdb_class(self, config)
+        self.init_tx_db(config)
+        self.init_utxo_fetcher(config)
         self.ccc = ColoredCoinContext(config, 
                                       self.blockchain_state)
         self.ass_def_man = AssetDefinitionManager(self.ccc.colormap, config)
+        self.init_wallet_address_manager(config)
+        self.coin_query_factory = CoinQueryFactory(self, config)
+        self.coin_man = CoinManager(self, config)
+        self.tx_spec_transformer = TransactionSpecTransformer(self, config)
+
+    def init_wallet_address_manager(self, config):
         if config.get('bip0032'):
             from bip0032 import HDWalletAddressManager
             self.address_man = HDWalletAddressManager(self.ccc.colormap, config)
         else:
             from deterministic import DWalletAddressManager
             self.address_man = DWalletAddressManager(self.ccc.colormap, config)
+            
+    def init_tx_db(self, config):
+        if self.testnet:
+            self.txdb = NaiveTxDb(self, config)
+        else:
+            self.txdb = BCI_TxDb(self, config)
+            self.txdb.bci_interface = \
+                BlockchainInfoInterface(self.txdb)
 
-        self.coin_query_factory = CoinQueryFactory(self, config)
-        self.coin_man = CoinManager(self, config)
-        self.utxo_fetcher = UTXOFetcher(self, config)
-        self.tx_spec_transformer = TransactionSpecTransformer(self, config)
+    def init_utxo_fetcher(self, config):
+        self.utxo_fetcher = UTXOFetcher(self,
+                                        config.get('utxo_fetcher', {}))
 
     def init_blockchain_state(self, config):
         thin = config.get('thin', True)
