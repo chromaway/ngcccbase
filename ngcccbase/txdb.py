@@ -141,4 +141,10 @@ class BCI_TxDb(BaseTxDb):
         elif confirmations == 0:
             return TX_STATUS_UNCONFIRMED
         else:
-            return TX_STATUS_INVALID
+            # check if BlockchainState is aware of it
+            block_hash, in_mempool = self.model.get_blockchain_state().\
+                get_tx_blockhash(txhash)
+            if block_hash or in_mempool:
+                return TX_STATUS_UNCONFIRMED
+            else:
+                return TX_STATUS_INVALID
