@@ -94,15 +94,19 @@ class CoinStore(DataStore):
         return self.execute("SELECT * FROM coin_data WHERE id = ?",
                             (coin_id,)).fetchone()
 
-class Coin(ComposedTxSpec.TxIn):
-    def __init__(self, coin_manager, coin_data):
-        super(Coin, self).__init__(coin_data['txhash'], coin_data['outindex'])
-        self.txhash = coin_data['txhash']
-        self.outindex = coin_data['outindex']
-        self.value = coin_data['value']
-        self.script = coin_data['script']
+class UTXO(ComposedTxSpec.TxIn):
+    def __init__(self, utxo_data):
+        super(UTXO, self).__init__(utxo_data['txhash'], utxo_data['outindex'])
+        self.txhash = utxo_data['txhash']
+        self.outindex = utxo_data['outindex']
+        self.value = utxo_data['value']
+        self.script = utxo_data['script']
         self.address_rec = None
         self.colorvalues = None
+
+class Coin(UTXO):
+    def __init__(self, coin_manager, coin_data):
+        super(Coin, self).__init__(coin_data)
         self.coin_id = coin_data['id']
         self.coin_manager = coin_manager
 

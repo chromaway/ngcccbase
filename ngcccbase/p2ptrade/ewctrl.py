@@ -6,6 +6,7 @@ from coloredcoinlib import (ColorSet, ColorTarget, UNCOLORED_MARKER,
 from protocol_objects import ETxSpec
 from ngcccbase.asset import AdditiveAssetValue
 from ngcccbase.txcons import BaseOperationalTxSpec, InsufficientFundsError
+from ngcccbase.coindb import UTXO
 
 import bitcoin.core
 from bitcoin.wallet import CBitcoinAddress
@@ -35,7 +36,10 @@ class OperationalETxSpec(BaseOperationalTxSpec):
                 txhash, outindex = inp
                 tx = self.model.ccc.blockchain_state.get_tx(txhash)
                 prevout = tx.outputs[outindex]
-                utxo = UTXO(txhash, outindex, prevout.value, prevout.script)
+                utxo = UTXO({"txhash": txhash,
+                             "outindex": outindex,
+                             "value": prevout.value,
+                             "script": prevout.script})
                 colorvalue = None
                 if colordef == UNCOLORED_MARKER:
                     colorvalue = SimpleColorValue(colordef=UNCOLORED_MARKER,
