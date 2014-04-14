@@ -15,7 +15,7 @@ import pyjsonrpc
 import json
 
 # create a global wallet for this use.
-wallet = PersistentWallet()
+wallet = PersistentWallet(None, True)
 wallet.init_model()
 model = wallet.get_model()
 controller = WalletController(model)

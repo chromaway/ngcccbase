@@ -14,13 +14,19 @@ from BaseHTTPServer import HTTPServer
 import sys
 import getopt
 
+args = []
 
 # grab the hostname and port from the command-line
 try:
     opts, args = getopt.getopt(sys.argv[1:], "", "")
 except getopt.GetoptError:
+    pass
+
+if len(args) != 2:
+    print ("Error: parameters are required")
     print ("python ngccc-server.py hostname port")
     sys.exit(2)
+
 hostname = args[0]
 port = int(args[1])
 
