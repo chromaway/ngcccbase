@@ -1,7 +1,12 @@
 from coloredcoinlib.store import DataStore, DataStoreConnection, PersistentDictStore, unwrap1
-from txcons import RawTxSpec
-from time import time
 from ngcccbase.services.blockchain import BlockchainInfoInterface
+from txcons import RawTxSpec
+from verifier import Verifier
+
+from time import time
+from urllib2 import HTTPError
+
+
 
 TX_STATUS_UNKNOWN = 0
 TX_STATUS_UNCONFIRMED = 1
@@ -147,3 +152,27 @@ class BCI_TxDb(BaseTxDb):
                 return TX_STATUS_UNCONFIRMED
             else:
                 return TX_STATUS_INVALID
+
+
+class VerifiedTxDb(BaseTxDb):
+    def __init__(self, model, config):
+        super(VerifiedTxDb, self).__init__(model, config)
+        self.verifier = Verifier(self.model.get_blockchain_state())
+        self.confirmed_txs = set()
+
+    def identify_tx_status(self, txhash):
+        if txhash in self.confirmed_txs:
+            return TX_STATUS_CONFIRMED
+        try:
+            verified = self.verifier.verify_merkle(txhash)
+        except HTTPError:
+            verified = False
+        if verified:
+            confirmations = self.verifier.get_confirmations(txhash)
+            if confirmations == 0:
+                return TX_STATUS_UNCONFIRMED
+            else:
+                self.confirmed_txs.add(txhash)
+                return TX_STATUS_CONFIRMED
+        else:
+            return TX_STATUS_INVALID

@@ -137,6 +137,16 @@ class ElectrumInterface(object):
         """
         return self.get_response('server.version', ["1.9", "0.6"])
 
+    def get_height(self):
+        return self.get_response('blockchain.numblocks.subscribe', [])
+
+    def get_merkle(self, tx_hash, height):
+        return self.get_response('blockchain.transaction.get_merkle', [tx_hash,
+                                                                       height])
+
+    def get_header(self, height):
+        return self.get_response('blockchain.block.get_header', [height])
+
     def get_raw_transaction(self, tx_id, height):
         """Get the raw transaction that has the transaction hash
         of <tx_id> and height <height>.
@@ -218,3 +228,15 @@ class EnhancedBlockchainState(blockchain.BlockchainState):
         txhex = self.get_raw_transaction(txhash)
         tx = CTransaction.deserialize(to_binary(txhex))
         return blockchain.CTransaction.from_bitcoincore(txhash, tx, self)
+
+    def get_height(self):
+        """Get the current height at the server
+        """
+        return self.interface.get_height()
+
+    def get_merkle(self, tx_hash):
+        height, _ = self.get_tx_block_height(tx_hash)
+        return self.interface.get_merkle(tx_hash, height)
+
+    def get_header(self, height):
+        return self.interface.get_header(height)

@@ -6,6 +6,10 @@ import sqlite3
 
 from ngcccbase import txdb, txcons, utxodb
 from ngcccbase.address import LooseAddressRecord
+from ngcccbase.services.electrum import (ElectrumInterface,
+                                         EnhancedBlockchainState)
+from ngcccbase.txdb import (TX_STATUS_UNKNOWN, TX_STATUS_UNCONFIRMED,
+                            TX_STATUS_CONFIRMED, TX_STATUS_INVALID)
 from coloredcoinlib import txspec
 
 from pycoin.tx.script import tools
@@ -16,12 +20,22 @@ class TestTxDataStoreInitialization(unittest.TestCase):
         connection = sqlite3.connect(":memory:")
         store = txdb.TxDataStore(connection)
         self.assertTrue(store.table_exists("tx_data"))
-        self.assertTrue(store.table_exists("tx_address"))
 
+
+class MockConn(object):
+    def __init__(self):
+        self.conn = sqlite3.connect(":memory:")
 
 class MockModel(object):
+    def __init__(self):
+        self.store_conn = MockConn()
+
     def is_testnet(self):
         return False
+    def get_blockchain_state(self):
+        server_url = "electrum.pdmc.net"
+        ei = ElectrumInterface(server_url, 50001)
+        return EnhancedBlockchainState(server_url, 50001)
 
 
 def fake_transaction(model=MockModel()):
@@ -45,10 +59,11 @@ class TestTxDataStore(unittest.TestCase):
         self.store = txdb.TxDataStore(connection)
         self.model = MockModel()
 
-    def test_empty_signed_tx(self):
+    def test_add_tx(self):
         txhash = "FAKEHASH"
         transaction, address = fake_transaction(self.model)
-        self.store.add_signed_tx(txhash, transaction)
+        txdata = transaction.get_hex_tx_data()
+        self.store.add_tx(txhash, txdata)
 
         stored_id, stored_hash, stored_data, stored_status = \
             self.store.get_tx_by_hash(txhash)
@@ -56,16 +71,28 @@ class TestTxDataStore(unittest.TestCase):
         self.assertEqual(stored_hash, txhash)
         self.assertEqual(stored_data, transaction.get_hex_tx_data())
 
-    def test_signed_tx(self):
-        txhash = "FAKEHASH"
-        transaction, address = fake_transaction(self.model)
-        self.store.add_signed_tx(txhash, transaction)
+        self.assertEqual(stored_status, TX_STATUS_UNKNOWN)
+        self.store.set_tx_status(txhash, TX_STATUS_CONFIRMED)
+        self.assertEqual(self.store.get_tx_status(txhash), TX_STATUS_CONFIRMED)
+        self.store.purge_tx_data()
+        self.assertEqual(self.store.get_tx_by_hash(txhash), None)
 
-        txes = self.store.get_tx_by_output_address(address.get_address())
-        stored_hash, stored_data, stored_status = txes.fetchone()
 
-        self.assertEqual(stored_hash, txhash)
-        self.assertEqual(stored_data, transaction.get_hex_tx_data())
+class TestVerifiedTxDb(unittest.TestCase):
+    def setUp(self):
+        self.model = MockModel()
+        self.txdb = txdb.VerifiedTxDb(MockModel(), {})
+
+    def test_identify_tx_status(self):
+        status = self.txdb.identify_tx_status(
+            'b1c68049c1349399fb867266fa146a854c16cd8a18a01d3cd7921ab9d5af1a8b')
+        self.assertEqual(status, TX_STATUS_CONFIRMED)
+        status = self.txdb.identify_tx_status(
+            'b1c68049c1349399fb867266fa146a854c16cd8a18a01d3cd7921ab9d5af1a8b')
+        self.assertEqual(status, TX_STATUS_CONFIRMED)
+        status = self.txdb.identify_tx_status(
+            'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
+        self.assertEqual(status, TX_STATUS_INVALID)
 
 
 if __name__ == '__main__':
