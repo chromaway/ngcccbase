@@ -10,7 +10,7 @@ from ngcccbase.services.electrum import (ConnectionError,
 class TestElectrum(unittest.TestCase):
 
     def setUp(self):
-        self.server_url = "electrum.cafebitcoin.com"
+        self.server_url = "electrum.pdmc.net"
         self.ei = ElectrumInterface(self.server_url, 50001)
         self.bcs = EnhancedBlockchainState(self.server_url, 50001)
         self.txhash = 'b1c68049c1349399fb867266fa146a854c16cd8a18a01d3cd7921ab9d5af1a8b'
@@ -27,13 +27,33 @@ class TestElectrum(unittest.TestCase):
     def test_get_version(self):
         self.assertTrue(float(self.ei.get_version()) >= 0.8)
 
+    def test_get_height(self):
+        self.assertTrue(self.ei.get_height() > 296217)
+
+    def test_get_header(self):
+        result = self.bcs.get_header(self.height)
+        self.assertEqual(
+            result['merkle_root'],
+            'abe428044058494733596dc9477bb4f55a90e5144c122cacb71fa99d85c10d2c')
+
+    def test_get_merkle(self):
+        result = self.bcs.get_merkle(self.txhash)
+        self.assertEqual(
+            result['merkle'][0],
+            '6a6daeb0dd244abe80ee740ec8752d18fcdd60247304fd7e2ede371eade2f756')
+        self.assertEqual(
+            result['merkle'][-1],
+            '0a00d7c8fadc81c033c3c8604c4a151186bf733f10948d785a748def401ce3f7')
+        self.assertEqual(result['pos'], 0)
+        self.assertEqual(result['block_height'], self.height)
+
     def test_get_raw_transaction(self):
         self.assertEqual(self.ei.get_raw_transaction(self.txhash, self.height),
                          self.raw_tx)
 
         self.assertEqual(self.bcs.get_raw_transaction(self.txhash), self.raw_tx)
 
-    def test_get_height(self):
+    def test_get_block_height(self):
         self.assertEqual(self.bcs.get_tx_block_height(self.txhash)[0], self.height)
 
     def test_get_tx(self):
