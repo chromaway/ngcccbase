@@ -91,6 +91,9 @@ class BaseTxDb(object):
         return status
    
     def maybe_recheck_tx_status(self, txhash, status):
+        if status == TX_STATUS_CONFIRMED:
+            # do not recheck those which are already confirmed
+            return status
         if (time() - self.last_status_check.get(txhash, 0)) < self.recheck_interval:
             return status
         status = self.recheck_tx_status(txhash)
@@ -123,22 +126,19 @@ class NaiveTxDb(BaseTxDb):
         else:
             return TX_STATUS_INVALID
 
-class BCI_TxDb(BaseTxDb):
-    """TxDb which trusts data it gets from Blockchain.info"""
-    
-    def __init__(self, model, config):
-        super(BCI_TxDb, self).__init__(model, config)
-        self.confirmed_txs = set()
-        self.bci_interface = None # initialized later
 
-    def notify_confirmations(self, txhash, confirmations):
-        if confirmations >= 1:
-            self.confirmed_txs.add(txhash)
+class TrustingTxDb(BaseTxDb):
+    """TxDb which trusts confirmation data it gets from an external source"""
+    
+    def __init__(self, model, config, get_tx_confirmations):
+        super(TrustingTxDb, self).__init__(model, config)
+        self.confirmed_txs = set()
+        self.get_tx_confirmations = get_tx_confirmations
 
     def identify_tx_status(self, txhash):
         if txhash in self.confirmed_txs:
             return TX_STATUS_CONFIRMED
-        confirmations = self.bci_interface.get_tx_confirmations(txhash)
+        confirmations = self.get_tx_confirmations(txhash)
         if confirmations > 0:
             self.confirmed_txs.add(txhash)
             return TX_STATUS_CONFIRMED

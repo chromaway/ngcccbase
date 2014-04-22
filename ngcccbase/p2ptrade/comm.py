@@ -39,7 +39,6 @@ class HTTPComm(CommBase):
             url = url + "?from_timestamp_rel=%s" % self.config['offer_expiry_interval']
         else:
             url = url + '?from_serial=%s' % (self.lastpoll+1)
-        print (url)
         u = urllib2.urlopen(url)
         resp = json.loads(u.read())
         for x in resp:

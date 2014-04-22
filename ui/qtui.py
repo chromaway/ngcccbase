@@ -29,9 +29,6 @@ class Application(QtGui.QApplication):
         signal.signal(signal.SIGINT, signal.SIG_DFL)
         QtGui.QApplication.__init__(self, [])
 
-        # this is slow
-        wallet.controller.scan_utxos()
-
 class MainWindow(QtGui.QMainWindow):
     def __init__(self):
         QtGui.QMainWindow.__init__(self)
@@ -51,6 +48,14 @@ class MainWindow(QtGui.QMainWindow):
         self.bindActions()
 
         self.gotoOverviewPage()
+
+        self.utxo_timer = QtCore.QTimer()
+        self.utxo_timer.timeout.connect(self.update_utxo_fetcher)
+        self.utxo_timer.start(2500)
+        wallet.async_utxo_fetcher.start_thread()
+
+    def update_utxo_fetcher(self):
+        wallet.async_utxo_fetcher.update()
 
     def bindActions(self):
         self.actionRescan.triggered.connect(self.update)
@@ -112,5 +117,6 @@ class QtUI(object):
                     - window.rect().center())
         window.show()
         retcode = app.exec_()
+        wallet.async_utxo_fetcher.stop()
         wallet.p2ptrade_stop()
         sys.exit(retcode)

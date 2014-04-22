@@ -18,9 +18,6 @@ class WebBlockchainInterface(object):
     URL_TEMPLATE = None
     REVERSE_TXHASH = False
 
-    def notify_confirmations(self, txhash, confirmations):
-        pass
-
     def get_utxo(self, address):
         """Returns Unspent Transaction Outputs for a given address
         as an array of arrays. Each array in the array is a list of
@@ -36,8 +33,6 @@ class WebBlockchainInterface(object):
                 txhash = utxo_data['tx_hash']
                 if self.REVERSE_TXHASH:
                     txhash = txhash.decode('hex')[::-1].encode('hex')
-                if 'confirmations' in utxo_data:
-                    self.notify_confirmations(txhash, utxo_data['confirmations'])
                 utxo = [txhash, utxo_data['tx_output_n'],
                         utxo_data['value'], utxo_data['script']]
                 utxos.append(utxo)
@@ -77,6 +72,7 @@ class BlockchainInfoInterface(WebBlockchainInterface):
             else:
                 return 0
         except Exception as e:
+            print e
             return None
 
     def get_address_history(self, address):
@@ -84,10 +80,6 @@ class BlockchainInfoInterface(WebBlockchainInterface):
         url = "https://blockchain.info/rawaddr/%s" % address
         jsonData = urllib2.urlopen(url).read()
         data = json.loads(jsonData)
-        for tx in data['txs']:
-            if 'block_height' in tx:
-                confirmations = block_count - tx['block_height'] + 1
-                self.notify_confirmations(tx['hash'], confirmations)
         return [tx['hash'] for tx in data['txs']]        
 
 

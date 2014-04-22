@@ -6,6 +6,17 @@ class HelloBlockInterface(object):
     def __init__(self, testnet):
         self.net_prefix = "testnet" if testnet else "mainnet"
 
+    def get_tx_confirmations(self, txhash):
+        url = "https://%s.helloblock.io/v1/transactions/%s" % \
+            (self.net_prefix, txhash)
+        try:
+            resp = json.loads(urllib2.urlopen(url).read())
+            if resp['status'] == 'success':
+                return resp['data']['transaction']['confirmations']
+        except:
+            raise
+        return 0
+
     def get_utxo(self, address):
         url = "https://%s.helloblock.io/v1/addresses/unspents?addresses=%s" % \
             (self.net_prefix, address)

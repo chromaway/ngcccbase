@@ -13,13 +13,13 @@ from collections import defaultdict
 from asset import AssetDefinitionManager
 from color import ColoredCoinContext
 from coloredcoinlib import ColorSet, toposorted
-from txdb import NaiveTxDb, BCI_TxDb
+from txdb import NaiveTxDb, TrustingTxDb
 from txcons import TransactionSpecTransformer
 from coindb import CoinQuery, CoinManager
-from utxo_fetcher import UTXOFetcher
+from utxo_fetcher import SimpleUTXOFetcher
 from coloredcoinlib import BlockchainState
 from ngcccbase.services.chroma import ChromaBlockchainState
-from ngcccbase.services.blockchain import BlockchainInfoInterface
+from ngcccbase.services.helloblock import HelloBlockInterface
 
 
 class CoinQueryFactory(object):
@@ -81,13 +81,13 @@ class WalletModel(object):
         if self.testnet:
             self.txdb = NaiveTxDb(self, config)
         else:
-            self.txdb = BCI_TxDb(self, config)
-            self.txdb.bci_interface = \
-                BlockchainInfoInterface(self.txdb)
+            hb_interface = HelloBlockInterface(self.testnet)
+            self.txdb = TrustingTxDb(self, config,
+                                     hb_interface.get_tx_confirmations)
 
     def init_utxo_fetcher(self, config):
-        self.utxo_fetcher = UTXOFetcher(self,
-                                        config.get('utxo_fetcher', {}))
+        self.utxo_fetcher = SimpleUTXOFetcher(
+            self, config.get('utxo_fetcher', {}))
 
     def init_blockchain_state(self, config):
         thin = config.get('thin', True)

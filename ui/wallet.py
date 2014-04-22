@@ -7,6 +7,8 @@ from ngcccbase.p2ptrade.agent import EAgent
 from ngcccbase.p2ptrade.comm import HTTPComm, ThreadedComm
 from ngcccbase.p2ptrade.protocol_objects import MyEOffer
 
+from ngcccbase.utxo_fetcher import AsyncUTXOFetcher
+
 import argparse
 
 
@@ -24,6 +26,8 @@ class Wallet(object):
         self.wallet.init_model()
         self.model = self.wallet.get_model()
         self.controller = WalletController(self.wallet.get_model())
+        self.async_utxo_fetcher = AsyncUTXOFetcher(
+            self.model, self.wallet.wallet_config.get('utxo_fetcher', {}))
 
     def get_asset_definition(self, moniker):
         if isinstance(moniker, AssetDefinition):
