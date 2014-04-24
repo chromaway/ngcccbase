@@ -55,7 +55,9 @@ class MainWindow(QtGui.QMainWindow):
         wallet.async_utxo_fetcher.start_thread()
 
     def update_utxo_fetcher(self):
-        wallet.async_utxo_fetcher.update()
+        got_updates = wallet.async_utxo_fetcher.update()
+        if got_updates:
+            self.currentPage.update()        
 
     def bindActions(self):
         self.actionRescan.triggered.connect(self.update)

@@ -62,17 +62,17 @@ class BaseTxDb(object):
         self.store.purge_tx_data()
 
     def add_raw_tx(self, raw_tx, status=TX_STATUS_UNCONFIRMED):
-        self.add_tx(raw_tx.get_hex_txhash(),
-                    raw_tx.get_hex_tx_data(),
-                    raw_tx,
-                    status)
+        return self.add_tx(raw_tx.get_hex_txhash(),
+                           raw_tx.get_hex_tx_data(),
+                           raw_tx,
+                           status)
 
     def add_tx_by_hash(self, txhash, status=None):
         bs = self.model.get_blockchain_state()
         txdata = bs.get_raw(txhash)
         raw_tx = RawTxSpec.from_tx_data(self.model,
                                         txdata.decode('hex'))
-        self.add_tx(txhash, txdata, raw_tx, status)
+        return self.add_tx(txhash, txdata, raw_tx, status)
 
     def add_tx(self, txhash, txdata, raw_tx, status=None):
         if not self.store.get_tx_by_hash(txhash):
@@ -81,9 +81,11 @@ class BaseTxDb(object):
             self.store.add_tx(txhash, txdata, status)
             self.last_status_check[txhash] = time()
             self.model.get_coin_manager().apply_tx(txhash, raw_tx)
+            return True
         else:
-            self.maybe_recheck_tx_status(txhash, 
-                                         self.store.get_tx_status(txhash))
+            old_status = self.store.get_tx_status(txhash)
+            new_status = self.maybe_recheck_tx_status(txhash, old_status)
+            return old_status != new_status
 
     def recheck_tx_status(self, txhash):
         status = self.identify_tx_status(txhash)

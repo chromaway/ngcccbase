@@ -83,8 +83,12 @@ class AsyncUTXOFetcher(BaseUTXOFetcher):
         wam = self.model.get_address_manager()
         self.address_list = [ar.get_address()
                              for ar in wam.get_all_addresses()]
+        
+        any_got_updates = False
         while not self.hash_queue.empty():
-            self.model.get_tx_db().add_tx_by_hash(self.hash_queue.get())        
+            got_updates = self.model.get_tx_db().add_tx_by_hash(self.hash_queue.get())
+            any_got_updates = any_got_updates or got_updates
+        return any_got_updates
             
     def add_utxo(self, address, data):
         txhash = data[0]
