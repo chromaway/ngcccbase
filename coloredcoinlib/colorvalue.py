@@ -32,6 +32,9 @@ class ColorValue(object):
     def get_color_id(self):
         return self.colordef.get_color_id()
 
+    def is_uncolored(self):
+        return self.get_color_id() == 0
+
 
 class AdditiveColorValue(ColorValue, ComparableMixin):
     def __init__(self, **kwargs):

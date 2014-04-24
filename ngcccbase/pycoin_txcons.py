@@ -82,14 +82,15 @@ def reconstruct_composed_tx_spec(model, tx):
 
     pycoin_tx = tx
 
-    txins, txouts = [], []
+    composed_tx_spec = txspec.ComposedTxSpec(None)
 
     for py_txin in pycoin_tx.txs_in:
         # lookup the previous hash and generate the utxo
         in_txhash, in_outindex = py_txin.previous_hash, py_txin.previous_index
         in_txhash = in_txhash[::-1].encode('hex')
 
-        txins.append(txspec.ComposedTxSpec.TxIn(in_txhash, in_outindex))
+        composed_tx_spec.add_txin(
+            txspec.ComposedTxSpec.TxIn(in_txhash, in_outindex))
         # in_tx = ccc.blockchain_state.get_tx(in_txhash)
         # value = in_tx.outputs[in_outindex].value
         # raw_address = script_to_raw_address(py_txin.script)
@@ -102,5 +103,7 @@ def reconstruct_composed_tx_spec(model, tx):
             address = model.ccc.raw_to_address(raw_address)
         else:
             address = None
-        txouts.append(txspec.ComposedTxSpec.TxOut(py_txout.coin_value, address))
-    return txspec.ComposedTxSpec(txins, txouts)
+        composed_tx_spec.add_txout(
+            txspec.ComposedTxSpec.TxOut(py_txout.coin_value, address))
+
+    return composed_tx_spec

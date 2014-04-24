@@ -77,9 +77,7 @@ GENESIS_OUTPUT_MARKER = ColorDefinition(-1)
 UNCOLORED_MARKER = ColorDefinition(0)
 
 def group_targets_by_color(targets, compat_cls):
-    # group targets by color
     targets_by_color = defaultdict(list)
-    # group targets by color
     for target in targets:
         color_def = target.get_colordef()
         if color_def == UNCOLORED_MARKER \
@@ -193,7 +191,7 @@ class OBColorDefinition(GenesisColorDefinition):
 
     @classmethod
     def compose_genesis_tx_spec(self, op_tx_spec):
-        targets = op_tx_spec.get_targets()[:]
+        targets = op_tx_spec.get_targets()
         if len(targets) != 1:
             raise InvalidTargetError(
                 'genesis transaction spec needs exactly one target')
@@ -201,49 +199,47 @@ class OBColorDefinition(GenesisColorDefinition):
         if target.get_colordef() != GENESIS_OUTPUT_MARKER:
             raise InvalidColorError(
                 'genesis transaction target should use -1 color_id')
-        fee = op_tx_spec.get_required_fee(300)
+        composed_tx_spec = op_tx_spec.make_composed_tx_spec()
+        composed_tx_spec.add_txout(value=target.get_value(),
+                                   target_addr=target.get_address())
         uncolored_value = SimpleColorValue(colordef=UNCOLORED_MARKER,
                                            value=target.get_value())
-        colorvalue = fee + uncolored_value
-        inputs, total = op_tx_spec.select_coins(colorvalue)
-        change = total - fee - uncolored_value
+        inputs, total = op_tx_spec.select_coins(uncolored_value, composed_tx_spec)
+        composed_tx_spec.add_txins(inputs)
+        change = total - uncolored_value - composed_tx_spec.estimate_required_fee()
         if change > op_tx_spec.get_dust_threshold():
-            targets.append(ColorTarget(
-                    op_tx_spec.get_change_addr(UNCOLORED_MARKER), change))
-        txouts = [txspec.ComposedTxSpec.TxOut(target.get_satoshi(),
-                                              target.get_address())
-                  for target in targets]
-        return txspec.ComposedTxSpec(inputs, txouts)
+            composed_tx_spec.add_txout(value=change,
+                                       target_addr=op_tx_spec.get_change_addr(UNCOLORED_MARKER),
+                                       is_fee_change=True)
+        return composed_tx_spec
 
     def compose_tx_spec(self, op_tx_spec):
         targets_by_color = group_targets_by_color(op_tx_spec.get_targets(), self.__class__)
         uncolored_targets = targets_by_color.pop(UNCOLORED_MARKER.color_id, [])
+        composed_tx_spec = op_tx_spec.make_composed_tx_spec()
         # get inputs for each color
-        colored_inputs = []
-        colored_targets = []
         for color_id, targets in targets_by_color.items():
             color_def = targets[0].get_colordef()
             needed_sum = ColorTarget.sum(targets)
             inputs, total = op_tx_spec.select_coins(needed_sum)
-            change = total - needed_sum
+            change = total - needed_sum           
             if change > 0:
                 targets.append(
                     ColorTarget(op_tx_spec.get_change_addr(color_def), change))
-            colored_inputs += inputs
-            colored_targets += targets
+            composed_tx_spec.add_txins(inputs)
+            for target in targets:
+                composed_tx_spec.add_txout(value=target.get_value(),
+                                           target=target)
         uncolored_needed = ColorTarget.sum(uncolored_targets)
-        fee = op_tx_spec.get_required_fee(250 * (len(colored_inputs) + 1))
-        uncolored_inputs, uncolored_total = op_tx_spec.select_coins(uncolored_needed + fee)
+        uncolored_inputs, uncolored_total = op_tx_spec.select_coins(uncolored_needed, composed_tx_spec)
+        composed_tx_spec.add_txins(uncolored_inputs)
+        fee = composed_tx_spec.estimate_required_fee()
         uncolored_change = uncolored_total - uncolored_needed - fee
         if uncolored_change > op_tx_spec.get_dust_threshold():
-            uncolored_targets.append(
-                ColorTarget(op_tx_spec.get_change_addr(UNCOLORED_MARKER),
-                            uncolored_change))
-        txins = colored_inputs + uncolored_inputs
-        txouts = [txspec.ComposedTxSpec.TxOut(target.get_satoshi(),
-                                              target.get_address())
-                  for target in (colored_targets + uncolored_targets)]
-        return txspec.ComposedTxSpec(txins, txouts)
+            composed_tx_spec.add_txout(value=uncolored_change,
+                                       target_addr=op_tx_spec.get_change_addr(UNCOLORED_MARKER),
+                                       is_fee_change=True)
+        return composed_tx_spec
 
 
 def uint_to_bit_list(n, bits=32):
@@ -409,19 +405,16 @@ class EPOBCColorDefinition(GenesisColorDefinition):
     def compose_tx_spec(self, op_tx_spec):
         targets_by_color = group_targets_by_color(op_tx_spec.get_targets(), self.__class__)
         uncolored_targets = targets_by_color.pop(UNCOLORED_MARKER.color_id, [])
-        colored_txins = []
-        colored_txouts = []
+        composed_tx_spec = op_tx_spec.make_composed_tx_spec()
         if uncolored_targets:
             uncolored_needed = ColorTarget.sum(uncolored_targets)
         else:
             uncolored_needed = SimpleColorValue(colordef=UNCOLORED_MARKER,
                                                 value=0)
-
         dust_threshold = op_tx_spec.get_dust_threshold().get_value()
-
         inputs_by_color = dict()
-
         min_padding = 0
+
         # step 1: get inputs, create change targets, compute min padding
         for color_id, targets in targets_by_color.items():
             color_def = targets[0].get_colordef()
@@ -444,45 +437,38 @@ class EPOBCColorDefinition(GenesisColorDefinition):
         for color_id, targets in targets_by_color.items():
             color_def = targets[0].get_colordef()
             for inp in inputs_by_color[color_id]:
-                colored_txins.append(inp)
+                composed_tx_spec.add_txin(inp)
                 uncolored_needed -= SimpleColorValue(colordef=UNCOLORED_MARKER,
                                                value=inp.value)
-                print uncolored_needed
             for target in targets:
                 svalue = target.get_value() + padding
-                colored_txouts.append(
-                    txspec.ComposedTxSpec.TxOut(svalue,
-                                                target.get_address()))
+                composed_tx_spec.add_txout(value=svalue,
+                                           target=target)
                 uncolored_needed += SimpleColorValue(colordef=UNCOLORED_MARKER,
                                                value=svalue)
                 print uncolored_needed
 
-        fee = op_tx_spec.get_required_fee(250 * (len(colored_txins) + 1))
+        composed_tx_spec.add_txouts(uncolored_targets)
+        fee = composed_tx_spec.estimate_required_fee()
 
-        uncolored_txouts = []
-        uncolored_inputs = []
         uncolored_change = None
 
         if uncolored_needed + fee > 0:
-            uncolored_inputs, uncolored_total = op_tx_spec.select_coins(uncolored_needed + fee)
-            uncolored_txouts = [txspec.ComposedTxSpec.TxOut(target.get_satoshi(),
-                                                            target.get_address())
-                                for target in uncolored_targets]
+            uncolored_inputs, uncolored_total = op_tx_spec.select_coins(uncolored_needed, composed_tx_spec)
+            composed_tx_spec.add_txins(uncolored_inputs)
+            fee = composed_tx_spec.estimate_required_fee()
             uncolored_change = uncolored_total - uncolored_needed - fee
         else:
             uncolored_change =  (- uncolored_needed) - fee
             
         if uncolored_change > op_tx_spec.get_dust_threshold():
-            uncolored_txouts.append(txspec.ComposedTxSpec.TxOut(
-                    uncolored_change.get_value(), 
-                    op_tx_spec.get_change_addr(UNCOLORED_MARKER)))
+            composed_tx_spec.add_txout(value=uncolored_change,
+                                       target_addr=op_tx_spec.get_change_addr(UNCOLORED_MARKER),
+                                       is_fee_change=True)
 
-        all_inputs = colored_txins + uncolored_inputs
+        composed_tx_spec.txins[0].set_nSequence(tag.to_nSequence())
 
-        all_inputs[0].set_nSequence(tag.to_nSequence())
-
-        return txspec.ComposedTxSpec(all_inputs,
-                                     colored_txouts + uncolored_txouts)
+        return composed_tx_spec
 
     @classmethod
     def compose_genesis_tx_spec(cls, op_tx_spec):
@@ -493,24 +479,26 @@ class EPOBCColorDefinition(GenesisColorDefinition):
         if g_target.get_colordef() != GENESIS_OUTPUT_MARKER:
             raise InvalidColorError(
                 'genesis transaction target should use -1 color_id')
-        fee = op_tx_spec.get_required_fee(300)
         g_value = g_target.get_value()
         padding_needed = op_tx_spec.get_dust_threshold().get_value() - g_value
         tag = cls.Tag(cls.Tag.closest_padding_code(padding_needed), True)
         padding = tag.get_padding()
+        composed_tx_spec.add_txout(value=padding + g_value,
+                                   target=g_target)
         uncolored_needed = SimpleColorValue(colordef=UNCOLORED_MARKER,
-                                           value=padding + g_value)
-        uncolored_inputs, uncolored_total = op_tx_spec.select_coins(uncolored_needed + fee)
-        change = uncolored_total - uncolored_needed - fee
+                                           value=padding + g_value)        
+        uncolored_inputs, uncolored_total = op_tx_spec.select_coins(uncolored_needed, 
+                                                                    composed_tx_spec)
+        composed_tx_spec.add_txins(uncolored_inputs)
 
-        txouts = []
-        txouts.append(txspec.ComposedTxSpec.TxOut(padding + g_value,
-                                                  g_target.get_address()))
+        fee = composed_tx_spec.estimate_required_fee()
+        change = uncolored_total - uncolored_needed - fee
         if change > op_tx_spec.get_dust_threshold():
-            txouts.append(txspec.ComposedTxSpec.TxOut(
-                    change.get_value(), op_tx_spec.get_change_addr(UNCOLORED_MARKER)))
-        uncolored_inputs[0].set_nSequence(tag.to_nSequence())
-        return txspec.ComposedTxSpec(uncolored_inputs, txouts)
+            composed_tx_spec.add_txout(value=change,
+                                       target_addr=op_tx_spec.get_change_addr(UNCOLORED_MARKER),
+                                       is_fee_change=True)
+        composed_tx_spec.txins[0].set_nSequence(tag.to_nSequence())
+        return composed_tx_spec
 
 
 ColorDefinition.register_color_def_class(OBColorDefinition)

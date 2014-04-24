@@ -1,6 +1,7 @@
 """ Transaction specification language """
 
 from blockchain import CTxIn
+from colorvalue import ColorValue
 
 
 class InvalidColorIdError(Exception):
@@ -21,6 +22,9 @@ class ColorTarget(object):
 
     def get_color_id(self):
         return self.colorvalue.get_color_id()
+
+    def is_uncolored(self):
+        return self.colorvalue.is_uncolored()
 
     def get_address(self):
         return self.address
@@ -79,6 +83,9 @@ class OperationalTxSpec(object):
                 return False
         return True
 
+    def make_composed_tx_spec(self):
+        return ComposedTxSpec(self)
+
 
 class ComposedTxSpec(object):
     """specification of a transaction which is already composed,
@@ -94,9 +101,51 @@ class ComposedTxSpec(object):
             self.value = value
             self.target_addr = target_addr
 
-    def __init__(self, txins, txouts):
-        self.txins = txins
-        self.txouts = txouts
+    class FeeChangeTxOut(TxOut):
+        pass
+
+    def __init__(self, operational_tx_spec=None):
+        self.txins = []
+        self.txouts = []
+        self.operational_tx_spec = operational_tx_spec
+
+    def add_txin(self, txin):
+        assert isinstance(txin, self.TxIn)
+        self.txins.append(txin)
+
+    def add_txout(self, txout=None, value=None, target_addr=None, 
+                  target=None, is_fee_change=False):
+        if not txout:
+            if not value:
+                if target and target.is_uncolored():
+                    value = target.get_value()
+                else:
+                    raise Exception("error in ComposedTxSpec.add_txout: no\
+value is provided and target is not uncolored")
+            if isinstance(value, ColorValue):
+                if value.is_uncolored():
+                    value = value.get_value()
+                else:
+                    raise Exception("error in ComposedTxSpec.add_txout: no\
+value isn't uncolored")
+            if not target_addr:
+                target_addr = target.get_address()      
+            cls = self.FeeChangeTxOut if is_fee_change else self.TxOut
+            txout = cls(value, target_addr)
+        self.txouts.append(txout)
+
+    def add_txouts(self, txouts):
+        for txout in txouts:
+            if isinstance(txout, ColorTarget):
+                self.add_txout(target=txout)
+            elif isinstance(txout, self.TxOut):
+                self.add_txout(txout=txout)
+            else:
+                raise Exception('wrong txout instance')
+
+    def add_txins(self, txins):
+        for txin in txins:
+            self.add_txin(txin)
 
     def get_txins(self):
         return self.txins
@@ -104,3 +153,20 @@ class ComposedTxSpec(object):
     def get_txouts(self):
         return self.txouts
 
+    def estimate_size(self, extra_txins=0, extra_txouts=0, extra_bytes=0):
+        return (181 * (len(self.txins) + extra_txins) + 
+                34 * (len(self.txouts) + extra_txouts) + 
+                10 + extra_bytes)
+
+    def estimate_required_fee(self, extra_txins=0, extra_txouts=1, extra_bytes=0):
+        return self.operational_tx_spec.get_required_fee(
+            self.estimate_size(extra_txins=extra_txins,
+                               extra_txouts=extra_txouts,
+                               extra_bytes=extra_bytes))
+
+    def get_fee(self):
+        sum_txins = sum([inp.value 
+                         for inp in self.txins])
+        sum_txouts = sum([out.value
+                          for out in self.txouts])
+        return sum_txins - sum_txouts
