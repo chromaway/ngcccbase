@@ -57,7 +57,7 @@ class MockTX:
         pass
 
 
-class MockUTXO:
+class MockUTXO(ComposedTxSpec.TxIn):
     def __init__(self, colorvalues):
         self.colorvalues = colorvalues
         self.value = sum([cv.get_value() for cv in colorvalues])
@@ -76,7 +76,7 @@ class MockOpTxSpec(OperationalTxSpec):
         return 'changeaddr'
     def get_dust_threshold(self):
         return SimpleColorValue(colordef=UNCOLORED_MARKER, value=10000)
-    def select_coins(self, colorvalue):
+    def select_coins(self, colorvalue, use_fee_estimator=None):
         cvs = [
             SimpleColorValue(colordef=colorvalue.get_colordef(), value=10000),
             SimpleColorValue(colordef=colorvalue.get_colordef(), value=20000),
@@ -127,7 +127,9 @@ class TestTxSpec(unittest.TestCase):
         txo1 = ComposedTxSpec.TxOut(1, 'addr')
         txo2 = ComposedTxSpec.TxOut(2, 'addr2')
         outs = [txo1, txo2]
-        c = ComposedTxSpec([], [txo1, txo2])
+        c = ComposedTxSpec(None)
+        c.add_txins([])
+        c.add_txouts([txo1, txo2])
         self.assertEqual(c.get_txins(), [])
         self.assertEqual(c.get_txouts(), outs)
 

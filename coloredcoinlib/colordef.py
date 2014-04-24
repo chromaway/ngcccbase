@@ -483,6 +483,7 @@ class EPOBCColorDefinition(GenesisColorDefinition):
         padding_needed = op_tx_spec.get_dust_threshold().get_value() - g_value
         tag = cls.Tag(cls.Tag.closest_padding_code(padding_needed), True)
         padding = tag.get_padding()
+        composed_tx_spec = op_tx_spec.make_composed_tx_spec()
         composed_tx_spec.add_txout(value=padding + g_value,
                                    target=g_target)
         uncolored_needed = SimpleColorValue(colordef=UNCOLORED_MARKER,
