@@ -13,6 +13,7 @@ from ngcccbase.services.helloblock import HelloBlockInterface
 from time import sleep
 import Queue
 import threading
+import logging
 
 DEFAULT_ELECTRUM_SERVER = "btc.it-zone.org"
 DEFAULT_ELECTRUM_PORT = 50001
@@ -72,6 +73,7 @@ class AsyncUTXOFetcher(BaseUTXOFetcher):
     def __init__(self, model, params):
         super(AsyncUTXOFetcher, self).__init__(
             self.make_interface(model, params))
+        self.logger = logging.getLogger('ngcccbase.utxo_fetcher.async')
         self.model = model
         self.hash_queue = Queue.Queue()
         self.address_list = []
@@ -97,9 +99,14 @@ class AsyncUTXOFetcher(BaseUTXOFetcher):
         
     def thread_loop(self):
         while not self._stop.is_set():
-            address_list = self.address_list
-            for address in address_list:
-                self.scan_address(address)
-                sleep(1)
+            try:
+                address_list = self.address_list
+                for address in address_list:
+                    self.logger.debug('scanning address %s', address)
+                    self.scan_address(address)
+                    sleep(1)
+            except Exception as e:
+                print (e)
+                sleep(20)
     
     

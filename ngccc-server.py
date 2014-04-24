@@ -14,6 +14,10 @@ from BaseHTTPServer import HTTPServer
 import sys
 import getopt
 
+from ngcccbase.logger import setup_logging
+
+setup_logging()
+
 args = []
 
 # grab the hostname and port from the command-line

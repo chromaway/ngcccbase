@@ -11,9 +11,11 @@ import install_https
 import argparse
 import os
 import json
+import logging
 
 from ngcccbase.wallet_controller import WalletController
 from ngcccbase.pwallet import PersistentWallet
+from ngcccbase.logger import setup_logging
 
 
 class _ApplicationHelpFormatter(argparse.HelpFormatter):
@@ -42,6 +44,7 @@ class _ApplicationHelpFormatter(argparse.HelpFormatter):
 
 class Application(object):
     def __init__(self):
+        setup_logging()
         self.data = {}
         self.args = None
         self.parser = argparse.ArgumentParser(
