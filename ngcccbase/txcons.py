@@ -101,6 +101,27 @@ class BaseOperationalTxSpec(OperationalTxSpec):
     def get_dust_threshold(self):
         return SimpleColorValue(colordef=UNCOLORED_MARKER, value=5500)
 
+    def _select_enough_coins(self, colordef,
+                             utxo_list, required_sum_fn):
+        ssum = SimpleColorValue(colordef=colordef, value=0)
+        selection = []
+        required_sum = None
+        for utxo in utxo_list:
+            ssum += SimpleColorValue.sum(utxo.colorvalues)
+            selection.append(utxo)
+            required_sum = required_sum_fn(utxo_list)
+            if ssum >= required_sum:
+                return selection, ssum
+        raise InsufficientFundsError('not enough coins: %s requested, %s found'
+                                     % (required_sum, ssum))
+    
+    def _validate_select_coins_parameters(self, colorvalue, use_fee_estimator):
+        colordef = colorvalue.get_colordef()
+        if colordef != UNCOLORED_MARKER and use_fee_estimator:
+            raise Exception("fee estimator can only be used\
+with uncolored coins")
+
+
 class SimpleOperationalTxSpec(BaseOperationalTxSpec):
     """Subclass of OperationalTxSpec which uses wallet model.
     Represents a transaction that's ready to be composed
@@ -150,33 +171,23 @@ class SimpleOperationalTxSpec(BaseOperationalTxSpec):
         the colored coins identified by <color_def> of amount <colorvalue>
         that we'll be spending from our wallet.
         """
-
+        self._validate_select_coins_parameters(colorvalue, use_fee_estimator)
+        def required_sum_fn(selection):
+            if use_fee_estimator:
+                return colorvalue + use_fee_estimator.estimate_required_fee(
+                    extra_txins=len(selection))
+            else:
+                return colorvalue
+        required_sum_0 = required_sum_fn([])
+        if required_sum_0.get_value() == 0:
+            # no coins need to be selected
+            return [], required_sum_0
         colordef = colorvalue.get_colordef()
-        if colordef != UNCOLORED_MARKER and use_fee_estimator:
-            raise Exception("fee estimator can only be used\
-with uncolored coins")
-
         color_id = colordef.get_color_id()
         cq = self.model.make_coin_query({"color_id_set": set([color_id])})
         utxo_list = cq.get_result()
+        return self._select_enough_coins(colordef, utxo_list, required_sum_fn)
 
-        zero = ssum = SimpleColorValue(colordef=colordef, value=0)
-        selection = []
-        required_sum = colorvalue
-        if colorvalue == zero:
-            raise ZeroSelectError('cannot select 0 coins')
-        for utxo in utxo_list:
-            ssum += SimpleColorValue.sum(utxo.colorvalues)
-            selection.append(utxo)
-            
-            if use_fee_estimator:
-                required_sum = colorvalue + use_fee_estimator.estimate_required_fee(
-                    extra_txins=len(selection))
-
-            if ssum >= required_sum:
-                return selection, ssum
-        raise InsufficientFundsError('not enough coins: %s requested, %s found'
-                                     % (required_sum, ssum))
 
 
 class RawTxSpec(object):

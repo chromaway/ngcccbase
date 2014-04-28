@@ -5,17 +5,19 @@ from coloredcoinlib import (ColorSet, ColorTarget, UNCOLORED_MARKER,
                             SimpleColorValue, CTransaction)
 from protocol_objects import ETxSpec
 from ngcccbase.asset import AdditiveAssetValue
-from ngcccbase.txcons import BaseOperationalTxSpec, InsufficientFundsError
+from ngcccbase.txcons import (BaseOperationalTxSpec,
+                              SimpleOperationalTxSpec, InsufficientFundsError)
 from ngcccbase.coindb import UTXO
 
 import bitcoin.core
 from bitcoin.wallet import CBitcoinAddress
 
 
-class OperationalETxSpec(BaseOperationalTxSpec):
+class OperationalETxSpec(SimpleOperationalTxSpec):
     def __init__(self, model, ewctrl):
         self.model = model
         self.ewctrl = ewctrl
+        self.our_value_limit = None
 
     def get_targets(self):
         return self.targets
@@ -25,6 +27,11 @@ class OperationalETxSpec(BaseOperationalTxSpec):
         cs = ColorSet.from_color_ids(self.model.get_color_map(), [color_id])
         wam = self.model.get_address_manager()
         return wam.get_change_address(cs).get_address()
+
+    def set_our_value_limit(self, our):
+        our_colordef = self.ewctrl.resolve_color_spec(our['color_spec'])
+        self.our_value_limit = SimpleColorValue(colordef=our_colordef,
+                                                value=our['value'])      
 
     def prepare_inputs(self, etx_spec):
         self.inputs = defaultdict(list)
@@ -71,34 +78,52 @@ class OperationalETxSpec(BaseOperationalTxSpec):
                                           value=their['value']))
         self.targets.append(ct)
 
-    def select_coins(self, colorvalue):
-        colordef = colorvalue.get_colordef()
-        color_id = colordef.get_color_id()
+    def select_uncolored_coins(self, colorvalue, use_fee_estimator):
+        selected_inputs = []
+        selected_value = SimpleColorValue(colordef=UNCOLORED_MARKER,
+                                          value=0)
+        needed = colorvalue + use_fee_estimator.estimate_required_fee()
+        if 0 in self.inputs:
+            total = SimpleColorValue.sum([cv_u[0]
+                                          for cv_u in self.inputs[color_id]])
+            needed -= total
+            selected_inputs += [cv_u[1]
+                               for cv_u in self.inputs[color_id]]
+            selected_value += total
+        if needed > 0:
+            value_limit = SimpleColorValue(colordef=UNCOLORED_MARKER,
+                                           value=10000+8192)
+            if self.our_value_limit.is_uncolored():
+                value_limit += self.our_value_limit
+            if needed > value_limit:
+                raise InsufficientFundsError("exceeded limits: %s requested, %s found"
+                                             % (needed, value_limit))
+            our_inputs, our_value = super(OperationalETxSpec, self).\
+                select_coins(colorvalue - selected_value, use_fee_estimator)
+            selected_inputs += our_inputs
+            selected_value += our_value
+        return selected_inputs, selected_value
 
+    def select_coins(self, colorvalue, use_fee_estimator=None):
+        self._validate_select_coins_parameters(colorvalue, use_fee_estimator)
+        colordef = colorvalue.get_colordef()
+        if colordef == UNCOLORED_MARKER:
+            return self.select_uncolored_coins(colorvalue, use_fee_estimator)
+
+        color_id = colordef.get_color_id()
         if color_id in self.inputs:
+            # use inputs provided in proposal
             total = SimpleColorValue.sum([cv_u[0]
                                           for cv_u in self.inputs[color_id]])
             if total < colorvalue:
                 raise InsufficientFundsError('not enough coins: %s requested, %s found'
                                              % (colorvalue, total))
-            return [cv_u[1]
-                    for cv_u in self.inputs[color_id]], total
-
-        cq = self.model.make_coin_query({"color_id_set": set([color_id])})
-        utxo_list = cq.get_result()
-
-        zero = ssum = SimpleColorValue(colordef=colordef, value=0)
-        selection = []
-        if colorvalue == zero:
-            raise ZeroSelectError('cannot select 0 coins')
-        for utxo in utxo_list:
-            if utxo.colorvalues:
-                ssum += utxo.colorvalues[0]
-                selection.append(utxo)
-                if ssum >= colorvalue:
-                    return selection, ssum
-        raise InsufficientFundsError('not enough coins: %s requested, %s found'
-                                     % (colorvalue, ssum))
+            return [cv_u[1] for cv_u in self.inputs[color_id]], total
+        
+        if colorvalue != self.our_value_limit:
+            raise InsufficientFundsError("%s requested, %s found"
+                                         % (colorvalue, our_value_limit))
+        return super(OperationalETxSpec, self).select_coins(colorvalue)
 
 
 class EWalletController(object):
@@ -166,23 +191,20 @@ class EWalletController(object):
         return colormap.get_color_def(color_spec)
 
     def select_inputs(self, colorvalue):
-        cs = ColorSet.from_color_ids(self.model.get_color_map(),
-                                     [colorvalue.get_color_id()])
-
-        cq = self.model.make_coin_query({"color_set": cs})
-        utxo_list = cq.get_result()
-        selection = []
-        csum = SimpleColorValue(colordef=colorvalue.get_colordef(), value=0)
-
-        for utxo in utxo_list:
-            csum += SimpleColorValue.sum(utxo.colorvalues)
-            selection.append(utxo)
-            if csum >= colorvalue:
-                break
-        if csum < colorvalue:
-            raise InsufficientFundsError('not enough money')
-        return selection, (csum - colorvalue)
-    
+        op_tx_spec = SimpleOperationalTxSpec(self.model, None)
+        if colorvalue.is_uncolored():
+            composed_tx_spec = op_tx_spec.make_composed_tx_spec()
+            selection, total = op_tx_spec.select_coins(colorvalue, composed_tx_spec)
+            change = total - colorvalue - \
+                composed_tx_spec.estimate_required_fee(extra_txins=len(selection))
+            if change < op_tx_spec.get_dust_threshold():
+                change = SimpleColorValue(colordef=UNCOLORED_MARKER,
+                                          value=0)
+            return selection, change            
+        else:
+            selection, total = op_tx_spec.select_coins(colorvalue)
+            change = total - colorvalue
+            return selection, change
     
     def make_etx_spec(self, our, their):
         our_color_def = self.resolve_color_spec(our['color_spec'])
@@ -193,8 +215,8 @@ class EWalletController(object):
                                                   [their_color_def.get_color_id()])
         extra_value = 0
         if our_color_def == UNCOLORED_MARKER:
-            # pay fee + padding for two colored outputs
-            extra_value = 10000 + 8192 * 2
+            # pay fee + padding for one colored outputs
+            extra_value = 10000 + 8192 * 1
         c_utxos, c_change = self.select_inputs(
             SimpleColorValue(colordef=our_color_def,
                              value=our['value'] + extra_value))
@@ -212,6 +234,7 @@ class EWalletController(object):
 
     def make_reply_tx(self, etx_spec, our, their):
         op_tx_spec = OperationalETxSpec(self.model, self)
+        op_tx_spec.set_our_value_limit(our)
         op_tx_spec.prepare_inputs(etx_spec)
         op_tx_spec.prepare_targets(etx_spec, their)
         signed_tx = self.model.transform_tx_spec(op_tx_spec, 'signed')

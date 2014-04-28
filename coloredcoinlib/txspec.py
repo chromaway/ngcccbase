@@ -53,10 +53,13 @@ class OperationalTxSpec(object):
         """returns a list of ColorTargets"""
         raise Exception('not implemented')  # pragma: no cover
 
-    def select_coins(self, colorvalue):
+    def select_coins(self, colorvalue, use_fee_estimator=None):
         """returns a list of UTXO objects with whose colordef is
         the same as <colorvalue> and have a sum colorvalues
-        have at least the <colorvalue>"""
+        have at least the <colorvalue>.
+        For uncolored coins sum of values of UTXO objects must
+        also include a fee (if <use_fee_estimator> parameter is 
+        provided, usually it is composed_tx_spec)."""
         raise Exception('not implemented')  # pragma: no cover
 
     def get_change_addr(self, color_def):
