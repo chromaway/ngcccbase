@@ -102,6 +102,8 @@ class WalletController(object):
             for txout in signed_tx_spec.composed_tx_spec.txouts:
                 print (txout.value)
         txhash = self.publish_tx(signed_tx_spec)
+        self.model.tx_history.add_send_entry(txhash, asset, 
+                                             target_addrs, raw_colorvalues)
 
     def issue_coins(self, moniker, pck, units, atoms_in_unit):
         """Issues a new color of name <moniker> using coloring scheme

@@ -66,6 +66,7 @@
    <addaction name="actionGotoSendcoins"/>
    <addaction name="actionGotoAssets"/>
    <addaction name="actionGotoReceive"/>
+   <addaction name="actionGotoHistory"/>
    <addaction name="actionP2PTrade"/>
   </widget>
   <action name="actionGotoOverview">
@@ -129,6 +130,21 @@
    </property>
    <property name="toolTip">
     <string>Change to Receive page</string>
+   </property>
+  </action>
+  <action name="actionGotoHistory">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>../icons/history.png</normaloff>../icons/history.png</iconset>
+   </property>
+   <property name="text">
+    <string>History</string>
+   </property>
+   <property name="toolTip">
+    <string>Change to History page</string>
    </property>
   </action>
   <action name="actionP2PTrade">

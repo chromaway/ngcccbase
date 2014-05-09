@@ -20,6 +20,12 @@ class AssetDefinition(object):
     def __repr__(self):
         return "%s: %s" % (self.monikers, self.color_set)
 
+    def get_id(self):
+        return self.color_set.get_color_hash()
+
+    def get_all_ids(self):
+        return [self.get_id()]
+
     def get_monikers(self):
         """Returns the list of monikers for this asset.
         """
@@ -58,7 +64,7 @@ class AssetDefinition(object):
         """Returns a string representation of the portion of the asset.
         can involve rounding.  doesn't display insignificant zeros
         """
-        if isinstance(value, ColorValue):
+        if isinstance(value, ColorValue) or isinstance(value, AssetValue):
             atoms = value.get_value()
         else:
             atoms = value
@@ -112,6 +118,9 @@ class AdditiveAssetValue(AssetValue, ComparableMixin):
 
     def get_value(self):
         return self.value
+
+    def get_formatted_value(self):
+        return self.asset.format_value(self.get_value())
 
     def __add__(self, other):
         if isinstance(other, int) and other == 0:
@@ -177,6 +186,9 @@ class AssetTarget(object):
     def get_value(self):
         return self.assetvalue.get_value()
 
+    def get_formatted_value(self):
+        return self.assetvalue.get_formatted_value()
+
     def __repr__(self):
         return "%s: %s" % (self.get_address(), self.assetvalue)
 
@@ -200,6 +212,7 @@ class AssetDefinitionManager(object):
         self.colormap = colormap
         self.asset_definitions = []
         self.lookup_by_moniker = {}
+        self.lookup_by_id = {}
         for ad_params in config.get('asset_definitions', []):
             self.register_asset_definition(
                 AssetDefinition(self.colormap, ad_params))
@@ -227,6 +240,11 @@ class AssetDefinitionManager(object):
                 raise Exception(
                     'more than one asset definition have same moniker')
             self.lookup_by_moniker[moniker] = assdef
+        for aid in assdef.get_all_ids():
+            if aid in self.lookup_by_id:
+                raise Exception(
+                    'more than one asset definition have same id')
+            self.lookup_by_id[aid] = assdef
 
     def add_asset_definition(self, params):
         """Create a new asset with given <params>.
@@ -245,6 +263,9 @@ class AssetDefinitionManager(object):
         """
         return self.lookup_by_moniker.get(moniker)
 
+    def get_asset_by_id(self, asset_id):
+        return self.lookup_by_id.get(asset_id)
+
     def update_config(self):
         """Write the current asset definitions to the persistent data-store
         """
@@ -262,13 +283,11 @@ class AssetDefinitionManager(object):
         described in the address isn't managed by this object,
         throw an exception.
         """
-
         if color_address.find('@') == -1:
             return (self.lookup_by_moniker.get('bitcoin'), color_address)
-
         color_set_hash, address = color_address.split('@')
-        for asset in self.get_all_assets():
-            if color_set_hash == asset.get_color_set().get_color_hash():
-                return (asset, address)
+        asset = self.get_asset_by_id(color_set_hash)
+        if asset:
+            return (asset, address)
         raise Exception("No asset has a color set with this hash: %s"
                         % color_set_hash)

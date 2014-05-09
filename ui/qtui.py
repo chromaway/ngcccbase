@@ -9,6 +9,7 @@ from sendcoinspage import SendcoinsPage
 from assetspage import AssetsPage
 from receivepage import ReceivePage
 from tradepage import TradePage
+from historypage import HistoryPage
 
 from wallet import wallet
 
@@ -42,6 +43,8 @@ class MainWindow(QtGui.QMainWindow):
         self.stackedWidget.addWidget(self.assetspage)
         self.receivepage = ReceivePage(self)
         self.stackedWidget.addWidget(self.receivepage)
+        self.historypage = HistoryPage(self)
+        self.stackedWidget.addWidget(self.historypage)
         self.tradepage = TradePage(self)
         self.stackedWidget.addWidget(self.tradepage)
 
@@ -78,6 +81,9 @@ class MainWindow(QtGui.QMainWindow):
         self.toolbarActionGroup.addAction(self.actionGotoReceive)
         self.actionGotoReceive.triggered.connect(self.gotoReceivePage)
 
+        self.toolbarActionGroup.addAction(self.actionGotoHistory)
+        self.actionGotoHistory.triggered.connect(self.gotoHistoryPage)
+
         self.toolbarActionGroup.addAction(self.actionP2PTrade)
         self.actionP2PTrade.triggered.connect(self.gotoP2PTradePage)
 
@@ -105,6 +111,10 @@ class MainWindow(QtGui.QMainWindow):
     def gotoReceivePage(self):
         self.actionGotoReceive.setChecked(True)
         self.setPage(self.receivepage)
+
+    def gotoHistoryPage(self):
+        self.actionGotoHistory.setChecked(True)
+        self.setPage(self.historypage)
 
     def gotoP2PTradePage(self):
         self.actionP2PTrade.setChecked(True)

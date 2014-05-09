@@ -20,6 +20,7 @@ from utxo_fetcher import SimpleUTXOFetcher
 from coloredcoinlib import BlockchainState
 from ngcccbase.services.chroma import ChromaBlockchainState
 from ngcccbase.services.helloblock import HelloBlockInterface
+from txhistory import TxHistory
 
 
 class CoinQueryFactory(object):
@@ -68,6 +69,7 @@ class WalletModel(object):
         self.coin_query_factory = CoinQueryFactory(self, config)
         self.coin_man = CoinManager(self, config)
         self.tx_spec_transformer = TransactionSpecTransformer(self, config)
+        self.tx_history = TxHistory(self)
 
     def init_wallet_address_manager(self, config):
         if config.get('bip0032'):
