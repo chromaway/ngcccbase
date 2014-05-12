@@ -33,11 +33,13 @@ class HistoryPage(QtGui.QWidget):
         for ent in tx_history.get_all_entries():
             datetime = QtCore.QDateTime.fromTime_t(ent.txtime)
             datetime_str = datetime.toString(QtCore.Qt.DefaultLocaleShortDate)
-            if ent.txtype == 'send':
+            if (ent.txtype == 'send') or (ent.txtype == 'receive'):
                 for tgt in ent.get_targets():
                     asset = tgt.get_asset()
                     moniker = asset.get_monikers()[0]
                     self.model.addRow([datetime_str, ent.txtype, 
                                        tgt.get_formatted_value(),
                                        moniker, tgt.get_address()])
-                                      
+            else:
+                self.model.addRow([datetime_str, ent.txtype, 
+                                   '', '', ''])

@@ -108,6 +108,7 @@ class Coin(UTXO):
     def __init__(self, coin_manager, coin_data):
         super(Coin, self).__init__(coin_data)
         self.coin_id = coin_data['id']
+        self.address = coin_data['address']
         self.coin_manager = coin_manager
 
     def get_address(self):
@@ -115,6 +116,13 @@ class Coin(UTXO):
             return self.address_rec.get_address()
         else:
             return "not set"
+
+    def get_colorvalues(self):
+        if self.colorvalues:
+            return self.colorvalues
+        else:
+            self.colorvalues = self.coin_manager.compute_colorvalues(self)
+            return self.colorvalues
 
     def get_spending_txs(self):
         return self.coin_manager.get_coin_spending_txs(self)
@@ -214,14 +222,35 @@ class CoinManager(object):
         self.model = model
         self.store = CoinStore(self.model.store_conn.conn)
 
+    def compute_colorvalues(self, coin):
+        wam = self.model.get_address_manager()
+        address_rec = wam.find_address_record(coin.address)
+        if not address_rec:
+            raise Exception('address record not found')
+        color_set = address_rec.get_color_set()
+        if color_set.uncolored_only():
+            return [SimpleColorValue(colordef=UNCOLORED_MARKER,
+                                     value=coin.value)]
+        else:
+            cdata = self.model.ccc.colordata
+            return cdata.get_colorvalues(color_set.color_id_set,
+                                         coin.txhash, coin.outindex)
+
     def purge_coins(self):
         """full rescan"""
         self.store.purge_coins()
 
+    def find_coin(self, txhash, outindex):
+        coin_id = self.store.find_coin(txhash, outindex)
+        if coin_id:
+            return self.get_coin(coin_id)
+        else:
+            return None
+
     def get_coin(self, coin_id):
         coin_rec = self.store.get_coin(coin_id)
         if coin_rec:
-            return Coin(self.store, coin_rec)
+            return Coin(self, coin_rec)
         else:
             return None
 
@@ -252,6 +281,23 @@ class CoinManager(object):
         if coin_id is None:
             self.store.add_coin(address, txhash, outindex, value, script)
             coin_id = self.store.find_coin(txhash, outindex)
+
+    def get_coins_for_transaction(self, raw_tx):
+        """all coins referenced by a transaction"""
+        spent_coins = []
+        for txin in raw_tx.composed_tx_spec.txins:
+            prev_txhash, prev_outindex = txin.get_outpoint()
+            coin = self.find_coin(prev_txhash, prev_outindex)
+            if coin:
+                spent_coins.append(coin)
+        
+        received_coins = []
+        txhash = raw_tx.get_hex_txhash()
+        for out_idx in range(len(raw_tx.composed_tx_spec.txouts)):
+            coin = self.find_coin(txhash, out_idx)
+            if coin:
+                received_coins.append(coin)
+        return spent_coins, received_coins
 
     def apply_tx(self, txhash, raw_tx):
         """Given a transaction <composed_tx_spec>, delete any

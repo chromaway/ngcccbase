@@ -1,6 +1,8 @@
 import time
 from coloredcoinlib.store import PersistentDictStore
 from asset import AdditiveAssetValue, AssetTarget
+from txcons import RawTxSpec
+
 
 class TxHistoryEntry(object):
     def __init__(self, model, data):
@@ -15,6 +17,8 @@ class TxHistoryEntry(object):
         txtype = data['txtype']
         if txtype == 'send':
             return TxHistoryEntry_Send(model, data)
+        elif txtype == 'receive':
+            return TxHistoryEntry_Receive(model, data)
         else:
             return TxHistoryEntry(model, data)
 
@@ -39,6 +43,26 @@ class TxHistoryEntry_Send(TxHistoryEntry):
                                              asset_value))
         return asset_targets
 
+class TxHistoryEntry_Receive(TxHistoryEntry):
+    def __init__(self, model, data):
+        super(TxHistoryEntry_Receive, self).__init__(model, data)
+        self.out_idxs = data['out_idxs']
+        
+    def get_targets(self):
+        targets = []
+        coindb = self.model.get_coin_manager()
+        adm = self.model.get_asset_definition_manager()
+        for out_idx in self.out_idxs:
+            coin = coindb.find_coin(self.txhash, out_idx)
+            colorvalues = coin.get_colorvalues()
+            if not colorvalues:
+                continue
+            assert len(colorvalues) == 1
+            asset_value = adm.get_asset_value_for_colorvalue(
+                colorvalues[0])
+            targets.append(AssetTarget(coin.address,
+                                       asset_value))
+        return targets
 
 class TxHistory(object):
     def __init__(self, model):
@@ -69,3 +93,36 @@ class TxHistory(object):
                        for e in self.entries.values()],
                       key=lambda txe: txe.txtime)
 
+    def populate_history(self):
+        txdb = self.model.get_tx_db()
+        for txhash in txdb.get_all_tx_hashes():
+            if txhash not in self.entries:
+                tx_data = txdb.get_tx_by_hash(txhash)['data']
+                raw_tx  = RawTxSpec.from_tx_data(self.model,
+                                                 tx_data.decode('hex'))
+                self.add_entry_from_tx(raw_tx)
+
+    def add_receive_entry(self, txhash, received_coins):
+        out_idxs = [coin.outindex
+                    for coin in received_coins]
+        self.entries[txhash] = {"txhash": txhash,
+                                "txtype": 'receive',
+                                "txtime": int(time.time()), # TODO !!!
+                                "out_idxs": out_idxs}
+    
+    def add_unknown_entry(self, txhash):
+        self.entries[txhash] = {"txhash": txhash,
+                                "txtype": 'unknown',
+                                "txtime": int(time.time())}        
+        
+    def add_entry_from_tx(self, raw_tx):
+        coindb = self.model.get_coin_manager()
+        spent_coins, received_coins = coindb.get_coins_for_transaction(raw_tx)
+        if (not spent_coins) and (not received_coins):
+            return
+        if not spent_coins:
+            self.add_receive_entry(raw_tx.get_hex_txhash(),
+                                   received_coins)
+        else:
+            # TODO: classify p2ptrade and send transactions
+            self.add_unknown_entry(raw_tx.get_hex_txhash())

@@ -204,6 +204,12 @@ class DWalletAddressManager(object):
         """
         return self.addresses
 
+    def find_address_record(self, address):
+        for address_rec in self.addresses:
+            if address_rec.get_address() == address:
+                return address_rec
+        return None
+
     def get_addresses_for_color_set(self, color_set):
         """Given a color <color_set>, returns all AddressRecords
         that have that color.

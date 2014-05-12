@@ -266,6 +266,16 @@ class AssetDefinitionManager(object):
     def get_asset_by_id(self, asset_id):
         return self.lookup_by_id.get(asset_id)
 
+    def find_asset_by_color_set(self, color_set):
+        assets = [asset
+                  for asset in self.asset_definitions
+                  if asset.color_set.intersects(color_set)]
+        assert len(assets) <= 1
+        if assets:
+            return assets[0]
+        else:
+            return None        
+
     def update_config(self):
         """Write the current asset definitions to the persistent data-store
         """
@@ -291,3 +301,12 @@ class AssetDefinitionManager(object):
             return (asset, address)
         raise Exception("No asset has a color set with this hash: %s"
                         % color_set_hash)
+
+    def get_asset_value_for_colorvalue(self, colorvalue):
+        colorset = ColorSet.from_color_ids(self.colormap, 
+                                           [colorvalue.get_color_id()])
+        asset = self.find_asset_by_color_set(colorset)
+        if not asset:
+            raise Exception('asset not found')
+        return AdditiveAssetValue(asset=asset,
+                                  value=colorvalue.get_value())

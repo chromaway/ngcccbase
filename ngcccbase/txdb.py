@@ -50,6 +50,10 @@ class TxDataStore(DataStore):
         return self.execute("SELECT * FROM tx_data WHERE txhash = ?",
                             (txhash, )).fetchone()
 
+    def get_all_tx_hashes(self):
+        return map(unwrap1,
+                   self.execute("SELECT txhash FROM tx_data").fetchall())
+
 
 class BaseTxDb(object):
     def __init__(self, model, config):
@@ -60,6 +64,12 @@ class BaseTxDb(object):
 
     def purge_tx_db(self):
         self.store.purge_tx_data()
+
+    def get_all_tx_hashes(self):
+        return self.store.get_all_tx_hashes()
+
+    def get_tx_by_hash(self, txhash):
+        return self.store.get_tx_by_hash(txhash)
 
     def add_raw_tx(self, raw_tx, status=TX_STATUS_UNCONFIRMED):
         return self.add_tx(raw_tx.get_hex_txhash(),
