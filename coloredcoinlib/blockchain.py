@@ -129,6 +129,12 @@ class BlockchainState(BlockchainStateBase):
     def get_block_count(self):
         return self.bitcoind.getblockcount()
 
+    def get_block_hash(self, index):
+        return self.bitcoind.getblockhash(index)
+
+    def get_block(self, blockhash):
+        return self.bitcoind.getblock(blockhash)
+
     def get_blockhash_at_height(self, height):
         return self.bitcoind.getblockhash(height)
 
