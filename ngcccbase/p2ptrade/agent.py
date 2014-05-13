@@ -144,6 +144,7 @@ class EAgent(object):
 
     def clear_orders(self, ep):
         self.fire_event('trade_complete', ep)
+
         try:
             if isinstance(ep, MyEProposal):
                 if ep.my_offer:

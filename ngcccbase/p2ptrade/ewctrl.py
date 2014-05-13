@@ -83,7 +83,8 @@ class OperationalETxSpec(SimpleOperationalTxSpec):
         selected_value = SimpleColorValue(colordef=UNCOLORED_MARKER,
                                           value=0)
         needed = colorvalue + use_fee_estimator.estimate_required_fee()
-        if 0 in self.inputs:
+        color_id = 0
+        if color_id in self.inputs:
             total = SimpleColorValue.sum([cv_u[0]
                                           for cv_u in self.inputs[color_id]])
             needed -= total
@@ -131,8 +132,14 @@ class EWalletController(object):
         self.model = model
         self.wctrl = wctrl
 
-    def publish_tx(self, raw_tx):
+    def publish_tx(self, raw_tx, my_offer):
+        txhash = raw_tx.get_hex_txhash()
+        self.model.tx_history.add_trade_entry(
+            txhash,
+            self.offer_side_to_colorvalue(my_offer.B),
+            self.offer_side_to_colorvalue(my_offer.A))
         self.wctrl.publish_tx(raw_tx)
+
 
     def check_tx(self, raw_tx, etx_spec):
         """check if raw tx satisfies spec's targets"""
@@ -189,6 +196,11 @@ class EWalletController(object):
     def resolve_color_spec(self, color_spec):
         colormap = self.model.get_color_map()
         return colormap.get_color_def(color_spec)
+
+    def offer_side_to_colorvalue(self, side):
+        colordef = self.resolve_color_spec(side['color_spec'])
+        return SimpleColorValue(colordef=colordef,
+                                value=side['value'])
 
     def select_inputs(self, colorvalue):
         op_tx_spec = SimpleOperationalTxSpec(self.model, None)

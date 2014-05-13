@@ -3,6 +3,9 @@ from coloredcoinlib.store import PersistentDictStore
 from asset import AdditiveAssetValue, AssetTarget
 from txcons import RawTxSpec
 
+def asset_value_to_data(av):
+    return (av.get_asset().get_id(),
+            av.get_value())
 
 class TxHistoryEntry(object):
     def __init__(self, model, data):
@@ -19,6 +22,8 @@ class TxHistoryEntry(object):
             return TxHistoryEntry_Send(model, data)
         elif txtype == 'receive':
             return TxHistoryEntry_Receive(model, data)
+        elif txtype == 'trade':
+            return TxHistoryEntry_Trade(model, data)
         else:
             return TxHistoryEntry(model, data)
 
@@ -64,6 +69,28 @@ class TxHistoryEntry_Receive(TxHistoryEntry):
                                        asset_value))
         return targets
 
+class TxHistoryEntry_Trade(TxHistoryEntry):
+    def __init__(self, model, data):
+        TxHistoryEntry.__init__(self, model, data)
+        self.in_values = data['in_values']
+        self.out_values = data['out_values']
+        
+    def get_values(self, values):
+        adm = self.model.get_asset_definition_manager()
+        avalues = []
+        for asset_id, value in values:
+            asset = adm.get_asset_by_id(asset_id)
+            avalues.append(AdditiveAssetValue(asset=asset,
+                                             value=value))
+        return avalues
+
+    def get_in_values(self):
+        return self.get_values(self.in_values)
+
+    def get_out_values(self):
+        return self.get_values(self.out_values)
+
+    
 class TxHistory(object):
     def __init__(self, model):
         self.model = model
@@ -109,6 +136,16 @@ class TxHistory(object):
                                 "txtype": 'receive',
                                 "txtime": int(time.time()), # TODO !!!
                                 "out_idxs": out_idxs}
+
+    def add_trade_entry(self, txhash, in_colorvalue, out_colorvalue):
+        adm = self.model.get_asset_definition_manager()
+        in_assetvalue = adm.get_asset_value_for_colorvalue(in_colorvalue)
+        out_assetvalue = adm.get_asset_value_for_colorvalue(out_colorvalue)
+        self.entries[txhash] = {"txhash": txhash,
+                                "txtype": 'trade',
+                                "txtime": int(time.time()),
+                                "in_values": [asset_value_to_data(in_assetvalue)],
+                                "out_values": [asset_value_to_data(out_assetvalue)]}
     
     def add_unknown_entry(self, txhash):
         self.entries[txhash] = {"txhash": txhash,

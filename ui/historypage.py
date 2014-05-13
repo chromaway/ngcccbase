@@ -37,9 +37,31 @@ class HistoryPage(QtGui.QWidget):
                 for tgt in ent.get_targets():
                     asset = tgt.get_asset()
                     moniker = asset.get_monikers()[0]
+                    value_prefix = "-" if ent.txtype == 'send' else '+'
                     self.model.addRow([datetime_str, ent.txtype, 
-                                       tgt.get_formatted_value(),
+                                       value_prefix + tgt.get_formatted_value(),
                                        moniker, tgt.get_address()])
+            elif ent.txtype == 'trade':
+                print ent.get_in_values()
+                print ent.get_out_values()
+                for val in ent.get_in_values():
+                    asset = val.get_asset()
+                    moniker = asset.get_monikers()[0]
+                    print [datetime_str, ent.txtype, 
+                                       "+" + val.get_formatted_value(),
+                                       moniker, '']
+                    self.model.addRow([datetime_str, ent.txtype, 
+                                       "+" + val.get_formatted_value(),
+                                       moniker, ''])
+                for val in ent.get_out_values():
+                    asset = val.get_asset()
+                    moniker = asset.get_monikers()[0]
+                    print [datetime_str, ent.txtype, 
+                                       "-" + val.get_formatted_value(),
+                                       moniker, '']
+                    self.model.addRow([datetime_str, ent.txtype, 
+                                       "-" + val.get_formatted_value(),
+                                       moniker, ''])
             else:
                 self.model.addRow([datetime_str, ent.txtype, 
                                    '', '', ''])
