@@ -73,8 +73,8 @@ class ChromaBlockchainState(BlockchainStateBase):
         data = urllib2.urlopen(url).read()
         return int(data)
 
-    def get_block(self, id):
-        url = "%s/block" % self.url_stem
+    def get_header(self, id):
+        url = "%s/header" % self.url_stem
         data = json.dumps({
             'id': id,
         })

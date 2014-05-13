@@ -12,7 +12,7 @@ urls = (
     '/tx_blockhash', 'TxBlockhash',
     '/prefetch', 'Prefetch',
     '/blockcount', 'BlockCount',
-    '/block', 'Block',
+    '/header', 'Header',
     '/chunk', 'Chunk'
 )
 
@@ -128,13 +128,22 @@ class DecimalEncoder(json.JSONEncoder):
         return super(DecimalEncoder, self).default(o)
 
 
-class Block(ErrorThrowingRequestProcessor):
+class Header(ErrorThrowingRequestProcessor):
     def POST(self):
         data = json.loads(web.data())
-        self.require(data, 'id', "Block requires id (block number or block hash)")
+        self.require(data, 'id', "Header requires id (block number or block hash)")
         id = data.get('id')
-        blockhash = id if type(id) == str else blockchainstate.get_block_hash(id)
-        return json.dumps(blockchainstate.get_block(blockhash), cls=DecimalEncoder)
+        blockhash = id if type(id) == unicode else blockchainstate.get_block_hash(id)
+        block = blockchainstate.get_block(blockhash)
+        return json.dumps({
+            'height':          block['height'],
+            'version':         block['version'],
+            'prev_block_hash': block['previousblockhash'],
+            'merkle_root':     block['merkleroot'],
+            'timestamp':       block['time'],
+            'bits':            int(block['bits'], 16),
+            'nonce':           block['nonce'],
+        }, cls=DecimalEncoder)
 
 
 class Chunk(ErrorThrowingRequestProcessor):
@@ -170,8 +179,11 @@ class Chunk(ErrorThrowingRequestProcessor):
         headers = ''
         blockhash = blockchainstate.get_block_hash(index*2016)
         while len(headers) != 2016*80:
+            print index*2016+len(headers)/80
             block = blockchainstate.get_block(blockhash)
             headers += self._header_to_string(block).decode('hex')
+            if 'nextblockhash' not in block:
+                return headers
             blockhash = block['nextblockhash']
 
         open(chunk_path, 'w').write(headers)
