@@ -104,6 +104,11 @@ class FileStore(object):
                 store.seek(header['height']*80)
                 store.write(self.header_to_raw(header))
 
+    def truncate(self, index):
+        with open(self.path, 'ab+') as store:
+            store.seek(index*80)
+            store.truncate()
+
 
 class BlockHashingAlgorithm(object):
     def __init__(self, store):
@@ -166,7 +171,8 @@ class BlockHashingAlgorithm(object):
             prev_hash = ("0"*64)
         else:
             prev_header = self.store.read_raw_header(index*2016-1)
-            if prev_header is None: raise
+            if prev_header is None:
+                raise
             prev_hash = self.hash_header(prev_header)
 
         bits, target = self.get_target(index)
@@ -226,13 +232,13 @@ class VerifierBlockchainState(BlockchainStateBase, threading.Thread):
 
             print 'new header! (current height: %d, header height: %d)' % (self.height, header['height'])
 
-            if header['height'] <= self.height:
+            if header['height'] == self.height:
                 continue
 
-            if header['height'] > self.height + 50:
-                self._get_chunks(header['height'])
-            else:
+            if -50 < header['height'] - self.height < 50:
                 self._get_chain(header)
+            else:
+                self._get_chunks(header)
 
     def is_running(self):
         with self.lock:
@@ -255,20 +261,41 @@ class VerifierBlockchainState(BlockchainStateBase, threading.Thread):
         if old != self.local_height:
             print 'new height! (%d --> %d)' % (old, self.local_height)
 
-    def _get_chunks(self, height):
-        min_index = (self.height + 1)/2016
-        max_index = (height + 1)/2016
-        for index in xrange(min_index, max_index+1):
+    def _get_chunks(self, header):
+        max_index = (header['height'] + 1)/2016
+        index = min((self.height+1)/2016, max_index)
+
+        while self.is_running():
+            if index > max_index:
+                self._set_local_height()
+                return True
+
             chunk = self.bcs.get_chunk(index)
+
+            if index == 0:
+                prev_hash = "0"*64
+            else:
+                prev_header = self.store.read_raw_header(index*2016-1)
+                if prev_header is None:
+                    return False
+                prev_hash = self.bha.hash_header(prev_header)
+            chunk_first_header = self.store.header_from_raw(chunk[:80])
+            if chunk_first_header['prev_block_hash'] != prev_hash:
+                sys.stderr.write('reorg (chunk %d, height: %d, %d)\n' % (index, index*2016, (index+1)*2016-1))
+                sys.stderr.flush()
+                index -= 1
+                continue
+
             try:
                 self.bha.verify_chunk(index, chunk)
             except Exception, e:
                 sys.stderr.write('Verify chunk failed! (%s: %s)\n' % (type(e), e))
                 sys.stderr.flush()
                 return False
+
+            self.store.truncate(index*2016)
             self.store.save_chunk(index, chunk)
-            self._set_local_height()
-        return True
+            index += 1
 
     def _get_chain(self, header):
         chain = [header]
@@ -283,15 +310,14 @@ class VerifierBlockchainState(BlockchainStateBase, threading.Thread):
                 requested_hash = None
                 continue
 
-            height = header.get('height')
-            prev_header = self.store.read_raw_header(height-1)
+            prev_header = self.store.read_raw_header(header.get('height') - 1)
             if prev_header is None:
                 requested_hash = header.get('prev_block_hash')
                 continue
 
             prev_hash = self.bha.hash_header(prev_header)
             if prev_hash != header.get('prev_block_hash'):
-                sys.stderr.write('reorg\n')
+                sys.stderr.write('reorg (height %d)\n' % (header.get('height') - 1,))
                 sys.stderr.flush()
                 requested_hash = header.get('prev_block_hash')
                 continue
@@ -304,6 +330,7 @@ class VerifierBlockchainState(BlockchainStateBase, threading.Thread):
                 sys.stderr.flush()
                 return False
 
+            self.store.truncate(chain[0]['height'])
             self.store.save_chain(chain)
             self._set_local_height()
             return True
