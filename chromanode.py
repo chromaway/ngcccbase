@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 import os, sys
 import json
+import hashlib
 
 import web
 
 from coloredcoinlib import BlockchainState, ColorDefinition
+
 
 urls = (
     '/tx', 'Tx',
@@ -13,7 +15,8 @@ urls = (
     '/prefetch', 'Prefetch',
     '/blockcount', 'BlockCount',
     '/header', 'Header',
-    '/chunk', 'Chunk'
+    '/chunk', 'Chunk',
+    '/merkle', 'Merkle'
 )
 
 testnet = False
@@ -197,6 +200,43 @@ class Chunk(ErrorThrowingRequestProcessor):
         if max_index < index:
             return ''
         return self._get_chunk(index)
+
+class Merkle(ErrorThrowingRequestProcessor):
+    def POST(self):
+        data = json.loads(web.data())
+        self.require(data, 'txhash', "Merkle requires txhash")
+        self.require(data, 'blockhash', "Merkle requires blockhash")
+        txhash = data.get('txhash')
+        blockhash = data.get('blockhash')
+
+        hash_decode = lambda x: x.decode('hex')[::-1]
+        hash_encode = lambda x: x[::-1].encode('hex')
+        Hash = lambda x: hashlib.sha256(hashlib.sha256(x).digest()).digest()
+
+        b = blockchainstate.get_block(blockhash)
+        tx_list = b.get('tx')
+        tx_pos = tx_list.index(txhash)
+
+        merkle = map(hash_decode, tx_list)
+        target_hash = hash_decode(txhash)
+        s = []
+        while len(merkle) != 1:
+            if len(merkle) % 2:
+                merkle.append(merkle[-1])
+            n = []
+            while merkle:
+                new_hash = Hash(merkle[0] + merkle[1])
+                if merkle[0] == target_hash:
+                    s.append(hash_encode(merkle[1]))
+                    target_hash = new_hash
+                elif merkle[1] == target_hash:
+                    s.append(hash_encode(merkle[0]))
+                    target_hash = new_hash
+                n.append(new_hash)
+                merkle = merkle[2:]
+            merkle = n
+
+        return json.dumps({"block_height": b.get('height'), "merkle": s, "pos": tx_pos})
 
 
 if __name__ == "__main__":

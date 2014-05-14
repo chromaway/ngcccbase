@@ -253,6 +253,9 @@ class VerifierBlockchainState(BlockchainStateBase, threading.Thread):
     def height(self):
         return self.local_height
 
+    def get_header(self, height):
+        return self.store.read_header(height)
+
     def _set_local_height(self):
         old = self.local_height
         h = self.store.get_height()

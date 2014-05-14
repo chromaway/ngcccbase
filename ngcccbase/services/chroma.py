@@ -91,6 +91,16 @@ class ChromaBlockchainState(BlockchainStateBase):
             data, {'Content-Type': 'application/json'}))
         return req.read()
 
+    def get_merkle(self, txhash):
+        url = "%s/merkle" % self.url_stem
+        data = json.dumps({
+            'txhash': txhash,
+            'blockhash': self.get_tx_blockhash(txhash)[0],
+        })
+        req = urllib2.urlopen(urllib2.Request(url,
+            data, {'Content-Type': 'application/json'}))
+        return req.read()
+
     def get_raw(self, txhash):
         if self.tx_lookup.get(txhash):
             return self.tx_lookup[txhash]
