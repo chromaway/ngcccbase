@@ -119,9 +119,6 @@ class WalletModel(object):
                 self.blockchain_state = EnhancedBlockchainState(
                     "electrum.cafebitcoin.com", 50001)
 
-        #from ngcccbase.blockchain import VerifierBlockchainState
-        #self.blockchain_state = VerifierBlockchainState(self.store_conn, self.blockchain_state)
-
     def get_blockchain_state(self):
         return self.blockchain_state
 

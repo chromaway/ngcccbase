@@ -134,12 +134,11 @@ class DecimalEncoder(json.JSONEncoder):
 class Header(ErrorThrowingRequestProcessor):
     def POST(self):
         data = json.loads(web.data())
-        self.require(data, 'id', "Header requires id (block number or block hash)")
-        id = data.get('id')
-        blockhash = id if type(id) == unicode else blockchainstate.get_block_hash(id)
-        block = blockchainstate.get_block(blockhash)
+        self.require(data, 'height', "Header requires height")
+        height = data.get('height')
+        block = blockchainstate.get_block(blockchainstate.get_block_hash(height))
         return json.dumps({
-            'height':          block['height'],
+            'block_height':    block['height'],
             'version':         block['version'],
             'prev_block_hash': block['previousblockhash'],
             'merkle_root':     block['merkleroot'],
