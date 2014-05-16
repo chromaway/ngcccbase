@@ -59,8 +59,7 @@ class WalletController(object):
 
     def full_rescan(self):
         """Updates all Unspent Transaction Outs for addresses associated with
-        this wallet.
-
+        this wallet."""
         self.model.get_coin_manager().purge_coins()
         self.model.get_tx_db().purge_tx_db()
         wam = self.model.get_address_manager()
@@ -72,7 +71,6 @@ class WalletController(object):
         txdb = self.model.get_tx_db()
         for tx in sorted_txs:
             txdb.add_tx_by_hash(tx.hash)
-            """
         self.model.tx_history.populate_history()
 
     def scan_utxos(self):
