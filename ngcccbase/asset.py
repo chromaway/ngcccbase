@@ -14,6 +14,8 @@ class AssetDefinition(object):
         """
         self.colormap = colormap
         self.monikers = params.get('monikers', [])
+        # currently only single-color assets are supported
+        assert len(params.get('color_set')) == 1 
         self.color_set = ColorSet(colormap, params.get('color_set'))
         self.unit = int(params.get('unit', 1))
 
