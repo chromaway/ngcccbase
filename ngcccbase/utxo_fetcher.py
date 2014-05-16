@@ -107,7 +107,11 @@ class AsyncUTXOFetcher(BaseUTXOFetcher):
                 address_list = self.address_list
                 for address in address_list:
                     self.logger.debug('scanning address %s', address)
+                    if self._stop.is_set():
+                        break
                     self.scan_address(address)
+                    if self._stop.is_set():
+                        break
                     sleep(1)
             except Exception as e:
                 print (e)
