@@ -1,53 +1,14 @@
 import os, sys, threading, Queue, time
+import traceback
+import abc
 import hashlib
 
 from coloredcoinlib import BlockchainStateBase
+from coloredcoinlib.store import DataStore
 
 
-class NewBlocks(threading.Thread):
-    def __init__(self, bcs, queue):
-        threading.Thread.__init__(self)
-        self.running = False
-        self.lock = threading.Lock()
-
-        self.bcs = bcs
-        self.queue = queue
-
-    def run(self):
-        with self.lock:
-            self.running = True
-
-        run_time = time.time()
-        while self.is_running():
-            if run_time > time.time():
-                time.sleep(0.05)
-                continue
-            try:
-                header = self.bcs.get_header(self.bcs.get_height())
-                self.queue.put(header)
-            except Exception, e:
-                sys.stderr.write('Error! %s: %s\n' % (type(e), e))
-                sys.stderr.flush()
-            run_time = time.time() + 30
-
-    def is_running(self):
-        with self.lock:
-            return self.running
-
-    def stop(self):
-        with self.lock:
-            self.running = False
-
-
-class FileStore(object):
-    def __init__(self, path):
-        self.path = path
-
-    def get_height(self):
-        try:
-            return os.path.getsize(self.path)/80 - 1
-        except OSError, e:
-            return 0
+class BaseStore(object):
+    __metaclass__ = abc.ABCMeta
 
     def _rev_hex(self, s):
         return s.decode('hex')[::-1].encode('hex')
@@ -78,6 +39,27 @@ class FileStore(object):
             'nonce':           hex_to_int(s[76:80]),
         }
 
+    @abc.abstractmethod
+    def read_raw_header(self, height):
+        pass
+
+    def read_header(self, height):
+        data = self.read_raw_header(height)
+        if data is not None:
+            return self.header_from_raw(data)
+        return None
+
+
+class FileStore(BaseStore):
+    def __init__(self, path):
+        self.path = path
+
+    def get_height(self):
+        try:
+            return os.path.getsize(self.path)/80 - 1
+        except OSError, e:
+            return 0
+
     def read_raw_header(self, height):
         try:
             with open(self.path, 'rb') as store:
@@ -87,12 +69,6 @@ class FileStore(object):
                 return data
         except (OSError, AssertionError), e:
             return None
-
-    def read_header(self, height):
-        data = self.read_raw_header(height)
-        if data is not None:
-            return self.header_from_raw(data)
-        return None
 
     def save_chunk(self, index, chunk):
         with open(self.path, 'ab+') as store:
@@ -109,6 +85,117 @@ class FileStore(object):
         with open(self.path, 'ab+') as store:
             store.seek(index*80)
             store.truncate()
+
+
+class SQLStore(DataStore, BaseStore):
+    _SQL_CREATE_TABLE = """\
+CREATE TABLE IF NOT EXISTS blockchain_headers (
+    height INTEGER,
+    version INTEGER,
+    prev_block_hash VARCHAR(64),
+    merkle_root VARCHAR(64),
+    timestamp INTEGER,
+    bits INTEGER,
+    nonce INTEGER
+);
+"""
+
+    _SQL_INDEX_HEIGHT = """\
+CREATE UNIQUE INDEX IF NOT EXISTS blockchain_headers_height ON blockchain_headers (height);
+"""
+    _SQL_INDEX_PREV_BLOCK_HASH = """\
+CREATE UNIQUE INDEX IF NOT EXISTS blockchain_headers_prev_block_hash ON blockchain_headers (prev_block_hash);
+"""
+
+    def __init__(self, conn):
+        DataStore.__init__(self, conn)
+        self.execute(self._SQL_CREATE_TABLE)
+        self.execute(self._SQL_INDEX_HEIGHT)
+        self.execute(self._SQL_INDEX_PREV_BLOCK_HASH)
+
+    def get_height(self):
+        return (self.execute("SELECT height FROM blockchain_headers ORDER BY height DESC LIMIT 1").fetchone() or [0])[0]
+
+    def read_raw_header(self, height):
+        header = self.read_header(height)
+        return (None if header is None else self.header_to_raw(header))
+
+    def read_header(self, height):
+        data = self.execute("SELECT * FROM blockchain_headers WHERE height = ?",(height, )).fetchone()
+        header = {
+            'version': data[1],
+            'prev_block_hash': data[2],
+            'merkle_root': data[3],
+            'timestamp': data[4],
+            'bits': data[5],
+            'nonce': data[6],
+        }
+        return header
+
+    def _save_header(self, h):
+        params = (h['block_height'], h['version'], h['prev_block_hash'], h['merkle_root'], h['timestamp'], h['bits'], h['nonce'])
+        self.execute("""\
+INSERT INTO blockchain_headers (
+    height,
+    version,
+    prev_block_hash,
+    merkle_root,
+    timestamp,
+    bits,
+    nonce
+) VALUES (?, ?, ?, ?, ?, ?, ?)""", params)
+
+    def save_chunk(self, index, chunk):
+        import time
+        print time.time()
+        chunk = chunk.encode('hex')
+        for i in xrange(2016):
+            header = self.header_from_raw(chunk[i*80:(i+1)*80])
+            header['block_height'] = index*2016 + i
+            self._save_header(header)
+        print time.time()
+
+    def save_chain(self, chain):
+        pass
+
+    def truncate(self, index):
+        self.execute("""DELETE FROM blockchain_headers WHERE height >= ?""", (index,))
+
+
+class NewBlocks(threading.Thread):
+    def __init__(self, bcs, queue):
+        threading.Thread.__init__(self)
+        self.running = False
+        self.lock = threading.Lock()
+
+        self.bcs = bcs
+        self.queue = queue
+
+    def run(self):
+        with self.lock:
+            self.running = True
+
+        run_time = time.time()
+        while self.is_running():
+            if run_time > time.time():
+                time.sleep(0.05)
+                continue
+            try:
+                header = self.bcs.get_header(self.bcs.get_height())
+                self.queue.put(header)
+            except Exception, e:
+                sys.stderr.write('Error! %s: %s\n' % (type(e), e))
+                traceback.print_exc(file=sys.stderr)
+                sys.stderr.flush()
+            run_time = time.time() + 30
+
+    def is_running(self):
+        with self.lock:
+            return self.running
+
+    def stop(self):
+        with self.lock:
+            self.running = False
 
 
 class BlockHashingAlgorithm(object):
@@ -204,17 +291,18 @@ class BlockHashingAlgorithm(object):
             prev_hash = _hash
 
 
-class VerifierBlockchainState(BlockchainStateBase, threading.Thread):
-    def __init__(self, bcs, path):
+class VerifiedBlockchainState(BlockchainStateBase, threading.Thread):
+    def __init__(self, bcs, txdb, path):
         threading.Thread.__init__(self)
         self.running = False
         self.lock = threading.Lock()
         self.queue = Queue.Queue()
         self.newBlocks = NewBlocks(bcs, self.queue)
 
+        self.bcs = bcs
+        self.txdb = txdb
         self.store = FileStore(os.path.join(path, 'blockchain_headers'))
         self.bha = BlockHashingAlgorithm(self.store)
-        self.bcs = bcs
 
         self.local_height = 0
         self._set_local_height()
@@ -241,8 +329,10 @@ class VerifierBlockchainState(BlockchainStateBase, threading.Thread):
                     self._get_chain(header)
                 else:
                     self._get_chunks(header)
+                self._set_local_height()
             except Exception, e:
                 sys.stderr.write('Error! %s: %s\n' % (type(e), e))
+                traceback.print_exc(file=sys.stderr)
                 sys.stderr.flush()
 
     def is_running(self):
@@ -269,13 +359,20 @@ class VerifierBlockchainState(BlockchainStateBase, threading.Thread):
         if old != self.local_height:
             print 'new height! (%d --> %d)' % (old, self.local_height)
 
+    def _reorg(self, heights):
+        if not heights:
+            return
+        sys.stderr.write('reorg heights from %d to %d\n' % (heights[0], heights[-1]))
+        sys.stderr.flush()
+        self.store.truncate(reorg[0])
+
     def _get_chunks(self, header):
         max_index = (header['block_height'] + 1)/2016
         index = min((self.height+1)/2016, max_index)
+        reorg = []
 
         while self.is_running():
             if index > max_index:
-                self._set_local_height()
                 return True
 
             chunk = self.bcs.get_chunk(index)
@@ -292,25 +389,26 @@ class VerifierBlockchainState(BlockchainStateBase, threading.Thread):
                 prev_hash = self.bha.hash_header(prev_header)
             chunk_first_header = self.store.header_from_raw(chunk[:80])
             if chunk_first_header['prev_block_hash'] != prev_hash:
-                sys.stderr.write('reorg (chunk %d, height: %d, %d)\n' % (index, index*2016, (index+1)*2016-1))
-                sys.stderr.flush()
+                reorg = range(index*2016, (index+1)*2016) + reorg
                 index -= 1
                 continue
 
+            self._reorg(reorg)
             try:
                 self.bha.verify_chunk(index, chunk)
             except Exception, e:
                 sys.stderr.write('Verify chunk failed! (%s: %s)\n' % (type(e), e))
+                traceback.print_exc(file=sys.stderr)
                 sys.stderr.flush()
                 return False
 
-            self.store.truncate(index*2016)
             self.store.save_chunk(index, chunk)
             index += 1
 
     def _get_chain(self, header):
         chain = [header]
         requested_height = None
+        reorg = []
 
         while self.is_running():
             if requested_height is not None:
@@ -330,18 +428,17 @@ class VerifierBlockchainState(BlockchainStateBase, threading.Thread):
             prev_hash = self.bha.hash_header(prev_header)
             if prev_hash != header.get('prev_block_hash'):
                 requested_height = prev_height
-                sys.stderr.write('reorg (height %d)\n' % prev_height)
-                sys.stderr.flush()
+                reorg = [prev_height] + reorg
                 continue
 
+            self._reorg(reorg)
             try:
                 self.bha.verify_chain(chain)
             except Exception, e:
                 sys.stderr.write('Verify chain failed! (%s: %s)\n' % (type(e), e))
+                traceback.print_exc(file=sys.stderr)
                 sys.stderr.flush()
                 return False
 
-            self.store.truncate(chain[0]['block_height'])
             self.store.save_chain(chain)
-            self._set_local_height()
             return True

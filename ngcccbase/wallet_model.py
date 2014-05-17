@@ -13,7 +13,7 @@ from collections import defaultdict
 from asset import AssetDefinitionManager
 from color import ColoredCoinContext
 from coloredcoinlib import ColorSet, toposorted
-from txdb import NaiveTxDb, TrustingTxDb
+from txdb import NaiveTxDb, TrustingTxDb, VerifiedTxDb
 from txcons import TransactionSpecTransformer
 from coindb import CoinQuery, CoinManager
 from utxo_fetcher import SimpleUTXOFetcher
@@ -83,9 +83,10 @@ class WalletModel(object):
         if self.testnet:
             self.txdb = NaiveTxDb(self, config)
         else:
-            hb_interface = HelloBlockInterface(self.testnet)
-            self.txdb = TrustingTxDb(self, config,
-                                     hb_interface.get_tx_confirmations)
+            #hb_interface = HelloBlockInterface(self.testnet)
+            #self.txdb = TrustingTxDb(self, config,
+            #                         hb_interface.get_tx_confirmations)
+            self.txdb = VerifiedTxDb(self, config)
 
     def init_utxo_fetcher(self, config):
         self.utxo_fetcher = SimpleUTXOFetcher(

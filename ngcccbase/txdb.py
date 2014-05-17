@@ -1,11 +1,12 @@
-from coloredcoinlib.store import DataStore, DataStoreConnection, PersistentDictStore, unwrap1
-from ngcccbase.services.blockchain import BlockchainInfoInterface
-from txcons import RawTxSpec
-from verifier import Verifier
-
 from time import time
 from urllib2 import HTTPError
 
+from pycoin.encoding import double_sha256
+
+from coloredcoinlib.store import DataStore, DataStoreConnection, PersistentDictStore, unwrap1
+from ngcccbase.services.blockchain import BlockchainInfoInterface
+from txcons import RawTxSpec
+from blockchain import VerifiedBlockchainState
 
 
 TX_STATUS_UNKNOWN = 0
@@ -159,22 +160,61 @@ class TrustingTxDb(BaseTxDb):
 class VerifiedTxDb(BaseTxDb):
     def __init__(self, model, config):
         super(VerifiedTxDb, self).__init__(model, config)
-        self.verifier = Verifier(self.model.get_blockchain_state())
-        self.confirmed_txs = set()
+        self.bs = self.model.get_blockchain_state()
+        self.vbs = VerifiedBlockchainState(self.bs, self, os.path.dirname(self.model.store_conn.path))
+        self.vbs.start()
+        self.verified_tx = {}
+
+    def __del__(self):
+        self.vbs.stop()
+
+    def _get_merkle_root(self, merkle_s, start_hash, pos):
+        hash_decode = lambda x: x.decode('hex')[::-1]
+        hash_encode = lambda x: x[::-1].encode('hex')
+
+        h = hash_decode(start_hash)
+        # i is the "level" or depth of the binary merkle tree.
+        # item is the complementary hash on the merkle tree at this level
+        for i, item in enumerate(merkle_s):
+            # figure out if it's the left item or right item at this level
+            if pos >> i & 1:
+                # right item (odd at this level)
+                h = double_sha256(hash_decode(item) + h)
+            else:
+                # left item (even at this level)
+                h = double_sha256(h + hash_decode(item))
+        return hash_encode(h)
+
+    def _verify_merkle(self, txhash):
+        result = self.bs.get_merkle(txhash)
+        merkle, tx_height, pos = result.get('merkle'), \
+            result.get('block_height'), result.get('pos')
+
+        merkle_root = self._get_merkle_root(merkle, txhash, pos)
+        header = self.vbs.get_header(tx_height)
+        if header is None:
+            return False
+        if header.get('merkle_root') != merkle_root:
+            return False
+
+        self.verified_tx[txhash] = tx_height
+        return True
+
+    def get_confirmations(self, txhash):
+        if txhash in self.verified_tx:
+            height = self.verified_tx[txhash]
+            return self.vbs.height - height + 1
+        else:
+            return None
 
     def identify_tx_status(self, txhash):
-        if txhash in self.confirmed_txs:
-            return TX_STATUS_CONFIRMED
-        try:
-            verified = self.verifier.verify_merkle(txhash)
-        except HTTPError:
-            verified = False
-        if verified:
-            confirmations = self.verifier.get_confirmations(txhash)
-            if confirmations == 0:
-                return TX_STATUS_UNCONFIRMED
+        confirmations = self.get_confirmations(txhash)
+        if confirmations is None:
+            verified = self._verify_merkle(txhash)
+            if verified:
+                return self.identify_tx_status(txhash)
             else:
-                self.confirmed_txs.add(txhash)
-                return TX_STATUS_CONFIRMED
-        else:
-            return TX_STATUS_INVALID
+                return TX_STATUS_INVALID
+        if confirmations == 0:
+            return TX_STATUS_UNCONFIRMED
+        return TX_STATUS_CONFIRMED
