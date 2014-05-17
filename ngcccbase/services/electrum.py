@@ -174,6 +174,9 @@ class ElectrumInterface(object):
                                to_hex(vout.scriptPubKey))]
         return [u for u in utxos if not u[0:2] in spent]
 
+    def get_chunk(self, index):
+        return self.get_response('blockchain.block.get_chunk', [index])
+
 
 class EnhancedBlockchainState(blockchain.BlockchainState):
     """Subclass of coloredcoinlib's BlockchainState for
@@ -240,3 +243,6 @@ class EnhancedBlockchainState(blockchain.BlockchainState):
 
     def get_header(self, height):
         return self.interface.get_header(height)
+
+    def get_chunk(self, index):
+        return self.interface.get_chunk(index)

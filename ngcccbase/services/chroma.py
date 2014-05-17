@@ -73,6 +73,37 @@ class ChromaBlockchainState(BlockchainStateBase):
         data = urllib2.urlopen(url).read()
         return int(data)
 
+    def get_height(self):
+        return self.get_block_count()
+
+    def get_header(self, height):
+        url = "%s/header" % self.url_stem
+        data = json.dumps({
+            'height': height,
+        })
+        req = urllib2.urlopen(urllib2.Request(url,
+            data, {'Content-Type': 'application/json'}))
+        return json.loads(req.read())
+
+    def get_chunk(self, index):
+        url = "%s/chunk" % self.url_stem
+        data = json.dumps({
+            'index': index,
+        })
+        req = urllib2.urlopen(urllib2.Request(url,
+            data, {'Content-Type': 'application/json'}))
+        return req.read().encode('hex')
+
+    def get_merkle(self, txhash):
+        url = "%s/merkle" % self.url_stem
+        data = json.dumps({
+            'txhash': txhash,
+            'blockhash': self.get_tx_blockhash(txhash)[0],
+        })
+        req = urllib2.urlopen(urllib2.Request(url,
+            data, {'Content-Type': 'application/json'}))
+        return req.read()
+
     def get_raw(self, txhash):
         if self.tx_lookup.get(txhash):
             return self.tx_lookup[txhash]
