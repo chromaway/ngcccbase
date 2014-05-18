@@ -199,8 +199,12 @@ class NewBlocks(threading.Thread):
 
 
 class BlockHashingAlgorithm(object):
-    def __init__(self, store):
+    max_bits = 0x1d00ffff
+    max_target = 0x00000000FFFF0000000000000000000000000000000000000000000000000000
+
+    def __init__(self, store, testnet):
         self.store = store
+        self.testnet = testnet
 
     def hash_header(self, raw_header):
         import hashlib
@@ -210,8 +214,8 @@ class BlockHashingAlgorithm(object):
         if chain is None:
             chain = []
 
-        max_target = 0x00000000FFFF0000000000000000000000000000000000000000000000000000
-        if index == 0: return 0x1d00ffff, max_target
+        if index == 0:
+            return self.max_bits, self.max_target
 
         first = self.store.read_header((index-1)*2016)
         last = self.store.read_header(index*2016-1)
@@ -234,7 +238,7 @@ class BlockHashingAlgorithm(object):
         target = (a) * pow(2, 8 * (bits/MM - 3))
 
         # new target
-        new_target = min( max_target, (target * nActualTimespan)/nTargetTimespan )
+        new_target = min( self.max_target, (target * nActualTimespan)/nTargetTimespan )
 
         # convert it to bits
         c = ("%064X"%new_target)[2:]
@@ -258,10 +262,10 @@ class BlockHashingAlgorithm(object):
         if index == 0:  
             prev_hash = ("0"*64)
         else:
-            prev_header = self.store.read_raw_header(index*2016-1)
+            prev_header = self.store.read_header(index*2016-1)
             if prev_header is None:
                 raise
-            prev_hash = self.hash_header(prev_header)
+            prev_hash = self.hash_header(self.store.header_to_raw(prev_header))
 
         bits, target = self.get_target(index)
 
@@ -271,30 +275,47 @@ class BlockHashingAlgorithm(object):
             _hash = self.hash_header(raw_header)
 
             assert prev_hash == header.get('prev_block_hash')
-            assert bits == header.get('bits')
-            assert int('0x'+_hash, 16) < target
+            try:
+                assert bits == header.get('bits')
+                assert int('0x'+_hash, 16) < target
+            except AssertionError:
+                if self.testnet and header.get('timestamp') - prev_header.get('timestamp') > 1200:
+                    assert self.max_bits == header.get('bits')
+                    assert int('0x'+_hash, 16) < self.max_target
+                else:
+                    raise
 
+            prev_header = header
             prev_hash = _hash
 
     def verify_chain(self, chain):
-        prev_hash = self.hash_header(
-            self.store.read_raw_header(chain[0].get('block_height')-1))
+        prev_header = self.store.read_header(chain[0].get('block_height')-1)
+        prev_hash = self.hash_header(self.store.header_to_raw(prev_header))
 
         for header in chain:
             bits, target = self.get_target(header.get('block_height')/2016, chain)
             _hash = self.hash_header(self.store.header_to_raw(header))
 
             assert prev_hash == header.get('prev_block_hash')
-            assert bits == header.get('bits')
-            assert int('0x'+_hash, 16) < target
+            try:
+                assert bits == header.get('bits')
+                assert int('0x'+_hash, 16) < target
+            except AssertionError:
+                if self.testnet and header.get('timestamp') - prev_header.get('timestamp') > 1200:
+                    assert self.max_bits == header.get('bits')
+                    assert int('0x'+_hash, 16) < self.max_target
+                else:
+                    raise
 
+            prev_header = header
             prev_hash = _hash
 
 
 class VerifiedBlockchainState(BlockchainStateBase, threading.Thread):
-    def __init__(self, bcs, txdb, path):
+    def __init__(self, bcs, txdb, testnet, path):
         threading.Thread.__init__(self)
         self.running = False
+        self.sync = False
         self.lock = threading.Lock()
         self.queue = Queue.Queue()
         self.newBlocks = NewBlocks(bcs, self.queue)
@@ -302,7 +323,7 @@ class VerifiedBlockchainState(BlockchainStateBase, threading.Thread):
         self.bcs = bcs
         self.txdb = txdb
         self.store = FileStore(os.path.join(path, 'blockchain_headers'))
-        self.bha = BlockHashingAlgorithm(self.store)
+        self.bha = BlockHashingAlgorithm(self.store, testnet)
 
         self.local_height = 0
         self._set_local_height()
@@ -319,16 +340,20 @@ class VerifiedBlockchainState(BlockchainStateBase, threading.Thread):
                 time.sleep(0.05)
                 continue
 
-            print 'new header! (current height: %d, header height: %d)' % (self.height, header['block_height'])
-
             if header['block_height'] == self.height:
+                with self.lock:
+                    self.sync = True
                 continue
 
             try:
+                with self.lock:
+                    self.sync = False
                 if -50 < header['block_height'] - self.height < 50:
-                    self._get_chain(header)
+                    retval = self._get_chain(header)
                 else:
-                    self._get_chunks(header)
+                    retval = self._get_chunks(header)
+                with self.lock:
+                    self.sync = retval
                 self._set_local_height()
             except Exception, e:
                 sys.stderr.write('Error! %s: %s\n' % (type(e), e))
@@ -338,6 +363,10 @@ class VerifiedBlockchainState(BlockchainStateBase, threading.Thread):
     def is_running(self):
         with self.lock:
             return self.running
+
+    def is_synced(self):
+        with self.lock:
+            return self.sync
 
     def stop(self):
         with self.lock:
@@ -352,19 +381,16 @@ class VerifiedBlockchainState(BlockchainStateBase, threading.Thread):
         return self.store.read_header(height)
 
     def _set_local_height(self):
-        old = self.local_height
         h = self.store.get_height()
         if self.local_height != h:
             self.local_height = h
-        if old != self.local_height:
-            print 'new height! (%d --> %d)' % (old, self.local_height)
 
     def _reorg(self, heights):
         if not heights:
             return
+
         sys.stderr.write('reorg heights from %d to %d\n' % (heights[0], heights[-1]))
         sys.stderr.flush()
-        self.store.truncate(reorg[0])
 
     def _get_chunks(self, header):
         max_index = (header['block_height'] + 1)/2016
@@ -393,7 +419,6 @@ class VerifiedBlockchainState(BlockchainStateBase, threading.Thread):
                 index -= 1
                 continue
 
-            self._reorg(reorg)
             try:
                 self.bha.verify_chunk(index, chunk)
             except Exception, e:
@@ -402,6 +427,7 @@ class VerifiedBlockchainState(BlockchainStateBase, threading.Thread):
                 sys.stderr.flush()
                 return False
 
+            self.store.truncate(index*2016)
             self.store.save_chunk(index, chunk)
             index += 1
 
@@ -431,7 +457,6 @@ class VerifiedBlockchainState(BlockchainStateBase, threading.Thread):
                 reorg = [prev_height] + reorg
                 continue
 
-            self._reorg(reorg)
             try:
                 self.bha.verify_chain(chain)
             except Exception, e:
@@ -440,5 +465,6 @@ class VerifiedBlockchainState(BlockchainStateBase, threading.Thread):
                 sys.stderr.flush()
                 return False
 
+            self.store.truncate(chain[0]['block_height'])
             self.store.save_chain(chain)
             return True

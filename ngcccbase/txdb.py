@@ -161,7 +161,12 @@ class VerifiedTxDb(BaseTxDb):
     def __init__(self, model, config):
         super(VerifiedTxDb, self).__init__(model, config)
         self.bs = self.model.get_blockchain_state()
-        self.vbs = VerifiedBlockchainState(self.bs, self, os.path.dirname(self.model.store_conn.path))
+        self.vbs = VerifiedBlockchainState(
+            self.bs,
+            self,
+            config.get('testnet', False),
+            os.path.dirname(self.model.store_conn.path)
+        )
         self.vbs.start()
         self.verified_tx = {}
 
@@ -208,6 +213,13 @@ class VerifiedTxDb(BaseTxDb):
             return None
 
     def identify_tx_status(self, txhash):
+        if not self.vbs.is_synced:
+            block_hash, in_mempool = bs.get_tx_blockhash(txhash)
+            if block_hash or in_mempool:
+                return TX_STATUS_UNCONFIRMED
+            else:
+                return TX_STATUS_INVALID
+
         confirmations = self.get_confirmations(txhash)
         if confirmations is None:
             verified = self._verify_merkle(txhash)
