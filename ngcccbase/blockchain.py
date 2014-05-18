@@ -385,17 +385,15 @@ class VerifiedBlockchainState(BlockchainStateBase, threading.Thread):
         if self.local_height != h:
             self.local_height = h
 
-    def _reorg(self, heights):
-        if not heights:
-            return
-
-        sys.stderr.write('reorg heights from %d to %d\n' % (heights[0], heights[-1]))
+    def _reorg(self, height):
+        sys.stderr.write('reorg blockchain from %d\n' % height)
         sys.stderr.flush()
+        self.txdb.drop_from_height(height)
 
     def _get_chunks(self, header):
         max_index = (header['block_height'] + 1)/2016
         index = min((self.height+1)/2016, max_index)
-        reorg = []
+        reorg_from = None
 
         while self.is_running():
             if index > max_index:
@@ -408,6 +406,8 @@ class VerifiedBlockchainState(BlockchainStateBase, threading.Thread):
 
             if index == 0:
                 prev_hash = "0"*64
+                if reorg_from is not None:
+                    reorg_from = 0
             else:
                 prev_header = self.store.read_raw_header(index*2016-1)
                 if prev_header is None:
@@ -415,10 +415,13 @@ class VerifiedBlockchainState(BlockchainStateBase, threading.Thread):
                 prev_hash = self.bha.hash_header(prev_header)
             chunk_first_header = self.store.header_from_raw(chunk[:80])
             if chunk_first_header['prev_block_hash'] != prev_hash:
-                reorg = range(index*2016, (index+1)*2016) + reorg
+                reorg_from = index*2016
                 index -= 1
                 continue
 
+            if reorg_from is not None:
+                self._reorg(reorg_from)
+                reorg_from = None
             try:
                 self.bha.verify_chunk(index, chunk)
             except Exception, e:
@@ -434,7 +437,7 @@ class VerifiedBlockchainState(BlockchainStateBase, threading.Thread):
     def _get_chain(self, header):
         chain = [header]
         requested_height = None
-        reorg = []
+        reorg_from = None
 
         while self.is_running():
             if requested_height is not None:
@@ -454,9 +457,12 @@ class VerifiedBlockchainState(BlockchainStateBase, threading.Thread):
             prev_hash = self.bha.hash_header(prev_header)
             if prev_hash != header.get('prev_block_hash'):
                 requested_height = prev_height
-                reorg = [prev_height] + reorg
+                reorg_from = prev_height
                 continue
 
+            if reorg_from is not None:
+                self._reorg(reorg_from)
+                reorg_from = None
             try:
                 self.bha.verify_chain(chain)
             except Exception, e:
