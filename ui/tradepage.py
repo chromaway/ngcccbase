@@ -3,6 +3,8 @@ from PyQt4 import QtCore, QtGui, uic
 from wallet import wallet
 from tablemodel import TableModel, ProxyModel
 
+import logging
+
 
 class OffersTableModel(TableModel):
     _columns = ['Price', 'Quantity', 'Total', 'MyOffer']
@@ -27,6 +29,7 @@ class TradePage(QtGui.QWidget):
     def __init__(self, parent):
         QtGui.QWidget.__init__(self, parent)
         uic.loadUi(uic.getUiPath('tradepage.ui'), self)
+        self.logger = logging.getLogger('ngcccbase.ui.trade')
 
         wallet.p2ptrade_init()
 
@@ -88,7 +91,7 @@ class TradePage(QtGui.QWidget):
         wallet.p2p_agent.set_event_handler('offers_updated', 
                                            set_need_update_offers)
 
-        def information_about_offer(offer, action='Create'):
+        def information_about_offer(offer, action, buysell_text):
             A, B = offer.get_data()['A'], offer.get_data()['B']
             bitcoin = wallet.get_asset_definition('bitcoin')
             sell_offer = B['color_spec'] == ''
@@ -96,22 +99,37 @@ class TradePage(QtGui.QWidget):
                 (A if sell_offer else B)['color_spec'])
             value = (A if sell_offer else B)['value']
             total = (B if sell_offer else A)['value']
-            text = '{action} {type} offer {value} {moniker} for {price} btc. (Total: {total} btc)'.format(**{
+            text = '{action} {type} {value} {moniker} @{price} btc ea. (Total: {total} btc)'.format(**{
                 'action': action,
-                'type': 'sell' if sell_offer else 'buy',
+                'type': buysell_text[sell_offer],
                 'value': asset.format_value(value),
                 'moniker': asset.get_monikers()[0],
                 'price': bitcoin.format_value(total*asset.unit/value),
                 'total': bitcoin.format_value(total),
             })
-            QtGui.QMessageBox.information(self,
-                '{action} offer'.format(action=action), text, QtGui.QMessageBox.Yes)
+            self.add_log_entry(text)
 
-        wallet.p2p_agent.set_event_handler('register_my_offer',
-            lambda offer: information_about_offer(offer, 'Create'))
-        wallet.p2p_agent.set_event_handler('cancel_my_offer',
-            lambda offer: information_about_offer(offer, 'Cancel'))
+        wallet.p2p_agent.set_event_handler(
+            'register_my_offer', 
+            lambda offer: information_about_offer(offer, 'Created', ("bid", "ask")))
+        wallet.p2p_agent.set_event_handler(
+            'cancel_my_offer',   
+            lambda offer: information_about_offer(offer, 'Canceled', ("bid", "ask")))
+        wallet.p2p_agent.set_event_handler(
+            'make_ep', 
+            lambda ep: information_about_offer(ep.my_offer, 'In progress', 
+                                               ('buying', 'selling')))
+        wallet.p2p_agent.set_event_handler(
+            'accept_ep', 
+            lambda eps: information_about_offer(eps[1].my_offer, 'In progress', 
+                                                ('buying', 'selling')))
+        wallet.p2p_agent.set_event_handler(
+            'trade_complete', 
+            lambda ep: information_about_offer(ep.my_offer, 'Trade complete:', ('bought', 'sold')))
 
+    def add_log_entry(self, text):
+        self.listEventLog.addItem(text)
+        
     def update(self):
         monikers = wallet.get_all_monikers()
         monikers.remove('bitcoin')
@@ -190,13 +208,13 @@ class TradePage(QtGui.QWidget):
 
         asset = wallet.get_asset_definition('bitcoin')
         value = asset.format_value(wallet.get_available_balance(asset))
-        text = '<b>Buy</b> {0} (Available: {1} bitcoin)'.format(moniker, value)
-        self.lblBuy.setText(text)
+        self.lblBuy.setText('<b>Buy</b> %s' % moniker)
+        self.lblBuyAvail.setText('(Available: %s bitcoin)' % value)
 
         asset = wallet.get_asset_definition(moniker)
         value = asset.format_value(wallet.get_available_balance(asset))
-        text = '<b>Sell</b> {0} (Available: {1} {0})'.format(moniker, value)
-        self.lblSell.setText(text)
+        self.lblSell.setText('<b>Sell</b> %s' % moniker)
+        self.lblSellAvail.setText('(Available: %s %s)' % (value, moniker))
 
         self.update_offers()
 
@@ -243,6 +261,7 @@ class TradePage(QtGui.QWidget):
         self.edtBuyPrice.setText('')
 
     def tvBuyDoubleClicked(self):
+        """click on bids, colored coins will be sold"""
         selected = self.tvBuy.selectedIndexes()
         if not selected:
             return
@@ -250,23 +269,31 @@ class TradePage(QtGui.QWidget):
         oid = str(self.proxyModelBuy.data(index).toString())
         if oid in wallet.p2p_agent.their_offers:
             offer = wallet.p2p_agent.their_offers[oid]
-            bitcoin = wallet.get_asset_definition('bitcoin')
-            if wallet.get_available_balance(bitcoin) < offer.get_data()['B']['value']:
-                QtGui.QMessageBox.warning(self, '', "Not enough money...",
-                    QtGui.QMessageBox.Cancel)
+            moniker = str(self.cbMoniker.currentText())
+            asset = wallet.get_asset_definition(moniker)
+            if wallet.get_available_balance(asset) < offer.get_data()['B']['value']:
+                self.logger.warn("%s avail <  %s required", 
+                                 wallet.get_available_balance(asset),
+                                 offer.get_data()['A']['value'])
+                msg = "Not enough coins: %s %s needed, %s available" % \
+                    (str(self.proxyModelBuy.data(selected[2]).toString()), 
+                     moniker,
+                     asset.format_value(wallet.get_available_balance(asset)))
+                QtGui.QMessageBox.warning(self, '', msg,
+                    QtGui.QMessageBox.Ok)
                 return
-            message = "Sell <b>{value}</b> {moniker} for <b>{course}</b> \
-bitcoin (Total: <b>{total}</b> bitcoin)".format(**{
+            message = "About to <u>sell</u> <b>{value}</b> {moniker} @ <b>{course}</b> \
+bitcoin each. <br> (Total: <b>{total}</b> bitcoin)".format(**{
                 'value': self.proxyModelBuy.data(selected[1]).toString(),
                 'moniker': str(self.cbMoniker.currentText()),
                 'course': self.proxyModelBuy.data(selected[0]).toString(),
                 'total': self.proxyModelBuy.data(selected[2]).toString(),
             })
             retval = QtGui.QMessageBox.question(
-                self, "Confirm buy coins", message,
-                QtGui.QMessageBox.Yes | QtGui.QMessageBox.Cancel,
+                self, "Confirm buying asset", message,
+                QtGui.QMessageBox.Ok | QtGui.QMessageBox.Cancel,
                 QtGui.QMessageBox.Cancel)
-            if retval != QtGui.QMessageBox.Yes:
+            if retval != QtGui.QMessageBox.Ok:
                 return
             new_offer = wallet.p2ptrade_make_mirror_offer(offer)
             wallet.p2p_agent.register_my_offer(new_offer)
@@ -318,6 +345,7 @@ bitcoin (Total: <b>{total}</b> bitcoin)".format(**{
         self.edtSellPrice.setText('')
 
     def tvSellDoubleClicked(self):
+        """"Click on asks, colored coins are going to be bought"""
         selected = self.tvSell.selectedIndexes()
         if not selected:
             return
@@ -326,13 +354,19 @@ bitcoin (Total: <b>{total}</b> bitcoin)".format(**{
         if oid in wallet.p2p_agent.their_offers:
             offer = wallet.p2p_agent.their_offers[oid]
             moniker = str(self.cbMoniker.currentText())
-            asset = wallet.get_asset_definition(moniker)
-            if wallet.get_available_balance(asset) < offer.get_data()['A']['value']:
-                QtGui.QMessageBox.warning(self, '', "Not enough money...",
-                    QtGui.QMessageBox.Cancel)
+            bitcoin = wallet.get_asset_definition('bitcoin')
+            if wallet.get_available_balance(bitcoin) < offer.get_data()['B']['value']:
+                self.logger.warn("Not enough money: %s <  %s",
+                                 wallet.get_available_balance(bitcoin),
+                                 offer.get_data()['B']['value'])
+                msg = "Not enough money: %s bitcoins needed, %s available" % \
+                    (self.proxyModelSell.data(selected[2]).toString(), 
+                     bitcoin.format_value(wallet.get_available_balance(bitcoin)))
+                QtGui.QMessageBox.warning(self, '', msg,
+                                          QtGui.QMessageBox.Ok)
                 return
-            message = "Buy <b>{value}</b> {moniker} for <b>{course}</b> \
-bitcoin (Total: <b>{total}</b> bitcoin)".format(**{
+            message = "About to <u>buy</u> <b>{value}</b> {moniker} @ <b>{course}</b> \
+bitcoin each. <br> (Total: <b>{total}</b> bitcoin)".format(**{
                 'value': self.proxyModelSell.data(selected[1]).toString(),
                 'moniker': moniker,
                 'course': self.proxyModelSell.data(selected[0]).toString(),
@@ -340,9 +374,9 @@ bitcoin (Total: <b>{total}</b> bitcoin)".format(**{
             })
             retval = QtGui.QMessageBox.question(
                 self, "Confirm buy coins", message,
-                QtGui.QMessageBox.Yes | QtGui.QMessageBox.Cancel,
+                QtGui.QMessageBox.Ok | QtGui.QMessageBox.Cancel,
                 QtGui.QMessageBox.Cancel)
-            if retval != QtGui.QMessageBox.Yes:
+            if retval != QtGui.QMessageBox.Ok:
                 return
             new_offer = wallet.p2ptrade_make_mirror_offer(offer)
             wallet.p2p_agent.register_my_offer(new_offer)

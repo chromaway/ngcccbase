@@ -93,7 +93,7 @@ class OperationalETxSpec(SimpleOperationalTxSpec):
             selected_value += total
         if needed > 0:
             value_limit = SimpleColorValue(colordef=UNCOLORED_MARKER,
-                                           value=10000+8192)
+                                           value=10000+8192*2)
             if self.our_value_limit.is_uncolored():
                 value_limit += self.our_value_limit
             if needed > value_limit:

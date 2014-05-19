@@ -140,7 +140,7 @@ class EAgent(object):
         reply_ep = ep.accept(my_offer)
         self.set_active_ep(reply_ep)
         self.post_message(reply_ep)
-        self.fire_event('accept_ep', ep)
+        self.fire_event('accept_ep', [ep, reply_ep])
 
     def clear_orders(self, ep):
         self.fire_event('trade_complete', ep)
