@@ -32,6 +32,9 @@ class TxDataStore(DataStore):
             self.execute(create_transaction_table)
             self.execute(
                 "CREATE UNIQUE INDEX tx_data_txhash ON tx_data (txhash)")
+        if not self.column_exists('tx_data', 'block_height'):
+            self.execute(
+                "ALTER TABLE tx_data ADD COLUMN block_height INTEGER")
 
     def purge_tx_data(self):
         self.execute("DELETE FROM tx_data")
