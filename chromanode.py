@@ -2,6 +2,7 @@
 import os, sys
 import json
 import hashlib
+import threading, time
 
 import web
 
@@ -23,11 +24,9 @@ testnet = False
 if (len(sys.argv) > 3) and (sys.argv[3] == 'testnet'):
     testnet = True
 
-CHUNKS_PATH = os.path.join('chromanode', 'testnet') if testnet else 'chromanode'
+HEADERS_FILE = 'headers.testnet' if testnet else 'headers.mainnet'
 if len(sys.argv) > 2:
-    CHUNKS_PATH = os.path.join(sys.argv[2], 'testnet') if testnet else sys.argv[2]
-if not os.path.exists(CHUNKS_PATH):
-    os.makedirs(CHUNKS_PATH)
+    HEADERS_FILE = sys.argv[2]
 
 blockchainstate = BlockchainState.from_url(None, testnet)
 
@@ -148,8 +147,58 @@ class Header(ErrorThrowingRequestProcessor):
         }, cls=DecimalEncoder)
 
 
-class Chunk(ErrorThrowingRequestProcessor):
-    _chunks = {}
+class ChunkThread(threading.Thread):
+    def __init__(self, *args, **kwargs):
+        threading.Thread.__init__(self, *args, **kwargs)
+        self.running = False
+        self.lock = threading.Lock()
+
+        self.headers = ''
+
+    def is_running(self):
+        with self.lock:
+            return self.running
+
+    def stop(self):
+        with self.lock:
+            self.running = False
+
+    def run(self):
+        self.headers = open(HEADERS_FILE, 'ab+').read()
+
+        with self.lock:
+            self.running = True
+
+        run_time = time.time()
+        while self.is_running():
+            if run_time > time.time():
+                time.sleep(0.05)
+                continue
+            run_time = time.time() + 1
+
+            height = blockchainstate.get_block_count()
+            if height == self.height:
+                continue
+            if height < self.height:
+                self.headers = self.headers[:height*80]
+            while height > self.height:
+                block_height = self.height + 1
+                blockhash = blockchainstate.get_block_hash(block_height)
+                block = blockchainstate.get_block(blockhash)
+
+                if block_height == 0:
+                    self.headers = self._header_to_string(block)
+                else:
+                    prev_hash = self._hash_header(self.headers[-80:])
+                    if prev_hash == block['previousblockhash']:
+                        self.headers += self._header_to_string(block)
+                    else:
+                        self.headers = self.headers[:-80]
+            open(HEADERS_FILE, 'wb').write(self.headers)
+
+    @property
+    def height(self):
+        return len(self.headers)/80 - 1
 
     def _rev_hex(self, s):
         return s.decode('hex')[::-1].encode('hex')
@@ -159,46 +208,30 @@ class Chunk(ErrorThrowingRequestProcessor):
         s = "0"*(2*length - len(s)) + s
         return self._rev_hex(s)
 
-    def _header_to_string(self, res):
-        s = self._int_to_hex(res.get('version'),4) \
-            + self._rev_hex(res.get('previousblockhash', "0"*64)) \
-            + self._rev_hex(res.get('merkleroot')) \
-            + self._int_to_hex(res.get('time'),4) \
-            + self._rev_hex(res.get('bits')) \
-            + self._int_to_hex(res.get('nonce'),4)
-        return s
+    def _header_to_string(self, h):
+        s = self._int_to_hex(h.get('version'),4) \
+            + self._rev_hex(h.get('previousblockhash', "0"*64)) \
+            + self._rev_hex(h.get('merkleroot')) \
+            + self._int_to_hex(h.get('time'),4) \
+            + self._rev_hex(h.get('bits')) \
+            + self._int_to_hex(h.get('nonce'),4)
+        return s.decode('hex')
 
-    def _get_chunk(self, index):
-        chunks = self.__class__._chunks
-        if index in chunks:
-            return chunks[index]
+    def _hash_header(self, raw_header):
+        return hashlib.sha256(hashlib.sha256(raw_header).digest()).digest()[::-1].encode('hex_codec')
 
-        chunk_path = os.path.join(os.path.join(CHUNKS_PATH, str(index)))
-        if os.path.exists(chunk_path):
-            chunks[index] = open(chunk_path, 'r').read()
-            return self._get_chunk(index)
+chunkThread = ChunkThread()
 
-        headers = ''
-        blockhash = blockchainstate.get_block_hash(index*2016)
-        while len(headers) != 2016*80:
-            print index*2016+len(headers)/80
-            block = blockchainstate.get_block(blockhash)
-            headers += self._header_to_string(block).decode('hex')
-            if 'nextblockhash' not in block:
-                return headers
-            blockhash = block['nextblockhash']
 
-        open(chunk_path, 'w').write(headers)
-        return self._get_chunk(index)
-
+class Chunk(ErrorThrowingRequestProcessor):
     def POST(self):
         data = json.loads(web.data())
         self.require(data, 'index', "Chunk requires index")
         index = data.get('index')
-        max_index = (blockchainstate.get_block_count() + 1)/2016
-        if max_index < index:
-            return ''
-        return self._get_chunk(index)
+        with open(HEADERS_FILE, 'rb') as headers:
+            headers.seek(index*2016*80)
+            return headers.read(2016*80)
+
 
 class Merkle(ErrorThrowingRequestProcessor):
     def POST(self):
@@ -239,5 +272,13 @@ class Merkle(ErrorThrowingRequestProcessor):
 
 
 if __name__ == "__main__":
+    import signal
+    def sigint_handler(signum, frame):
+        chunkThread.stop()
+        sys.exit(1)
+    signal.signal(signal.SIGINT, sigint_handler)
+
+    chunkThread.start()
+
     app = web.application(urls, globals())
     app.run()

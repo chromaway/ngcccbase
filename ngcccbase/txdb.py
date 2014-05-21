@@ -228,7 +228,6 @@ class VerifiedTxDb(BaseTxDb):
     def drop_from_height(self, height):
         with self.lock:
             self.verified_tx = {key: value for key, value in self.verified_tx.items() if value < height}
-        self.store.drop_from_height(height)
 
     def get_confirmations(self, txhash):
         with self.lock:
