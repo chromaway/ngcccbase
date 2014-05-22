@@ -26,11 +26,15 @@ class DataStore(object):
     def __init__(self, conn):
         self.conn = conn
 
-    def table_exists(self, table_name):
+    def table_exists(self, tablename):
         res = self.execute(
             "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?",
-            (table_name, )).fetchone()
+            (tablename, )).fetchone()
         return res is not None
+
+    def column_exists(self, tablename, column_name):
+        info = self.execute("PRAGMA table_info(tx_data)")
+        return any(row[1] == 'block_height' for row in info)
 
     def execute(self, statement, params=()):
         cur = self.conn.cursor()
