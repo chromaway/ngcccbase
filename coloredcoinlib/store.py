@@ -10,7 +10,7 @@ class DataStoreConnection(object):
     """ A database connection """
     def __init__(self, path, autocommit=False):
         self.path = path
-        self.conn = sqlite3.connect(path)
+        self.conn = sqlite3.connect(path, check_same_thread=False)
         if autocommit:
             self.conn.isolation_level = None
 
