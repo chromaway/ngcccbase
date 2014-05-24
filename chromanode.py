@@ -21,12 +21,12 @@ urls = (
 )
 
 testnet = False
-if (len(sys.argv) > 3) and (sys.argv[3] == 'testnet'):
+if (len(sys.argv) > 2) and (sys.argv[2] == 'testnet'):
     testnet = True
 
 HEADERS_FILE = 'headers.testnet' if testnet else 'headers.mainnet'
-if len(sys.argv) > 2:
-    HEADERS_FILE = sys.argv[2]
+if (len(sys.argv) > 3):
+    HEADERS_FILE = sys.argv[3]
 
 blockchainstate = BlockchainState.from_url(None, testnet)
 
@@ -133,7 +133,7 @@ class DecimalEncoder(json.JSONEncoder):
 class Header(ErrorThrowingRequestProcessor):
     def POST(self):
         data = json.loads(web.data())
-        block_hash - data.get('block_hash')
+        block_hash = data.get('block_hash')
         if not block_hash:
             self.require(data, 'height', "block_hash or height required")
             height = data.get('height')
@@ -185,6 +185,8 @@ class ChunkThread(threading.Thread):
             if height < self.height:
                 self.headers = self.headers[:height*80]
             while height > self.height:
+                if not self.is_running():
+                    break
                 block_height = self.height + 1
                 blockhash = blockchainstate.get_block_hash(block_height)
                 block = blockchainstate.get_block(blockhash)
@@ -277,7 +279,9 @@ class Merkle(ErrorThrowingRequestProcessor):
 if __name__ == "__main__":
     import signal
     def sigint_handler(signum, frame):
+        print ('exit chunk thread')
         chunkThread.stop()
+        print ('done')
         sys.exit(1)
     signal.signal(signal.SIGINT, sigint_handler)
 
