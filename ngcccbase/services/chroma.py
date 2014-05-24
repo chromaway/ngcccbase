@@ -111,7 +111,7 @@ class ChromaBlockchainState(BlockchainStateBase):
         })
         req = urllib2.urlopen(urllib2.Request(url,
             data, {'Content-Type': 'application/json'}))
-        return req.read()
+        return json.loads(req.read())
 
     def get_raw(self, txhash):
         if self.tx_lookup.get(txhash):

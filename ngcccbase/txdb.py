@@ -63,7 +63,7 @@ class TxDataStore(DataStore):
                    self.execute("SELECT txhash FROM tx_data").fetchall())
 
     def set_block_height(self, txhash, height):
-        self.execute("UPDATE tx_data SET height = ? WHERE txhash = ?",
+        self.execute("UPDATE tx_data SET block_height = ? WHERE txhash = ?",
                      (height, txhash))
 
     def reset_from_height(self, height):
@@ -114,7 +114,6 @@ class BaseTxDb(object):
         if not self.store.get_tx_by_hash(txhash):
             if not status:
                 status = self.identify_tx_status(txhash)
-            _, tx_height, _ = self.model.get_blockchain_state().get_merkle(txhash)
             self.store.add_tx(txhash, txdata, status)
             self.update_tx_block_height(txhash, status)
             self.last_status_check[txhash] = time()
@@ -246,10 +245,11 @@ class VerifiedTxDb(BaseTxDb):
             self.verified_tx[txhash] = tx_height
         return True
 
-    def update_tx_block_height(self, txhash):
+    def update_tx_block_height(self, txhash, status):
         with self.lock:
             if txhash in self.verified_tx:
-                self.store.set_block_height(self.verified_tx[txhash])
+                self.store.set_block_height(txhash,
+                                            self.verified_tx[txhash])
 
     def drop_from_height(self, height):
         with self.lock:
