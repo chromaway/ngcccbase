@@ -123,12 +123,12 @@ class MainWindow(QtGui.QMainWindow):
 
 class QtUI(object):
     def __init__(self):
+        global wallet
         app = Application()
         window = MainWindow()
         window.move(QtGui.QApplication.desktop().screen().rect().center()
                     - window.rect().center())
         window.show()
         retcode = app.exec_()
-        wallet.async_utxo_fetcher.stop()
-        wallet.p2ptrade_stop()
+        wallet.stop_all()
         sys.exit(retcode)

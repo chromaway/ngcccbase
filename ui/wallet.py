@@ -147,4 +147,10 @@ class Wallet(object):
         data = offer.get_data()
         return MyEOffer(None, data['B'], data['A'], False)
 
+    def stop_all(self):
+        self.async_utxo_fetcher.stop()
+        self.p2ptrade_stop()
+        self.model.txdb.vbs.stop()
+        
+
 wallet = Wallet()
