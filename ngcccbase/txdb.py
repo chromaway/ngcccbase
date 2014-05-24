@@ -264,20 +264,18 @@ class VerifiedTxDb(BaseTxDb):
                 return None
 
     def identify_tx_status(self, txhash):
-        if not self.vbs.is_synced:
-            block_hash, in_mempool = bs.get_tx_blockhash(txhash)
-            if block_hash or in_mempool:
-                return TX_STATUS_UNCONFIRMED
-            else:
-                return TX_STATUS_INVALID
-
+        block_hash, in_mempool = self.bs.get_tx_blockhash(txhash)
+        if (not block_hash) and (not in_mempool):
+            return TX_STATUS_INVALID
+        if not block_hash:
+            return TX_STATUS_UNCONFIRMED
         confirmations = self.get_confirmations(txhash)
         if confirmations is None:
             verified = self._verify_merkle(txhash)
             if verified:
                 return self.identify_tx_status(txhash)
             else:
-                return TX_STATUS_INVALID
+                return TX_STATUS_UNCONFIRMED
         if confirmations == 0:
             return TX_STATUS_UNCONFIRMED
         return TX_STATUS_CONFIRMED
