@@ -1,6 +1,7 @@
 from time import time
 from urllib2 import HTTPError
 import threading
+import os
 
 from pycoin.encoding import double_sha256
 
@@ -8,6 +9,7 @@ from coloredcoinlib.store import DataStore, DataStoreConnection, PersistentDictS
 from ngcccbase.services.blockchain import BlockchainInfoInterface
 from txcons import RawTxSpec
 from blockchain import VerifiedBlockchainState
+
 
 
 TX_STATUS_UNKNOWN = 0
@@ -64,9 +66,10 @@ class TxDataStore(DataStore):
         self.execute("UPDATE tx_data SET height = ? WHERE txhash = ?",
                      (height, txhash))
 
-    def drop_from_height(self, height):
-        self.execute("DELETE FROM tx_data WHERE block_height IS NULL")
-        self.execute("DELETE FROM tx_data WHERE block_height >= ?", (height,))
+    def reset_from_height(self, height):
+        self.execute("UPDATE tx_data SET status = 0 \
+WHERE (block_height >= ?) OR (block_height IS NULL)",
+                     (height,))
 
 class BaseTxDb(object):
     def __init__(self, model, config):
@@ -74,6 +77,7 @@ class BaseTxDb(object):
         self.store = TxDataStore(self.model.store_conn.conn)
         self.last_status_check = dict()
         self.recheck_interval = 60
+        self.bs = self.model.get_blockchain_state()
 
     def purge_tx_db(self):
         self.store.purge_tx_data()
@@ -83,6 +87,15 @@ class BaseTxDb(object):
 
     def get_tx_by_hash(self, txhash):
         return self.store.get_tx_by_hash(txhash)
+
+    def update_tx_block_height(self, txhash, status):
+        if status == TX_STATUS_CONFIRMED:
+            try:
+                block_hash, _ = self.bs.get_tx_blockhash(txhash)
+                height = self.bs.get_block_height(block_hash)
+            except:
+                return
+            self.store.set_block_height(txhash, height)
 
     def add_raw_tx(self, raw_tx, status=TX_STATUS_UNCONFIRMED):
         return self.add_tx(raw_tx.get_hex_txhash(),
@@ -103,7 +116,7 @@ class BaseTxDb(object):
                 status = self.identify_tx_status(txhash)
             _, tx_height, _ = self.model.get_blockchain_state().get_merkle(txhash)
             self.store.add_tx(txhash, txdata, status)
-            self.store.set_block_height(txhash, tx_height)
+            self.update_tx_block_height(txhash, status)
             self.last_status_check[txhash] = time()
             self.model.get_coin_manager().apply_tx(txhash, raw_tx)
             return True
@@ -115,9 +128,7 @@ class BaseTxDb(object):
     def recheck_tx_status(self, txhash):
         status = self.identify_tx_status(txhash)
         self.store.set_tx_status(txhash, status)
-        if not self.store.get_tx_by_hash(txhash)[4]:
-            _, tx_height, _ = self.model.get_blockchain_state().get_merkle(txhash)
-            self.store.set_block_height(txhash, tx_height)
+        self.update_tx_block_height(txhash, status)
         return status
    
     def maybe_recheck_tx_status(self, txhash, status):
@@ -199,7 +210,8 @@ class VerifiedTxDb(BaseTxDb):
         self.verified_tx = {}
 
     def __del__(self):
-        self.vbs.stop()
+        if self.vbs:
+            self.vbs.stop()
 
     def _get_merkle_root(self, merkle_s, start_hash, pos):
         hash_decode = lambda x: x.decode('hex')[::-1]
@@ -233,6 +245,11 @@ class VerifiedTxDb(BaseTxDb):
         with self.lock:
             self.verified_tx[txhash] = tx_height
         return True
+
+    def update_tx_block_height(self, txhash):
+        with self.lock:
+            if txhash in self.verified_tx:
+                self.store.set_block_height(self.verified_tx[txhash])
 
     def drop_from_height(self, height):
         with self.lock:

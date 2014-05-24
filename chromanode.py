@@ -133,9 +133,12 @@ class DecimalEncoder(json.JSONEncoder):
 class Header(ErrorThrowingRequestProcessor):
     def POST(self):
         data = json.loads(web.data())
-        self.require(data, 'height', "Header requires height")
-        height = data.get('height')
-        block = blockchainstate.get_block(blockchainstate.get_block_hash(height))
+        block_hash - data.get('block_hash')
+        if not block_hash:
+            self.require(data, 'height', "block_hash or height required")
+            height = data.get('height')
+            block_hash = blockchainstate.get_block_hash(height)
+        block = blockchainstate.get_block(block_hash)
         return json.dumps({
             'block_height':    block['height'],
             'version':         block['version'],

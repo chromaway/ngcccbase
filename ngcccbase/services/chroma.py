@@ -76,6 +76,15 @@ class ChromaBlockchainState(BlockchainStateBase):
     def get_height(self):
         return self.get_block_count()
 
+    def get_block_height(self, block_hash):
+        url = "%s/header" % self.url_stem
+        data = json.dumps({
+            'block_hash': block_hash,
+        })
+        req = urllib2.urlopen(urllib2.Request(url,
+            data, {'Content-Type': 'application/json'}))
+        return json.loads(req.read())['block_height']        
+
     def get_header(self, height):
         url = "%s/header" % self.url_stem
         data = json.dumps({
