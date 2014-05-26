@@ -150,7 +150,8 @@ class Wallet(object):
     def stop_all(self):
         self.async_utxo_fetcher.stop()
         self.p2ptrade_stop()
-        self.model.txdb.vbs.stop()
+        if hasattr(self.model.txdb, 'vbs'):
+            self.model.txdb.vbs.stop()
         
 
 wallet = Wallet()

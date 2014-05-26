@@ -167,7 +167,7 @@ class NewBlocks(threading.Thread):
         threading.Thread.__init__(self)
         self.running = False
         self.lock = threading.Lock()
-
+        self.daemon = True
         self.bcs = bcs
         self.queue = queue
 
@@ -327,6 +327,7 @@ class VerifiedBlockchainState(BlockchainStateBase, threading.Thread):
 
         self.local_height = 0
         self._set_local_height()
+        self.daemon = True
 
     def run(self):
         with self.lock:
