@@ -155,7 +155,7 @@ class ChunkThread(threading.Thread):
         threading.Thread.__init__(self, *args, **kwargs)
         self.running = False
         self.lock = threading.Lock()
-
+        self.blockchainstate = BlockchainState.from_url(None, testnet)
         self.headers = ''
 
     def is_running(self):
@@ -179,7 +179,7 @@ class ChunkThread(threading.Thread):
                 continue
             run_time = time.time() + 1
 
-            height = blockchainstate.get_block_count()
+            height = self.blockchainstate.get_block_count()
             if height == self.height:
                 continue
             if height < self.height:
@@ -188,8 +188,8 @@ class ChunkThread(threading.Thread):
                 if not self.is_running():
                     break
                 block_height = self.height + 1
-                blockhash = blockchainstate.get_block_hash(block_height)
-                block = blockchainstate.get_block(blockhash)
+                blockhash = self.blockchainstate.get_block_hash(block_height)
+                block = self.blockchainstate.get_block(blockhash)
 
                 if block_height == 0:
                     self.headers = self._header_to_string(block)
