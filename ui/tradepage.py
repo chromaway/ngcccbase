@@ -67,7 +67,7 @@ class TradePage(QtGui.QWidget):
         self.tvSell.horizontalHeader().setResizeMode(
             1, QtGui.QHeaderView.ResizeToContents)
 
-        self.cbMoniker.currentIndexChanged.connect(self.cbMonikerIndexChanged)
+        self.cbMoniker.currentIndexChanged.connect(self.update_balance)
 
         for wname in ['edtBuyQuantity', 'edtBuyPrice', 'edtSellQuantity', 'edtSellPrice']:
             def clearBackground(event, wname=wname):
@@ -123,9 +123,11 @@ class TradePage(QtGui.QWidget):
             'accept_ep', 
             lambda eps: information_about_offer(eps[1].my_offer, 'In progress', 
                                                 ('buying', 'selling')))
-        wallet.p2p_agent.set_event_handler(
-            'trade_complete', 
-            lambda ep: information_about_offer(ep.my_offer, 'Trade complete:', ('bought', 'sold')))
+        def on_trade_complete(ep):
+            information_about_offer(ep.my_offer, 
+                                    'Trade complete:', ('bought', 'sold'))
+            self.update_balance()
+        wallet.p2p_agent.set_event_handler('trade_complete', on_trade_complete)
 
     def add_log_entry(self, text):
         self.listEventLog.addItem(text)
@@ -201,7 +203,7 @@ class TradePage(QtGui.QWidget):
                 if oid == selected_oids[i]:
                     view.selectRow(row)
 
-    def cbMonikerIndexChanged(self):
+    def update_balance(self):
         moniker = str(self.cbMoniker.currentText())
         if moniker == '':
             return
