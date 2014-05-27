@@ -11,15 +11,15 @@ with open(os.path.join(here, 'README.md')) as f:
 
 # FIXME: Also requires PyQt and SIP for the GUI, not available via pip
 requires = [
-    'pycoin',
+    'pycoin == 0.23',
     'bunch',
     'python-jsonrpc',
-    'python-bitcoinlib',
+    'python-bitcoinlib == 0.1.1',
     'web.py',
 ]
 
 dependency_links = [
-    "https://github.com/jimmysong/python-bitcoinlib/archive/v0.1.zip" +
+    "https://github.com/petertodd/python-bitcoinlib/archive/v0.1.1.zip" +
     "#egg=python-bitcoinlib",
 ]
 
