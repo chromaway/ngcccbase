@@ -21,6 +21,12 @@ build_exe_options = {
     "include_files": list(itertools.chain(ls('ui/forms'), ls('ui/icons')))
 }
 
+def mangle_target_name(name):
+	if sys.platform == "win32":
+		return name + ".exe"
+	else:
+		return name
+
 setup(
     name='ngcccbase',
     version='0.0.6',
@@ -33,7 +39,7 @@ setup(
     packages=["ngcccbase", "ngcccbase.services", "ngcccbase.p2ptrade", "ecdsa", "coloredcoinlib", "ui"],
     options = {"build_exe": build_exe_options},
     executables = [
-        Executable("ngccc-gui.py", base=base, targetName="chromawallet"),
-        Executable("ngccc-cli.py", base=base, targetName="cw-cli"),
+        Executable("ngccc-gui.py", base=base, targetName=mangle_target_name("chromawallet")),
+        Executable("ngccc-cli.py", base=base, targetName=mangle_target_name("cw-cli")),
     ]
 )
