@@ -30,6 +30,17 @@ if (len(sys.argv) > 3):
 
 blockchainstate = BlockchainState.from_url(None, testnet)
 
+my_lock = threading.RLock()
+def call_synchronized(f):
+    def newFunction(*args, **kw):
+        with my_lock:
+            return f(*args, **kw)
+    return newFunction
+
+blockchainstate.bitcoind._call = call_synchronized(
+    blockchainstate.bitcoind._call)
+blockchainstate.bitcoind._batch = call_synchronized(
+    blockchainstate.bitcoind._batch)
 
 class ErrorThrowingRequestProcessor:
     def require(self, data, key, message):
