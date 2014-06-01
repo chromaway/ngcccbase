@@ -125,9 +125,9 @@ class AsyncUTXOFetcher(BaseUTXOFetcher):
                     self.scan_address(address)
                     wakeup = time.time() + 1
                     while wakeup > time.time() and self.is_running():
-                        sleep(0.05)
+                        time.sleep(0.05)
             except Exception as e:
                 print (e)
                 wakeup = time.time() + 20
                 while wakeup > time.time() and self.is_running():
-                    sleep(0.05)
+                    time.sleep(0.05)
