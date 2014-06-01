@@ -10,7 +10,7 @@ from ngcccbase.services.blockchain import BlockchainInfoInterface, AbeInterface
 from ngcccbase.services.electrum import ElectrumInterface
 from ngcccbase.services.helloblock import HelloBlockInterface
 
-from time import sleep
+import time
 import Queue
 import threading
 import logging
@@ -77,13 +77,15 @@ class AsyncUTXOFetcher(BaseUTXOFetcher):
         self.model = model
         self.hash_queue = Queue.Queue()
         self.address_list = []
-        self._stop = threading.Event()
+        self.running = False
+        self.lock = threading.Lock()
 
     def update(self):
         wam = self.model.get_address_manager()
-        self.address_list = [ar.get_address()
-                             for ar in wam.get_all_addresses()]
-        
+        with self.lock:
+            self.address_list = [ar.get_address()
+                                 for ar in wam.get_all_addresses()]
+
         any_got_updates = False
         while not self.hash_queue.empty():
             got_updates = self.model.get_tx_db().add_tx_by_hash(self.hash_queue.get())
@@ -94,27 +96,38 @@ class AsyncUTXOFetcher(BaseUTXOFetcher):
         txhash = data[0]
         self.hash_queue.put(txhash)
 
-    def stop(self):
-        self._stop.set()
-
     def start_thread(self):
         thread = threading.Thread(target=self.thread_loop)
         thread.start()
+
+    def stop(self):
+        with self.lock:
+            self.running = False
+
+    def is_running(self):
+        with self.lock:
+            return self.running
         
     def thread_loop(self):
-        while not self._stop.is_set():
+        with self.lock:
+            self.running = True
+
+        wakeup = 0
+        while self.is_running():
             try:
-                address_list = self.address_list
+                with self.lock:
+                    address_list = self.address_list[:]
+
                 for address in address_list:
+                    if not self.is_running():
+                        break
                     self.logger.debug('scanning address %s', address)
-                    if self._stop.is_set():
-                        break
                     self.scan_address(address)
-                    if self._stop.is_set():
-                        break
-                    sleep(1)
+                    wakeup = time.time() + 1
+                    while wakeup > time.time() and self.is_running():
+                        sleep(0.05)
             except Exception as e:
                 print (e)
-                sleep(20)
-    
-    
+                wakeup = time.time() + 20
+                while wakeup > time.time() and self.is_running():
+                    sleep(0.05)
