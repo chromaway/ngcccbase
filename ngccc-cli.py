@@ -17,6 +17,7 @@ from ngcccbase.wallet_controller import WalletController
 from ngcccbase.pwallet import PersistentWallet
 from ngcccbase.logger import setup_logging
 
+from time import sleep
 
 class _ApplicationHelpFormatter(argparse.HelpFormatter):
     def add_usage(self, usage, actions, groups, prefix=None):
@@ -153,12 +154,15 @@ class Application(object):
         parser.add_argument('moniker')
         parser.add_argument('value')
         parser.add_argument('price')
+        parser.add_argument("--wait", dest="trade_wait", type=int)
 
         parser = subparsers.add_parser(
             'p2p_buy', description="buy via p2ptrade")
         parser.add_argument('moniker')
         parser.add_argument('value')
         parser.add_argument('price')
+        parser.add_argument("--wait", dest="trade_wait", type=int)
+
 
     def __getattribute__(self, name):
         if name in ['controller', 'model', 'wallet']:
@@ -355,6 +359,8 @@ class Application(object):
     def command_scan(self, **kwargs):
         """Update the database of transactions (amount in each address).
         """
+        controller = self.controller
+        sleep(5)
         self.controller.scan_utxos()
 
     def command_full_rescan(self, **kwargs):
@@ -401,10 +407,15 @@ class Application(object):
         else:
             return MyEOffer(None, buy_side, sell_side)
 
-    def p2ptrade_wait(self, agent):
-        #  TODO: use config/parameters
-        for _ in xrange(30):
-            agent.update()
+    def p2ptrade_wait(self, agent, wait):
+        if wait and wait > 0:
+            for _ in xrange(wait):
+                agent.update()
+                sleep(1)
+        else:
+            for _ in xrange(4*6):
+                agent.update()
+                sleep(0.25)            
 
     def command_p2p_show_orders(self, **kwargs):
         agent = self.init_p2ptrade()
@@ -416,13 +427,13 @@ class Application(object):
         agent = self.init_p2ptrade()
         offer = self.p2ptrade_make_offer(True, kwargs)
         agent.register_my_offer(offer)
-        self.p2ptrade_wait(agent)
+        self.p2ptrade_wait(agent, kwargs['trade_wait'])
 
     def command_p2p_buy(self, **kwargs):
         agent = self.init_p2ptrade()
         offer = self.p2ptrade_make_offer(False, kwargs)
         agent.register_my_offer(offer)
-        self.p2ptrade_wait(agent)
+        self.p2ptrade_wait(agent, kwargs['trade_wait'])
 
 
 if __name__ == "__main__":
