@@ -11,7 +11,7 @@ with open(os.path.join(here, 'README.md')) as f:
 
 # FIXME: Also requires PyQt and SIP for the GUI, not available via pip
 requires = [
-    'pycoin == 0.25',
+    'pycoin',
     'bunch',
     'python-jsonrpc',
     'python-bitcoinlib == 0.1.1',

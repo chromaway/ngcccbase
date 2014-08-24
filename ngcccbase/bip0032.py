@@ -43,9 +43,11 @@ class BIP0032AddressRecord(AddressRecord):
 
         self.rawPrivKey = pycoin_wallet.secret_exponent
         self.publicPoint = BasePoint * self.rawPrivKey
-        self.address = public_pair_to_bitcoin_address(self.publicPoint.pair(),
-                                                      compressed=False,
-                                                      is_test=self.testnet)
+        self.address = public_pair_to_bitcoin_address(
+            self.publicPoint.pair(),
+            compressed=False,
+            address_prefix=self.prefix
+        )
 
 
 class HDWalletAddressManager(DWalletAddressManager):

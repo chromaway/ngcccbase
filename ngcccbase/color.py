@@ -43,5 +43,7 @@ class ColoredCoinContext(object):
             cdbuilder, self.blockchain_state, self.cdstore, self.colormap)
 
     def raw_to_address(self, raw_address):
+        prefix = self.testnet and b'\x6f' or b"\0"
         return hash160_sec_to_bitcoin_address(raw_address,
-                                              is_test=self.testnet)
+                                              address_prefix=prefix)
+

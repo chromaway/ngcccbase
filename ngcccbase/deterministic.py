@@ -36,7 +36,7 @@ class DeterministicAddressRecord(AddressRecord):
         self.publicPoint = BasePoint * self.rawPrivKey
         self.address = public_pair_to_bitcoin_address(self.publicPoint.pair(),
                                                       compressed=False,
-                                                      is_test=self.testnet)
+                                                      address_prefix=self.prefix)
 
 class DWalletAddressManager(object):
     """This class manages the creation of new AddressRecords.
