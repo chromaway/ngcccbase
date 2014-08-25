@@ -1,18 +1,10 @@
-*.pyc
-*.bak
-.DS_Store
-*.db
-*~
-.*project
-*.egg-info/
-.*.sw?
+# ngccc data
 mainnet.wallet
-Makefile
+color.db
 
+# setuptools files
+ngcccbase.egg-info
 /build
 /dist
 /env
 
-# vim files
-*.swp
-*.swo
