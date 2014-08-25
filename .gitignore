@@ -6,6 +6,13 @@
 .*project
 *.egg-info/
 .*.sw?
+mainnet.wallet
+Makefile
 
 /build
 /dist
+/env
+
+# vim files
+*.swp
+*.swo

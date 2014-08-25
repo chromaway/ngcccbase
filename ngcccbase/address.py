@@ -15,7 +15,7 @@ class AddressRecord(object):
     def __init__(self, **kwargs):
         self.color_set = kwargs.get('color_set')
         self.testnet = kwargs.get('testnet')
-        self.prefix = '\xEF' if self.testnet else '\x80'
+        self.prefix = self.testnet and b'\x6f' or b"\0"
 
     def rawPubkey(self):
         return public_pair_to_hash160_sec(self.publicPoint.pair(), False)
@@ -35,7 +35,7 @@ class AddressRecord(object):
                 "address_data": b2a_hashed_base58(raw)}
 
     def get_private_key(self):
-        return secret_exponent_to_wif(self.rawPrivKey, False, self.testnet)
+        return secret_exponent_to_wif(self.rawPrivKey, False, self.prefix)
 
     def get_address(self):
         """Get the actual bitcoin address
@@ -72,4 +72,5 @@ class LooseAddressRecord(AddressRecord):
         self.rawPrivKey = from_bytes_32(bin_privkey[1:])
         self.publicPoint = BasePoint * self.rawPrivKey
         self.address = public_pair_to_bitcoin_address(
-            self.publicPoint.pair(), compressed=False, is_test=self.testnet)
+            self.publicPoint.pair(), compressed=False, address_prefix=self.prefix)
+
