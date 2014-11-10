@@ -82,7 +82,10 @@ class OperationalETxSpec(SimpleOperationalTxSpec):
         selected_inputs = []
         selected_value = SimpleColorValue(colordef=UNCOLORED_MARKER,
                                           value=0)
-        needed = colorvalue + use_fee_estimator.estimate_required_fee()
+        if use_fee_estimator:
+            needed = colorvalue + use_fee_estimator.estimate_required_fee()
+        else:
+            needed = colorvalue
         color_id = 0
         if color_id in self.inputs:
             total = SimpleColorValue.sum([cv_u[0]
@@ -121,9 +124,9 @@ class OperationalETxSpec(SimpleOperationalTxSpec):
                                              % (colorvalue, total))
             return [cv_u[1] for cv_u in self.inputs[color_id]], total
         
-        if colorvalue != self.our_value_limit:
+        if colorvalue > self.our_value_limit:
             raise InsufficientFundsError("%s requested, %s found"
-                                         % (colorvalue, our_value_limit))
+                                         % (colorvalue, self.our_value_limit))
         return super(OperationalETxSpec, self).select_coins(colorvalue)
 
 

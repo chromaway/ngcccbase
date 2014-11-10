@@ -116,6 +116,8 @@ class BaseOperationalTxSpec(OperationalTxSpec):
                                      % (required_sum, ssum))
     
     def _validate_select_coins_parameters(self, colorvalue, use_fee_estimator):
+        if colorvalue.get_value() <= 0:
+          raise ZeroSelectError
         colordef = colorvalue.get_colordef()
         if colordef != UNCOLORED_MARKER and use_fee_estimator:
             raise Exception("fee estimator can only be used\

@@ -3,8 +3,7 @@
 import time
 import unittest
 
-from coloredcoinlib import (SimpleColorValue, UNCOLORED_MARKER, ColorDefinition,
-                            AidedColorDataBuilder, ThinColorData,
+from coloredcoinlib import (AidedColorDataBuilder, ThinColorData,
                             InvalidColorIdError, ZeroSelectError,
                             OBColorDefinition, ColorDataBuilderManager)
 
@@ -42,73 +41,29 @@ class MockComm(CommBase):
 
 
 class TestAgent(unittest.TestCase):
+
     def setUp(self):
-        self.path = ":memory:"
-        self.config = {
-            'hdw_master_key':
-                '91813223e97697c42f05e54b3a85bae601f04526c5c053ff0811747db77cfdf5f1accb50b3765377c379379cd5aa512c38bf24a57e4173ef592305d16314a0f4',
-            'testnet': True,
-            'ccc': {'colordb_path' : self.path},
-            }
-        self.pwallet = PersistentWallet(self.path, self.config)
+        self.pwallet = PersistentWallet(None, True)
         self.pwallet.init_model()
         self.model = self.pwallet.get_model()
-        self.wc = WalletController(self.model)
-        self.ewc = EWalletController(self.model, self.wc)
-        self.econfig = {"offer_expiry_interval": 30,
-                        "ep_expiry_interval": 30}
+        adm = self.model.get_asset_definition_manager()
+
+        # make sure you have the asset 'testobc' in your testnet.wallet !!
+        self.asset = adm.get_asset_by_moniker('testobc')
+        self.color_spec = self.asset.get_color_set().get_data()[0]
+
         self.comm0 = MockComm()
         self.comm1 = MockComm()
         self.comm0.add_peer(self.comm1)
         self.comm1.add_peer(self.comm0)
+        self.wc = WalletController(self.model)
+        self.ewc = EWalletController(self.model, self.wc)
+        self.econfig = {"offer_expiry_interval": 30, "ep_expiry_interval": 30}
         self.agent0 = EAgent(self.ewc, self.econfig, self.comm0)
         self.agent1 = EAgent(self.ewc, self.econfig, self.comm1)
-        self.cspec = "obc:03524a4d6492e8d43cb6f3906a99be5a1bcd93916241f759812828b301f25a6c:0:153267"
 
-    def add_coins(self):
-        self.config['asset_definitions'] = [
-            {"color_set": [""], "monikers": ["bitcoin"], "unit": 100000000},  
-            {"color_set": [self.cspec], "monikers": ['test'], "unit": 1},]
-        self.config['hdwam'] = {
-            "genesis_color_sets": [ 
-                [self.cspec],
-                ],
-            "color_set_states": [
-                {"color_set": [""], "max_index": 1},
-                {"color_set": [self.cspec], "max_index": 7},
-                ]
-            }
-        self.config['bip0032'] = True
-        self.pwallet = PersistentWallet(self.path, self.config)
-        self.pwallet.init_model()
-        self.model = self.pwallet.get_model()
-        self.ewc.model = self.model
-        self.wc.model = self.model
-        def null(a):
-            pass
-        self.wc.publish_tx = null
-        # modify model colored coin context, so test runs faster
-        ccc = self.model.ccc
-        cdbuilder = ColorDataBuilderManager(
-            ccc.colormap, ccc.blockchain_state, ccc.cdstore,
-            ccc.metastore, AidedColorDataBuilder)
-
-        ccc.colordata = ThinColorData(
-            cdbuilder, ccc.blockchain_state, ccc.cdstore, ccc.colormap)
-
-        # need to query the blockchain
-        self.model.utxo_man.update_all()
-
-        adm = self.model.get_asset_definition_manager()
-        asset = adm.get_asset_by_moniker('test')
-        cq = self.model.make_coin_query({"asset": asset})
-        utxo_list = cq.get_result()
-
-        self.cd = ColorDefinition.from_color_desc(1, self.cspec)
-
-        self.cv0 = SimpleColorValue(colordef=UNCOLORED_MARKER, value=100)
-        self.cv1 = SimpleColorValue(colordef=self.cd, value=200)
-
+        self.cv0 = { 'color_spec' : "", 'value' : 100 }
+        self.cv1 = { 'color_spec' : self.color_spec, 'value' : 200 }
         self.offer0 = MyEOffer(None, self.cv0, self.cv1)
         self.offer1 = MyEOffer(None, self.cv1, self.cv0)
 
@@ -123,7 +78,6 @@ class TestAgent(unittest.TestCase):
         self.assertFalse(self.agent0.has_active_ep())
 
     def test_real(self):
-        self.add_coins()
         self.assertFalse(self.agent0.has_active_ep())
         self.agent0.register_my_offer(self.offer0)
         self.agent1.register_my_offer(self.offer1)

@@ -2,7 +2,7 @@
 
 import unittest
 
-from coloredcoinlib import (ColorSet, OBColorDefinition, POBColorDefinition,
+from coloredcoinlib import (ColorSet, OBColorDefinition, EPOBCColorDefinition,
                             SimpleColorValue)
 
 from ngcccbase.p2ptrade.protocol_objects import (
@@ -13,7 +13,7 @@ from ngcccbase.p2ptrade.protocol_objects import (
 class TestEOffer(unittest.TestCase):
 
     def setUp(self):
-        self.colordef0 = POBColorDefinition(
+        self.colordef0 = EPOBCColorDefinition(
             1, {'txhash': 'genesis', 'outindex': 0})
         self.colordef1 = OBColorDefinition(
             2, {'txhash': 'genesis', 'outindex': 0})

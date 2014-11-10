@@ -16,6 +16,7 @@ class MockAgent(object):
 class TestServer(threading.Thread):
     def __init__(self, address, port):
         super(TestServer, self).__init__()
+        SocketServer.TCPServer.allow_reuse_address = True
         self.httpd = SocketServer.TCPServer((address, port), TestHandler)
     def run(self):
         self.httpd.serve_forever()
@@ -43,9 +44,10 @@ class TestComm(unittest.TestCase):
 
     def setUp(self):
         self.config = {"offer_expiry_interval": 30, "ep_expiry_interval": 30}
-        self.hcomm = HTTPComm(self.config)
+        self.hcomm = HTTPComm(self.config, url='http://localhost:8000/messages')
         self.msg = {"msgid": 2, "a": "b"}
-        self.httpd = TestServer("localhost", 8080)
+        self.httpd = TestServer("localhost", 8000)
+        time.sleep(2)
         self.httpd.start()
         self.tcomm = ThreadedComm(self.hcomm)
         self.tcomm.add_agent(MockAgent())
