@@ -50,7 +50,8 @@ class TestRealP2PTrade(unittest.TestCase):
         cv1 = { 'color_spec' : self.cd1, 'value' : 200 }
 
         ag1_offer = MyEOffer(None, cv0, cv1)
-        ag2_offer = MyEOffer(None, cv0, cv1, False)
+        ag2_offer = MyEOffer(None, cv0, cv1)
+        ag2_offer.auto_post = False
 
         agent1.register_my_offer(ag1_offer)
         agent2.register_my_offer(ag2_offer)

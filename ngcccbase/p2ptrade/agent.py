@@ -54,7 +54,7 @@ class EAgent(object):
 
     def service_their_offers(self):
         for their_offer in self.their_offers.values():
-            if their_offer.expired(-self.config.get('offer_grace_interval', 0)):
+            if their_offer.expired_shift(-self.config.get('offer_grace_interval', 0)):
                 del self.their_offers[their_offer.oid]
                 self.fire_event('offers_updated', None)
 
