@@ -1,5 +1,7 @@
 import os
 import binascii
+import urllib2
+import json
 
 
 def LOGINFO(msg, *params):
@@ -27,3 +29,14 @@ class CommonEqualityMixin(object):
 
     def __ne__(self, other):
         return not self.__eq__(other)
+
+
+class HTTPInterface(object): # TODO test it
+
+  def poll(self, url):
+    return json.loads(urllib2.urlopen(url).read())
+
+  def post(self, url, content):
+    data = json.dumps(content)
+    return urllib2.urlopen(url, data).read() == 'Success'
+

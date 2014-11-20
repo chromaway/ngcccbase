@@ -3,17 +3,12 @@
 import time
 import unittest
 
-from coloredcoinlib import (AidedColorDataBuilder, ThinColorData,
-                            InvalidColorIdError, ZeroSelectError,
-                            OBColorDefinition, ColorDataBuilderManager)
-
 from ngcccbase.pwallet import PersistentWallet
 from ngcccbase.wallet_controller import WalletController
-
 from ngcccbase.p2ptrade.agent import EAgent
 from ngcccbase.p2ptrade.comm import CommBase
-from ngcccbase.p2ptrade.ewctrl import EWalletController, OperationalETxSpec
-from ngcccbase.p2ptrade.protocol_objects import MyEOffer, EOffer, MyEProposal
+from ngcccbase.p2ptrade.ewctrl import EWalletController
+from ngcccbase.p2ptrade.protocol_objects import MyEOffer, MyEProposal
 
 
 class MockComm(CommBase):

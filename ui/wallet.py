@@ -117,11 +117,10 @@ class Wallet(object):
 
     def p2ptrade_init(self):
         ewctrl = EWalletController(self.model, self.controller)
-        config = {"offer_expiry_interval": 30,
-                  "ep_expiry_interval": 30}
-        comm = HTTPComm(
-            config, 'http://p2ptrade.btx.udoidio.info/messages')
-        self.thread_comm = ThreadedComm(comm)
+        config = {"offer_expiry_interval": 30, "ep_expiry_interval": 30}
+        self.thread_comm = ThreadedComm(
+            config, 'http://p2ptrade.btx.udoidio.info/messages'
+        )
         self.p2p_agent = EAgent(ewctrl, config, self.thread_comm)
         self.thread_comm.start()
 

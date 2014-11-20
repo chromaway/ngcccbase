@@ -1,11 +1,13 @@
-from ..ewctrl import EWalletController
-from ..protocol_objects import MyEOffer, EOffer
-from ..agent import EAgent
-from ..comm import CommBase
+#!/usr/bin/env python
 
-from coloredcoinlib import (ColorSet, UNCOLORED_MARKER, OBColorDefinition, 
-                            EPOBCColorDefinition, SimpleColorValue)
 import unittest
+from coloredcoinlib import (
+    ColorSet, UNCOLORED_MARKER, OBColorDefinition, SimpleColorValue
+)
+from ngcccbase.p2ptrade.ewctrl import EWalletController
+from ngcccbase.p2ptrade.protocol_objects import MyEOffer, EOffer
+from ngcccbase.p2ptrade.agent import EAgent
+from ngcccbase.p2ptrade.comm import CommBase
 
 
 class MockAddressRecord(object):

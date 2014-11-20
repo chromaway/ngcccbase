@@ -14,6 +14,7 @@ from bitcoin.wallet import CBitcoinAddress
 
 
 class OperationalETxSpec(SimpleOperationalTxSpec):
+
     def __init__(self, model, ewctrl):
         self.model = model
         self.ewctrl = ewctrl

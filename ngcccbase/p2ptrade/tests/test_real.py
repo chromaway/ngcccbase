@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
 import unittest
-
 from ngcccbase.p2ptrade.ewctrl import EWalletController
 from ngcccbase.p2ptrade.protocol_objects import MyEOffer, EOffer
 from ngcccbase.p2ptrade.agent import EAgent
+
 
 class MockComm(object):
     def __init__(self):

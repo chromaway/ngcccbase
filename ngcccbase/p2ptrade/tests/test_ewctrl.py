@@ -1,16 +1,11 @@
-#!/usr/bin/env python
 
 import unittest
-
-from coloredcoinlib import (ColorSet, ColorDataBuilderManager, ColorTarget,
-                            AidedColorDataBuilder, ThinColorData,
-                            InvalidColorIdError, ZeroSelectError,
-                            SimpleColorValue, UNCOLORED_MARKER, ColorDefinition)
-
+from coloredcoinlib import (
+    ZeroSelectError, SimpleColorValue, UNCOLORED_MARKER, ColorDefinition
+)
 from ngcccbase.pwallet import PersistentWallet
 from ngcccbase.txcons import InsufficientFundsError, RawTxSpec
 from ngcccbase.wallet_controller import WalletController
-
 from ngcccbase.p2ptrade.ewctrl import EWalletController, OperationalETxSpec
 from ngcccbase.p2ptrade.protocol_objects import ETxSpec, MyEOffer
 
