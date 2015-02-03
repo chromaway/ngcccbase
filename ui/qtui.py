@@ -26,9 +26,12 @@ uic.getUiPath = getUiPath
 
 
 class Application(QtGui.QApplication):
+
     def __init__(self):
         signal.signal(signal.SIGINT, signal.SIG_DFL)
         QtGui.QApplication.__init__(self, [])
+
+
 
 class MainWindow(QtGui.QMainWindow):
     def __init__(self):
@@ -57,10 +60,17 @@ class MainWindow(QtGui.QMainWindow):
         self.utxo_timer.start(2500)
         wallet.async_utxo_fetcher.start_thread()
 
+        self._sys_excepthook = sys.excepthook
+        sys.excepthook = self.excepthook
+
+    def excepthook(self, exctype, value, traceback):
+        QtGui.QMessageBox.critical(self, '', str(value), QtGui.QMessageBox.Ok)
+        self._sys_excepthook(exctype, value, traceback)
+
     def update_utxo_fetcher(self):
         got_updates = wallet.async_utxo_fetcher.update()
         if got_updates:
-            self.currentPage.update()        
+            self.currentPage.update()
 
     def bindActions(self):
         self.actionRescan.triggered.connect(self.update)

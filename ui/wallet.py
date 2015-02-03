@@ -37,14 +37,14 @@ class Wallet(object):
         if asset:
             return asset
         else:
-            raise Exception("asset not found")
+            raise Exception("Asset '%s' not found!" % moniker)
 
     def get_asset_definition_by_color_set(self, color_set):
         adm = self.wallet.get_model().get_asset_definition_manager()
         for asset in adm.get_all_assets():
             if color_set in asset.get_color_set().get_data():
                 return asset
-        raise Exception("asset not found")
+        raise Exception("Asset not found!")
 
     def add_asset(self, params):
         self.controller.add_asset_definition({
