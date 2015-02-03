@@ -9,7 +9,7 @@ Contributors:
  * Victor Knyazhin
  * Manuel Araoz <manuelaraoz@gmail.com>
 
-License: GNU AGPL v.3 (see LICENSE)
+License: MIT (see LICENSE)
 
 What
 ----
