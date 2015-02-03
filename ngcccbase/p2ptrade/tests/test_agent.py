@@ -130,6 +130,11 @@ class TestAgent(unittest.TestCase):
         offer3.refresh(-1000)
         self.agent0.service_their_offers()
 
+class TestP2PTradeAgent(unittest.TestCase):
+
+    def test_fire_event(self):
+      pass
+
 
 if __name__ == '__main__':
     unittest.main()

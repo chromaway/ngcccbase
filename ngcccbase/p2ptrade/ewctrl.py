@@ -239,6 +239,7 @@ class EWalletController(object):
         inputs = {our['color_spec']: 
                   [utxo.get_outpoint() for utxo in c_utxos]}
         wam = self.model.get_address_manager()
+
         our_address = wam.get_change_address(their_color_set)
         targets = [(our_address.get_address(),
                     their['color_spec'], their['value'])]

@@ -10,12 +10,13 @@ class MockEWalletController(object):
 
   def __init__(self):
     self.model = "model"
+    self.published = []
 
   def make_etx_spec(self, inputs, targets):
     return ETxSpec(inputs, targets, None)
 
   def publish_tx(rtxs, offer):
-    pass
+    self.published.append([rtxs, offer])
 
   def make_reply_tx(etx_spec, A, B):
     return "tx"

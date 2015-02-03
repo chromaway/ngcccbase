@@ -32,14 +32,13 @@ class EAgent(object):
     def set_active_ep(self, ep):
         if ep is None:
             self.ep_timeout = None
-            self.match_orders = True
         else:
             self.ep_timeout = time.time() + self.config['ep_expiry_interval']
         self.active_ep = ep
 
     def has_active_ep(self):
         if self.ep_timeout and self.ep_timeout < time.time():
-            self.set_active_ep(None)  # TODO: cleanup?
+            self.set_active_ep(None)
         return self.active_ep is not None
 
     def service_my_offers(self):
@@ -122,25 +121,23 @@ class EAgent(object):
             if ep.pid == self.active_ep.pid:
                 return self.update_exchange_proposal(ep)
         else:
-            if ep.offer.oid in self.my_offers:
+            if ep.offer.oid in self.my_offers and not self.has_active_ep():
                 LOGDEBUG("accept exchange proposal")
                 return self.accept_exchange_proposal(ep)
         # We have neither an offer nor a proposal matching
         #  this ExchangeProposal
         if ep.offer.oid in self.their_offers:
             # remove offer if it is in-work
-            # TODO: set flag instead of deleting it
             del self.their_offers[ep.offer.oid]
         return None
 
     def accept_exchange_proposal(self, ep):
-        if self.has_active_ep():
-            return
         my_offer = self.my_offers[ep.offer.oid]
         reply_ep = ep.accept(my_offer)
         self.set_active_ep(reply_ep)
         self.post_message(reply_ep)
         self.fire_event('accept_ep', [ep, reply_ep])
+        return True
 
     def clear_orders(self, ep):
         self.fire_event('trade_complete', ep)
