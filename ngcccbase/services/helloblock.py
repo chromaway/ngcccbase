@@ -6,6 +6,13 @@ class HelloBlockInterface(object):
     def __init__(self, testnet):
         self.net_prefix = "testnet" if testnet else "mainnet"
 
+    def connected(self):
+        try:
+          url = "https://%s.helloblock.io/v1/blocks/1" % self.net_prefix
+          return bool(json.loads(urllib2.urlopen(url).read()))
+        except:
+          return False
+
     def get_tx_confirmations(self, txhash):
         url = "https://%s.helloblock.io/v1/transactions/%s" % \
             (self.net_prefix, txhash)

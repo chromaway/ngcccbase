@@ -121,7 +121,7 @@ class AsyncUTXOFetcher(BaseUTXOFetcher):
                 for address in address_list:
                     if not self.is_running():
                         break
-                    self.logger.debug('scanning address %s', address)
+                    #self.logger.debug('scanning address %s', address)
                     self.scan_address(address)
                     wakeup = time.time() + 1
                     while wakeup > time.time() and self.is_running():

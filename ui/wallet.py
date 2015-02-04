@@ -29,6 +29,14 @@ class Wallet(object):
         self.async_utxo_fetcher = AsyncUTXOFetcher(
             self.model, self.wallet.wallet_config.get('utxo_fetcher', {}))
 
+    def connected(self):
+        try:
+            wallet.get_total_balance(asset)
+            return True
+        except:
+            return False
+
+      
     def get_asset_definition(self, moniker):
         if isinstance(moniker, AssetDefinition):
             return moniker

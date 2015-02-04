@@ -44,6 +44,9 @@ class ElectrumInterface(object):
         self.is_connected = False
         self.connect()
 
+    def connected(self):
+        return self.is_connected
+
     def connect(self):
         """Connects to an electrum server via TCP.
         Uses a socket so we can listen for a response

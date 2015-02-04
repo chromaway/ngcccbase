@@ -1,11 +1,11 @@
 # I tend to keep project bash commands I use often in Makefiles for quick 
 # autocompletion and to not forget, feel free to extent/change at will.
 
-server_start_testnet:
+bitcoind_testnet_start:
 	@bitcoind -testnet -txindex -daemon
 
-server_stop_testnet:
-	@bitcoin-cli stop
+bitcoind_testnet_stop:
+	@bitcoin-cli --testnet stop
 
 run_tests:
 	# p2ptrade
