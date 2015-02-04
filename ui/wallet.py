@@ -31,7 +31,10 @@ class Wallet(object):
 
     def connected(self):
         try:
-            wallet.get_total_balance(asset)
+            for moniker in wallet.get_all_monikers():
+                asset = wallet.get_asset_definition(moniker)
+                address = wallet.get_some_address(asset)
+                total_balance = wallet.get_total_balance(asset)
             return True
         except:
             return False
