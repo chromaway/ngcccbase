@@ -41,7 +41,7 @@ class BaseUTXOFetcher(object):
                 'electrum_port', DEFAULT_ELECTRUM_PORT)
             return ElectrumInterface(electrum_server, electrum_port)
         else:
-            raise Exception('unknown service for UTXOFetcher')        
+            raise Exception('Unknown service for UTXOFetcher!')        
 
     def scan_address(self, address):
         try:

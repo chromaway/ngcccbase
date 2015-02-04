@@ -82,7 +82,7 @@ class MyEProposal(EProposal):
                                           ewctrl, orig_offer)
         self.my_offer = my_offer
         if not orig_offer.matches(my_offer):
-            raise Exception("offers are incongruent")
+            raise Exception("Offers are incongruent!")
         self.etx_spec = ewctrl.make_etx_spec(self.offer.B, self.offer.A)
         self.etx_data = None
 
@@ -102,7 +102,7 @@ class MyEProposal(EProposal):
             self.ewctrl.publish_tx(rtxs, self.my_offer) 
             self.etx_data = rtxs.get_hex_tx_data()
         else:
-            raise Exception('p2ptrade reply tx check failed')
+            raise Exception('P2ptrade reply tx check failed!')
 
 
 class MyReplyEProposal(EProposal):
@@ -138,7 +138,7 @@ class ForeignEProposal(EProposal):
 
     def accept(self, my_offer):
         if not self.offer.is_same_as_mine(my_offer):
-            raise Exception("incompatible offer")          # pragma: no cover
+            raise Exception("Incompatible offer!")          # pragma: no cover
         if not self.etx_spec:
-            raise Exception("need etx_spec")               # pragma: no cover
+            raise Exception("Need etx_spec!")               # pragma: no cover
         return MyReplyEProposal(self.ewctrl, self, my_offer)

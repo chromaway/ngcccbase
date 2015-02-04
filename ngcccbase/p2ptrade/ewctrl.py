@@ -101,8 +101,8 @@ class OperationalETxSpec(SimpleOperationalTxSpec):
             if self.our_value_limit.is_uncolored():
                 value_limit += self.our_value_limit
             if needed > value_limit:
-                raise InsufficientFundsError("exceeded limits: %s requested, %s found"
-                                             % (needed, value_limit))
+                msg = "Exceeded limits: %s requested, %s found!"
+                raise InsufficientFundsError(msg % (needed, value_limit))
             our_inputs, our_value = super(OperationalETxSpec, self).\
                 select_coins(colorvalue - selected_value, use_fee_estimator)
             selected_inputs += our_inputs
@@ -121,12 +121,12 @@ class OperationalETxSpec(SimpleOperationalTxSpec):
             total = SimpleColorValue.sum([cv_u[0]
                                           for cv_u in self.inputs[color_id]])
             if total < colorvalue:
-                raise InsufficientFundsError('not enough coins: %s requested, %s found'
-                                             % (colorvalue, total))
+                msg = 'Not enough coins: %s requested, %s found!'
+                raise InsufficientFundsError(msg % (colorvalue, total))
             return [cv_u[1] for cv_u in self.inputs[color_id]], total
         
         if colorvalue > self.our_value_limit:
-            raise InsufficientFundsError("%s requested, %s found"
+            raise InsufficientFundsError("%s requested, %s found!"
                                          % (colorvalue, self.our_value_limit))
         return super(OperationalETxSpec, self).select_coins(colorvalue)
 

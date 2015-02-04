@@ -42,4 +42,6 @@ class HelloBlockInterface(object):
         if resp['status'] == 'success':
             txs = resp['data']['transactions']
             return [tx['txHash'] for tx in txs]
-        raise Exception('error when retrieving history for an address')
+        msg = 'Error when retrieving history for address "%s"!'
+        raise Exception(msg % address)
+

@@ -43,7 +43,7 @@ class WebBlockchainInterface(object):
             raise                       # pragma: no cover
 
     def get_address_history(self, address):
-        raise Exception('not implemented')
+        raise Exception('Not implemented!')
 
 
 class BlockchainInfoInterface(WebBlockchainInterface):

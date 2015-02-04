@@ -45,7 +45,7 @@ class CoinQueryFactory(object):
             elif 'asset' in query:
                 color_set = query['asset'].get_color_set()
             else:
-                raise Exception('color set is not specified')
+                raise Exception('Color set is not specified!')
         if 'spent' not in query:
             query['spent'] = False
         return CoinQuery(self.model, color_set, query)

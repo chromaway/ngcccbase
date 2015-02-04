@@ -44,7 +44,7 @@ class WalletController(object):
             print ("got error %s from bitcoind" % e)  # pragma: no cover
         
         if r_txhash and (r_txhash != txhash) and not self.testing:
-            raise Exception('bitcoind reports different txhash')  # pragma: no cover
+            raise Exception('Bitcoind reports different txhash!')
         
         """if r_txhash is None:                                      # pragma: no cover
             # bitcoind did not eat our txn, check if it is mempool
@@ -87,8 +87,8 @@ class WalletController(object):
             # decode the address
             address_asset, address = adm.get_asset_and_address(target_addr)
             if asset != address_asset:
-                raise AssetMismatchError("Address and asset don't match: %s %s" %
-                                         (asset, address_asset))
+                msg = "Address and asset don't match: %s %s!"
+                raise AssetMismatchError(msg % (asset, address_asset))
             assettarget = AssetTarget(address,
                                       AdditiveAssetValue(asset=asset,
                                                          value=raw_colorvalue))
@@ -112,7 +112,8 @@ class WalletController(object):
 
         color_definition_cls = ColorDefinition.get_color_def_cls_for_code(pck)
         if not color_definition_cls:
-            raise InvalidColorDefinitionError('color scheme %s not recognized' % pck)
+            msg = 'Color scheme "%s" not recognized'
+            raise InvalidColorDefinitionError(msg % pck)
 
         total = units * atoms_in_unit
         op_tx_spec = SimpleOperationalTxSpec(self.model, None)

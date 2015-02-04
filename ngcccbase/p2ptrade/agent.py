@@ -107,7 +107,7 @@ class EAgent(object):
 
     def make_exchange_proposal(self, orig_offer, my_offer):
         if self.has_active_ep():
-            raise Exception("already have active EP (in makeExchangeProposal")
+            raise Exception("Already have active EP!")
         ep = MyEProposal(self.ewctrl, orig_offer, my_offer)
         self.set_active_ep(ep)
         self.post_message(ep)
