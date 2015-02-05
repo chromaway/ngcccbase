@@ -38,8 +38,7 @@ class Application(QtGui.QApplication):
 class ConnectionStatus(QtGui.QLabel):
     
     def updateStatus(self):
-        interface = wallet.async_utxo_fetcher.interface
-        self.setStatus(interface.connected())
+        self.setStatus(wallet.connected())
 
     def setStatus(self, connected):
         if connected: 

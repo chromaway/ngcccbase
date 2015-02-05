@@ -48,20 +48,25 @@ class Wallet(object):
         self.async_utxo_fetcher = AsyncUTXOFetcher(
             self.model, self.wallet.wallet_config.get('utxo_fetcher', {}))
 
-
         self.scan_thread = TimedAsyncTask(self.scan, 2.5)
         self.scan_thread.start()
+        self.update_connected_thread = TimedAsyncTask(self.update_connected, 2.5)
+        self.update_connected_thread.start()
+        self.update_connected()
 
     def connected(self):
-        try:
-            for moniker in wallet.get_all_monikers():
-                asset = wallet.get_asset_definition(moniker)
-                address = wallet.get_some_address(asset)
-                total_balance = wallet.get_total_balance(asset)
-            return True
-        except:
-            return False
+        return self.is_connected
 
+    def update_connected(self):
+        try:
+            for moniker in self.get_all_monikers():
+                asset = self.get_asset_definition(moniker)
+                address = self.get_some_address(asset)
+                total_balance = self.get_total_balance(asset)
+            self.is_connected = self.async_utxo_fetcher.interface.connected()
+        except:
+            raise
+            self.is_connected = False
       
     def get_asset_definition(self, moniker):
         if isinstance(moniker, AssetDefinition):
@@ -183,6 +188,8 @@ class Wallet(object):
     def stop_all(self):
         self.scan_thread.stop()
         self.scan_thread.join()
+        self.update_connected_thread.stop()
+        self.update_connected_thread.join()
         self.async_utxo_fetcher.stop()
         self.p2ptrade_stop()
         if hasattr(self.model.txdb, 'vbs'):
