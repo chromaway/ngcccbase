@@ -9,7 +9,26 @@ from ngcccbase.p2ptrade.protocol_objects import MyEOffer
 
 from ngcccbase.utxo_fetcher import AsyncUTXOFetcher
 
+import time
 import argparse
+import threading
+
+
+class TimedAsyncTask(threading.Thread):
+
+    def __init__(self, task, sleep_time):
+        super(TimedAsyncTask, self).__init__()
+        self._stop = threading.Event()
+        self.sleep_time = sleep_time
+        self.task = task
+
+    def run(self):
+        while not self._stop.is_set():
+            self.task()
+            time.sleep(self.sleep_time)
+
+    def stop(self):
+      self._stop.set()
 
 
 class Wallet(object):
@@ -28,6 +47,10 @@ class Wallet(object):
         self.controller = WalletController(self.wallet.get_model())
         self.async_utxo_fetcher = AsyncUTXOFetcher(
             self.model, self.wallet.wallet_config.get('utxo_fetcher', {}))
+
+
+        self.scan_thread = TimedAsyncTask(self.scan, 2.5)
+        self.scan_thread.start()
 
     def connected(self):
         try:
@@ -158,6 +181,8 @@ class Wallet(object):
         return MyEOffer(None, data['B'], data['A'], False)
 
     def stop_all(self):
+        self.scan_thread.stop()
+        self.scan_thread.join()
         self.async_utxo_fetcher.stop()
         self.p2ptrade_stop()
         if hasattr(self.model.txdb, 'vbs'):

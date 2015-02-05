@@ -1,5 +1,6 @@
 import httplib
 import urllib2
+import socket
 from PyQt4 import QtCore, QtGui, uic
 
 import os
@@ -71,6 +72,7 @@ class MainWindow(QtGui.QMainWindow):
 
         self.utxo_timer = QtCore.QTimer()
         self.utxo_timer.timeout.connect(self.update_utxo_fetcher)
+        self.utxo_timer.timeout.connect(self.update)
         self.utxo_timer.start(2500)
         wallet.async_utxo_fetcher.start_thread()
 
@@ -94,11 +96,13 @@ class MainWindow(QtGui.QMainWindow):
             self.connectionStatus.setStatus(False)
         except httplib.BadStatusLine: # bitcoind disconnected
             self.connectionStatus.setStatus(False)
+        except socket.error: # bitcoind not started
+            self.connectionStatus.setStatus(False)
         except urllib2.HTTPError: # chromanode disconnected
             self.connectionStatus.setStatus(False)
+              
 
     def bindActions(self):
-        self.actionRescan.triggered.connect(self.update)
         self.actionExit.triggered.connect(
             lambda: QtCore.QCoreApplication.instance().exit(0))
 
@@ -123,7 +127,6 @@ class MainWindow(QtGui.QMainWindow):
         self.actionP2PTrade.triggered.connect(self.gotoP2PTradePage)
 
     def update(self):
-        wallet.scan()
         self.currentPage.update()
 
     def setPage(self, page):
