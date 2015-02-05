@@ -1,6 +1,6 @@
 # ngccc data
-mainnet.wallet
-testnet.wallet
+mainnet.wallet*
+testnet.wallet*
 color.db
 
 # setuptools files
