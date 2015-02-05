@@ -34,7 +34,10 @@ class CommonEqualityMixin(object):
 class HTTPInterface(object): # TODO test it
 
   def poll(self, url):
-    return json.loads(urllib2.urlopen(url).read())
+    try:
+      return json.loads(urllib2.urlopen(url).read())
+    except ValueError:
+      return []
 
   def post(self, url, content):
     data = json.dumps(content)
