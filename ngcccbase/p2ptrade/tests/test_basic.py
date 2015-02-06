@@ -1,12 +1,13 @@
-from ..ewctrl import EWalletController
-from ..protocol_objects import MyEOffer, EOffer
-from ..agent import EAgent
-from ..comm import CommBase
-
-from coloredcoinlib import (SimpleColorValue,
-                            OBColorDefinition, UNCOLORED_MARKER)
+#!/usr/bin/env python
 
 import unittest
+from coloredcoinlib import (
+    ColorSet, UNCOLORED_MARKER, OBColorDefinition, SimpleColorValue
+)
+from ngcccbase.p2ptrade.ewctrl import EWalletController
+from ngcccbase.p2ptrade.protocol_objects import MyEOffer, EOffer
+from ngcccbase.p2ptrade.agent import EAgent
+from ngcccbase.p2ptrade.comm import CommBase
 
 
 class MockAddressRecord(object):
@@ -25,15 +26,15 @@ class MockWAM(object):
 class MockUTXO(object):
     def __init__(self):
         self.value = 100
-        self.colorvalues = [SimpleColorValue(colordef=UNCOLORED_MARKER,
-                                             value=300000)]
+        self.colorvalues = [SimpleColorValue(colordef=UNCOLORED_MARKER,         
+                                             value=300000)] 
     def get_outpoint(self):
         return ('outp1', 1)
 
 class MockCoinQuery(object):
 
     def __init__(self, params):
-        self.color_set = params['color_set']
+        self.color_set = params['color_id_set']
 
     def get_result(self):
         return [MockUTXO()]
@@ -54,6 +55,11 @@ class MockColorMap(object):
             return 2
         else:
             return None
+
+    def get_color_def(self, color_spec):
+        if not color_spec:
+          return UNCOLORED_MARKER
+        return OBColorDefinition.from_color_desc(1, color_spec)
 
 class MockModel(object):
     def get_color_map(self):
@@ -89,11 +95,10 @@ class TestMockP2PTrade(unittest.TestCase):
         # no messages should have been sent to the network
         self.assertEqual(len(comm.get_messages()), 0)
 
-        self.cd = OBColorDefinition(1, {'txhash': 'xxx',
-                                        'outindex': 0, 'height':0})
+        color_spec = "obc:03524a4d6492e8d43cb6f3906a99be5a1bcd93916241f759812828b301f25a6c:0:153267"
 
-        cv0 = SimpleColorValue(colordef=UNCOLORED_MARKER, value=100)
-        cv1 = SimpleColorValue(colordef=self.cd, value=200)
+        cv0 = { 'color_spec' : "", 'value' : 100 }
+        cv1 = { 'color_spec' : color_spec, 'value' : 200 }
 
         my_offer = MyEOffer(None, cv0, cv1)
 
@@ -113,3 +118,6 @@ class TestMockP2PTrade(unittest.TestCase):
         # The offer data should be in the proposal
         their_offer_data = their_offer.get_data()
         self.assertEquals(their_offer_data, proposal["offer"])
+
+if __name__ == '__main__':
+    unittest.main()

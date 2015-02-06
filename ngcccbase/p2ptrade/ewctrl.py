@@ -14,6 +14,7 @@ from bitcoin.wallet import CBitcoinAddress
 
 
 class OperationalETxSpec(SimpleOperationalTxSpec):
+
     def __init__(self, model, ewctrl):
         self.model = model
         self.ewctrl = ewctrl
@@ -82,7 +83,10 @@ class OperationalETxSpec(SimpleOperationalTxSpec):
         selected_inputs = []
         selected_value = SimpleColorValue(colordef=UNCOLORED_MARKER,
                                           value=0)
-        needed = colorvalue + use_fee_estimator.estimate_required_fee()
+        if use_fee_estimator:
+            needed = colorvalue + use_fee_estimator.estimate_required_fee()
+        else:
+            needed = colorvalue
         color_id = 0
         if color_id in self.inputs:
             total = SimpleColorValue.sum([cv_u[0]
@@ -97,8 +101,8 @@ class OperationalETxSpec(SimpleOperationalTxSpec):
             if self.our_value_limit.is_uncolored():
                 value_limit += self.our_value_limit
             if needed > value_limit:
-                raise InsufficientFundsError("exceeded limits: %s requested, %s found"
-                                             % (needed, value_limit))
+                msg = "Exceeded limits: %s requested, %s found!"
+                raise InsufficientFundsError(msg % (needed, value_limit))
             our_inputs, our_value = super(OperationalETxSpec, self).\
                 select_coins(colorvalue - selected_value, use_fee_estimator)
             selected_inputs += our_inputs
@@ -117,13 +121,13 @@ class OperationalETxSpec(SimpleOperationalTxSpec):
             total = SimpleColorValue.sum([cv_u[0]
                                           for cv_u in self.inputs[color_id]])
             if total < colorvalue:
-                raise InsufficientFundsError('not enough coins: %s requested, %s found'
-                                             % (colorvalue, total))
+                msg = 'Not enough coins: %s requested, %s found!'
+                raise InsufficientFundsError(msg % (colorvalue, total))
             return [cv_u[1] for cv_u in self.inputs[color_id]], total
         
-        if colorvalue != self.our_value_limit:
-            raise InsufficientFundsError("%s requested, %s found"
-                                         % (colorvalue, our_value_limit))
+        if colorvalue > self.our_value_limit:
+            raise InsufficientFundsError("%s requested, %s found!"
+                                         % (colorvalue, self.our_value_limit))
         return super(OperationalETxSpec, self).select_coins(colorvalue)
 
 
@@ -235,6 +239,7 @@ class EWalletController(object):
         inputs = {our['color_spec']: 
                   [utxo.get_outpoint() for utxo in c_utxos]}
         wam = self.model.get_address_manager()
+
         our_address = wam.get_change_address(their_color_set)
         targets = [(our_address.get_address(),
                     their['color_spec'], their['value'])]

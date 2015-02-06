@@ -34,7 +34,7 @@ class ColorMap(object):
         if not color_desc:
             color_desc = self.find_color_desc(color_id)
             if not color_desc:
-                raise InvalidColorIdError("color id not found")
+                raise InvalidColorIdError("Color id '%s' not found!" % color_id)
         cd = ColorDefinition.from_color_desc(
             color_id, color_desc)
         self.colordefs[color_id] = cd

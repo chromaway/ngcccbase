@@ -35,7 +35,7 @@ class PersistentWallet(object):
         if new_wallet:
             self.initialize_new_wallet(testnet)
         if testnet and not self.wallet_config['testnet']:
-            raise Exception("not a testnet wallet")
+            raise Exception("Not a testnet wallet!")
         self.wallet_model = None
 
     def init_model(self):

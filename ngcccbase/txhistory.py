@@ -98,7 +98,6 @@ class TxHistory(object):
             self.model.store_conn.conn, "txhistory")
     
     def decode_entry(self, entry_data):
-        print ('entry_data', entry_data)
         return TxHistoryEntry.from_data(self.model, entry_data)
 
     def get_entry(self, txhash):

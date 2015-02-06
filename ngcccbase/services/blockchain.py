@@ -43,7 +43,7 @@ class WebBlockchainInterface(object):
             raise                       # pragma: no cover
 
     def get_address_history(self, address):
-        raise Exception('not implemented')
+        raise Exception('Not implemented!')
 
 
 class BlockchainInfoInterface(WebBlockchainInterface):
@@ -59,8 +59,15 @@ class BlockchainInfoInterface(WebBlockchainInterface):
         if self.tx_db:
             self.tx_db.notify_confirmations(txhash, confirmations)
 
+    def connected(self):
+        try:
+            return bool(self.get_block_count())
+        except:
+            return False
+
     def get_block_count(self):
-        return int(urllib2.urlopen("https://blockchain.info/q/getblockcount").read())
+        url = "https://blockchain.info/q/getblockcount"
+        return int(urllib2.urlopen(url).read())
     
     def get_tx_confirmations(self, txhash):
         try:
@@ -89,6 +96,14 @@ class AbeInterface(WebBlockchainInterface):
     See https://github.com/bitcoin-abe/bitcoin-abe for more information.
     """
     URL_TEMPLATE = "http://abe.bitcontracts.org/unspent/%s"
+
+    def connected(self):
+        try:
+            urllib2.urlopen("http://abe.bitcontracts.org").read()
+            # FIXME get block count instead
+            return True
+        except:
+            return False
 
     def get_address_history(self, address):
         url = "http://abe.bitcontracts.org/unspent/%s" % address

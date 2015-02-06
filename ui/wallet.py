@@ -9,7 +9,26 @@ from ngcccbase.p2ptrade.protocol_objects import MyEOffer
 
 from ngcccbase.utxo_fetcher import AsyncUTXOFetcher
 
+import time
 import argparse
+import threading
+
+
+class TimedAsyncTask(threading.Thread):
+
+    def __init__(self, task, sleep_time):
+        super(TimedAsyncTask, self).__init__()
+        self._stop = threading.Event()
+        self.sleep_time = sleep_time
+        self.task = task
+
+    def run(self):
+        while not self._stop.is_set():
+            self.task()
+            time.sleep(self.sleep_time)
+
+    def stop(self):
+      self._stop.set()
 
 
 class Wallet(object):
@@ -29,6 +48,26 @@ class Wallet(object):
         self.async_utxo_fetcher = AsyncUTXOFetcher(
             self.model, self.wallet.wallet_config.get('utxo_fetcher', {}))
 
+        self.scan_thread = TimedAsyncTask(self.scan, 2.5)
+        self.scan_thread.start()
+        self.update_connected_thread = TimedAsyncTask(self.update_connected, 2.5)
+        self.update_connected_thread.start()
+        self.update_connected()
+
+    def connected(self):
+        return self.is_connected
+
+    def update_connected(self):
+        try:
+            for moniker in self.get_all_monikers():
+                asset = self.get_asset_definition(moniker)
+                address = self.get_some_address(asset)
+                total_balance = self.get_total_balance(asset)
+            self.is_connected = self.async_utxo_fetcher.interface.connected()
+        except:
+            raise
+            self.is_connected = False
+      
     def get_asset_definition(self, moniker):
         if isinstance(moniker, AssetDefinition):
             return moniker
@@ -37,14 +76,14 @@ class Wallet(object):
         if asset:
             return asset
         else:
-            raise Exception("asset not found")
+            raise Exception("Asset '%s' not found!" % moniker)
 
     def get_asset_definition_by_color_set(self, color_set):
         adm = self.wallet.get_model().get_asset_definition_manager()
         for asset in adm.get_all_assets():
             if color_set in asset.get_color_set().get_data():
                 return asset
-        raise Exception("asset not found")
+        raise Exception("Asset not found!")
 
     def add_asset(self, params):
         self.controller.add_asset_definition({
@@ -117,11 +156,10 @@ class Wallet(object):
 
     def p2ptrade_init(self):
         ewctrl = EWalletController(self.model, self.controller)
-        config = {"offer_expiry_interval": 30,
-                  "ep_expiry_interval": 30}
-        comm = HTTPComm(
-            config, 'http://p2ptrade.btx.udoidio.info/messages')
-        self.thread_comm = ThreadedComm(comm)
+        config = {"offer_expiry_interval": 30, "ep_expiry_interval": 30}
+        self.thread_comm = ThreadedComm(
+            config, 'http://p2ptrade.btx.udoidio.info/messages'
+        )
         self.p2p_agent = EAgent(ewctrl, config, self.thread_comm)
         self.thread_comm.start()
 
@@ -148,6 +186,10 @@ class Wallet(object):
         return MyEOffer(None, data['B'], data['A'], False)
 
     def stop_all(self):
+        self.scan_thread.stop()
+        self.scan_thread.join()
+        self.update_connected_thread.stop()
+        self.update_connected_thread.join()
         self.async_utxo_fetcher.stop()
         self.p2ptrade_stop()
         if hasattr(self.model.txdb, 'vbs'):

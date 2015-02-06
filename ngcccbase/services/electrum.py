@@ -44,6 +44,9 @@ class ElectrumInterface(object):
         self.is_connected = False
         self.connect()
 
+    def connected(self):
+        return self.is_connected
+
     def connect(self):
         """Connects to an electrum server via TCP.
         Uses a socket so we can listen for a response
@@ -55,13 +58,14 @@ class ElectrumInterface(object):
         try:
             sock.connect(self.connection)
         except:
-            raise ConnectionError("Unable to connect to %s:%s" % self.connection)
+            msg = "Unable to connect to %s:%s!"
+            raise ConnectionError(msg % self.connection)
 
         sock.settimeout(60)
         self.sock = sock
         self.is_connected = True
         if self.debug:
-            print ("connected to %s:%s" % self.connection ) # pragma: no cover
+            print ("Connected to %s:%s!" % self.connection ) # pragma: no cover
         return True
 
     def wait_for_response(self, target_id):
@@ -101,17 +105,15 @@ class ElectrumInterface(object):
 
                     if id == target_id:
                         if error:
-                            raise Exception(                    # pragma: no cover
-                                "received error %s" % message)  # pragma: no cover
+                            raise Exception("Received error '%s'!" % message)
                         else:
                             return result
                     else:
                         # just print it for now
-                        print (message)                          # pragma: no cover
-        except:                                   # pragma: no cover
-            traceback.print_exc(file=sys.stdout)  # pragma: no cover
-
-        self.is_connected = False                 # pragma: no cover
+                        print (message)
+        except:
+            traceback.print_exc(file=sys.stdout)
+        self.is_connected = False
 
     def get_response(self, method, params):
         """Given a message that consists of <method> which
@@ -214,15 +216,13 @@ class EnhancedBlockchainState(blockchain.BlockchainState):
             # first, grab the tx height
             height = self.get_tx_block_height(txhash)[0]
             if not height:
-                raise Exception("")  # pragma: no cover
-            
+                raise Exception("Couldn't get blockchain height!")
+
             # grab the transaction from electrum which
             #  unlike bitcoind requires the height
             raw = self.interface.get_raw_transaction(txhash, height)
-        except:                                              # pragma: no cover
-            raise Exception(                                 # pragma: no cover
-                "Could not connect to blockchain and/or"     # pragma: no cover
-                "electrum server to grab the data we need")  # pragma: no cover
+        except:
+            raise Exception("Could not connect to blockchain/electrum server!")
         return raw
 
     def get_tx(self, txhash):

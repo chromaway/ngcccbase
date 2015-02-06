@@ -2,9 +2,9 @@ import hashlib
 import os
 
 from pycoin.ecdsa.secp256k1 import generator_secp256k1 as BasePoint
-from pycoin.encoding import public_pair_to_bitcoin_address
-from pycoin.wallet import Wallet
-
+from pycoin.encoding import public_pair_to_bitcoin_address, from_bytes_32
+from pycoin.serialize import h2b
+from pycoin.key.BIP32Node import BIP32Node
 from address import AddressRecord, LooseAddressRecord
 from asset import AssetDefinition
 from coloredcoinlib import ColorSet
@@ -32,16 +32,15 @@ class BIP0032AddressRecord(AddressRecord):
 
         # use the hash of the color string to get the subkey we need
         while len(color_string):
-            number = int(color_string[:4].encode('hex'), 16)
-            pycoin_wallet = pycoin_wallet.subkey(i=number, is_prime=True,
-                                                 as_private=True)
+            # XXX 'number' was to large, have a feeling this will break compatibility
+            number = int(color_string[:4].encode('hex'), 16) & (0x80000000-0x1)
+            pycoin_wallet = pycoin_wallet.subkey(i=number, as_private=True)
             color_string = color_string[4:]
 
         # now get the nth address in this wallet
-        pycoin_wallet = pycoin_wallet.subkey(i=self.index,
-                                             is_prime=True, as_private=True)
+        pycoin_wallet = pycoin_wallet.subkey(i=self.index, as_private=True)
 
-        self.rawPrivKey = pycoin_wallet.secret_exponent
+        self.rawPrivKey = pycoin_wallet.secret_exponent()
         self.publicPoint = BasePoint * self.rawPrivKey
         self.address = public_pair_to_bitcoin_address(
             self.publicPoint.pair(),
@@ -75,13 +74,11 @@ class HDWalletAddressManager(DWalletAddressManager):
 
         # master key is stored in a separate config entry
         self.master_key = config['hdw_master_key']
-
         master = hashlib.sha512(self.master_key.decode('hex')).digest()
-
-        # initialize a BIP-0032 wallet
-        self.pycoin_wallet = Wallet(is_private=True, is_test=self.testnet,
-                                    chain_code=master[32:],
-                                    secret_exponent_bytes=master[:32])
+        self.pycoin_wallet = BIP32Node(
+            netcode='BTC', chain_code=master[32:], 
+            secret_exponent=from_bytes_32(master[:32])
+        )
 
         self.genesis_color_sets = params['genesis_color_sets']
         self.color_set_states = params['color_set_states']

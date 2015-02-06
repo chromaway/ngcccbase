@@ -1,3 +1,6 @@
+import httplib
+import urllib2
+import socket
 from PyQt4 import QtCore, QtGui, uic
 
 import os
@@ -26,9 +29,23 @@ uic.getUiPath = getUiPath
 
 
 class Application(QtGui.QApplication):
+
     def __init__(self):
         signal.signal(signal.SIGINT, signal.SIG_DFL)
         QtGui.QApplication.__init__(self, [])
+
+
+class ConnectionStatus(QtGui.QLabel):
+    
+    def updateStatus(self):
+        self.setStatus(wallet.connected())
+
+    def setStatus(self, connected):
+        if connected: 
+            self.setText("Status: Connected")
+        else:
+            self.setText("Status: Disconnected")
+
 
 class MainWindow(QtGui.QMainWindow):
     def __init__(self):
@@ -54,16 +71,37 @@ class MainWindow(QtGui.QMainWindow):
 
         self.utxo_timer = QtCore.QTimer()
         self.utxo_timer.timeout.connect(self.update_utxo_fetcher)
+        self.utxo_timer.timeout.connect(self.update)
         self.utxo_timer.start(2500)
         wallet.async_utxo_fetcher.start_thread()
 
+        self._sys_excepthook = sys.excepthook
+        sys.excepthook = self.excepthook
+
+        self.connectionStatus = ConnectionStatus("Status: Unknown")
+        self.statusBar().addWidget(self.connectionStatus)
+
+    def excepthook(self, exctype, value, traceback):
+        QtGui.QMessageBox.critical(self, '', str(value), QtGui.QMessageBox.Ok)
+        self._sys_excepthook(exctype, value, traceback)
+
     def update_utxo_fetcher(self):
-        got_updates = wallet.async_utxo_fetcher.update()
-        if got_updates:
-            self.currentPage.update()        
+        try:
+            got_updates = wallet.async_utxo_fetcher.update()
+            if got_updates:
+                self.currentPage.update()
+            self.connectionStatus.updateStatus()
+        except httplib.CannotSendRequest: # bitcoind disconnected
+            self.connectionStatus.setStatus(False)
+        except httplib.BadStatusLine: # bitcoind disconnected
+            self.connectionStatus.setStatus(False)
+        except socket.error: # bitcoind not started
+            self.connectionStatus.setStatus(False)
+        except urllib2.HTTPError: # chromanode disconnected
+            self.connectionStatus.setStatus(False)
+              
 
     def bindActions(self):
-        self.actionRescan.triggered.connect(self.update)
         self.actionExit.triggered.connect(
             lambda: QtCore.QCoreApplication.instance().exit(0))
 
@@ -88,7 +126,6 @@ class MainWindow(QtGui.QMainWindow):
         self.actionP2PTrade.triggered.connect(self.gotoP2PTradePage)
 
     def update(self):
-        wallet.scan()
         self.currentPage.update()
 
     def setPage(self, page):
@@ -120,15 +157,21 @@ class MainWindow(QtGui.QMainWindow):
         self.actionP2PTrade.setChecked(True)
         self.setPage(self.tradepage)
 
-
 class QtUI(object):
     def __init__(self):
         global wallet
         app = Application()
-        window = MainWindow()
-        window.move(QtGui.QApplication.desktop().screen().rect().center()
-                    - window.rect().center())
-        window.show()
+        if wallet.connected():
+            window = MainWindow()
+            center = QtGui.QApplication.desktop().screen().rect().center()
+            window.move(center - window.rect().center())
+            window.show()
+        else: # not connected
+            msg = "Couldn't connect to bitcoind server!"
+            QtGui.QMessageBox.critical(None, '', msg, QtGui.QMessageBox.Ok)
+            return
+
         retcode = app.exec_()
         wallet.stop_all()
         sys.exit(retcode)
+

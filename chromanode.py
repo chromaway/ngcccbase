@@ -46,7 +46,7 @@ class ErrorThrowingRequestProcessor:
     def require(self, data, key, message):
         value = data.get(key, None)
         if value is None:
-            raise web.HTTPError("400 Bad request", 
+            raise web.HTTPError("400 Bad request!", 
                                 {"content-type": "text/plain"},
                                 message)
 

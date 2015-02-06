@@ -116,11 +116,11 @@ class POBColorDefinition(GenesisColorDefinition):
         targets = op_tx_spec.get_targets()[:]
         if len(targets) != 1:
             raise InvalidTargetError(
-                'genesis transaction spec needs exactly one target')
+                'Genesis transaction spec needs exactly one target!')
         target = targets[0]
         if target.get_colordef() != GENESIS_OUTPUT_MARKER:
             raise InvalidColorError(
-                'genesis transaction target should use -1 color_id')
+                'Genesis transaction target should use -1 color_id!')
         fee = op_tx_spec.get_required_fee(300)
         amount = target.colorvalue.get_satoshi()
         uncolored_value = SimpleColorValue(colordef=UNCOLORED_MARKER,
@@ -146,7 +146,7 @@ class POBColorDefinition(GenesisColorDefinition):
                     or isinstance(color_def, POBColorDefinition):
                 targets_by_color[color_def.color_id].append(target)
             else:
-                raise InvalidColorError('incompatible color definition')
+                raise InvalidColorError('Incompatible color definition!')
         uncolored_targets = targets_by_color.pop(UNCOLORED_MARKER.color_id, [])
 
         # get inputs for each color

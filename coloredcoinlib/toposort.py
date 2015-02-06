@@ -16,7 +16,7 @@ def toposorted(graph, parents):
             return
         for parent in parents(v):
             if parent is top:
-                raise ValueError('graph is cyclical', graph)
+                raise ValueError('Graph is cyclical!', graph)
             use(parent, v)
         used.add(id(v))
         result.append(v)

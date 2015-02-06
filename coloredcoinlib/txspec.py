@@ -123,14 +123,14 @@ class ComposedTxSpec(object):
                 if target and target.is_uncolored():
                     value = target.get_value()
                 else:
-                    raise Exception("error in ComposedTxSpec.add_txout: no\
-value is provided and target is not uncolored")
+                    raise Exception("Error in ComposedTxSpec.add_txout: no\
+value is provided and target is not uncolored!")
             if isinstance(value, ColorValue):
                 if value.is_uncolored():
                     value = value.get_value()
                 else:
-                    raise Exception("error in ComposedTxSpec.add_txout: no\
-value isn't uncolored")
+                    raise Exception("Error in ComposedTxSpec.add_txout: no\
+value isn't uncolored!")
             if not target_addr:
                 target_addr = target.get_address()      
             cls = self.FeeChangeTxOut if is_fee_change else self.TxOut
@@ -144,7 +144,7 @@ value isn't uncolored")
             elif isinstance(txout, self.TxOut):
                 self.add_txout(txout=txout)
             else:
-                raise Exception('wrong txout instance')
+                raise Exception('Wrong txout instance!')
 
     def add_txins(self, txins):
         for txin in txins:

@@ -29,7 +29,7 @@ def get_asset_definition(moniker):
     if asset:
         return asset
     else:
-        raise Exception("asset %s not found" % moniker)
+        raise Exception("Asset '%s' not found!" % moniker)
 
 
 def balance(moniker):

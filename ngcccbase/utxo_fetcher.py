@@ -41,7 +41,7 @@ class BaseUTXOFetcher(object):
                 'electrum_port', DEFAULT_ELECTRUM_PORT)
             return ElectrumInterface(electrum_server, electrum_port)
         else:
-            raise Exception('unknown service for UTXOFetcher')        
+            raise Exception('Unknown service for UTXOFetcher!')        
 
     def scan_address(self, address):
         try:
@@ -121,7 +121,7 @@ class AsyncUTXOFetcher(BaseUTXOFetcher):
                 for address in address_list:
                     if not self.is_running():
                         break
-                    self.logger.debug('scanning address %s', address)
+                    #self.logger.debug('scanning address %s', address)
                     self.scan_address(address)
                     wakeup = time.time() + 1
                     while wakeup > time.time() and self.is_running():

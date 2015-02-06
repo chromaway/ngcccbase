@@ -63,8 +63,7 @@ class ThickColorData(StoredColorData):
     def get_colorvalues(self, color_id_set, txhash, outindex):
         blockhash, found = self.blockchain_state.get_tx_blockhash(txhash)
         if not found:
-            raise UnfoundTransactionError("transaction %s isn't found"
-                                          % txhash)
+            raise UnfoundTransactionError("Transaction %s not found!" % txhash)
         if blockhash:
             self.cdbuilder_manager.ensure_scanned_upto(color_id_set, blockhash)
             return self._fetch_colorvalues(color_id_set, txhash, outindex)
@@ -78,7 +77,7 @@ class ThickColorData(StoredColorData):
                 if best_blockhash_prev == best_blockhash:
                     break
             if txhash not in [tx.hash for tx in mempool]:
-                raise UnfoundTransactionError("transaction %s isn't found in mempool" % txhash)
+                raise UnfoundTransactionError("Transaction %s not found in mempool!" % txhash)
             # the preceding blockchain
             self.cdbuilder_manager.ensure_scanned_upto(
                 color_id_set, best_blockhash)
@@ -120,7 +119,7 @@ class ThinColorData(StoredColorData):
 
             current_tx = self.blockchain_state.get_tx(current_txhash)
             if not current_tx:
-                raise UnfoundTransactionError("can't find transaction %s" % current_txhash)
+                raise UnfoundTransactionError("Transaction %s not found!" % current_txhash)
 
             # note a genesis tx will simply have 0 affecting inputs
             inputs = set()

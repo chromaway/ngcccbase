@@ -53,8 +53,7 @@ class AssetDefinition(object):
             for cv in utxo.colorvalues:
                 if self.has_color_id(cv.get_color_id()):
                     return cv
-        raise Exception("cannot get colorvalue for UTXO: "
-                        "no colorvalues available")
+        raise Exception("Cannot get colorvalue for UTXO!")
 
     def parse_value(self, portion):
         """Returns actual number of Satoshis for this Asset
@@ -111,7 +110,7 @@ class AdditiveAssetValue(AssetValue, ComparableMixin):
         super(AdditiveAssetValue, self).__init__(**kwargs)
         self.value = kwargs.pop('value')
         if not isinstance(self.value, int):
-            raise InvalidValueError('not an int')
+            raise InvalidValueError('Value is not an int!')
 
     def get_kwargs(self):
         kwargs = super(AdditiveAssetValue, self).get_kwargs()
@@ -239,13 +238,13 @@ class AssetDefinitionManager(object):
         self.asset_definitions.append(assdef)
         for moniker in assdef.get_monikers():
             if moniker in self.lookup_by_moniker:
-                raise Exception(
-                    'more than one asset definition have same moniker')
+                msg = 'More than one asset definition have same moniker!'
+                raise Exception(msg)
             self.lookup_by_moniker[moniker] = assdef
         for aid in assdef.get_all_ids():
             if aid in self.lookup_by_id:
-                raise Exception(
-                    'more than one asset definition have same id')
+                mgs = 'More than one asset definition have same id!'
+                raise Exception(msg)
             self.lookup_by_id[aid] = assdef
 
     def add_asset_definition(self, params):
@@ -301,14 +300,14 @@ class AssetDefinitionManager(object):
         asset = self.get_asset_by_id(color_set_hash)
         if asset:
             return (asset, address)
-        raise Exception("No asset has a color set with this hash: %s"
-                        % color_set_hash)
+        msg = "No asset has a color set with this : %s"
+        raise Exception(msg % color_set_hash)
 
     def get_asset_value_for_colorvalue(self, colorvalue):
         colorset = ColorSet.from_color_ids(self.colormap, 
                                            [colorvalue.get_color_id()])
         asset = self.find_asset_by_color_set(colorset)
         if not asset:
-            raise Exception('asset not found')
+            raise Exception('Asset not found!')
         return AdditiveAssetValue(asset=asset,
                                   value=colorvalue.get_value())

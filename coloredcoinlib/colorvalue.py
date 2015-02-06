@@ -41,8 +41,7 @@ class AdditiveColorValue(ColorValue, ComparableMixin):
         super(AdditiveColorValue, self).__init__(**kwargs)
         self.value = int(kwargs.pop('value'))
         if not isinstance(self.value, int):
-            raise InvalidValueError('not an int but a %s'
-                                    % self.value.__class__)
+            raise InvalidValueError('Not an int but a %s' % self.value.__class__)
 
     def get_kwargs(self):
         kwargs = super(AdditiveColorValue, self).get_kwargs()

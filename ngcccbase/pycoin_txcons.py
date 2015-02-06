@@ -70,7 +70,7 @@ def reconstruct_composed_tx_spec(model, tx):
     if isinstance(tx, str):
         tx = deserialize(tx)
     if not isinstance(tx, Tx):
-        raise Exception('tx is neiether string nor pycoin.tx.Tx')
+        raise Exception('Tx is neiether string nor pycoin.tx.Tx!')
 
     pycoin_tx = tx
 

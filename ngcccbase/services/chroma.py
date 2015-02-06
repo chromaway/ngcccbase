@@ -73,6 +73,12 @@ class ChromaBlockchainState(BlockchainStateBase):
         data = urllib2.urlopen(url).read()
         return int(data)
 
+    def connected(self):
+        try:
+          return bool(self.get_block_count())
+        except:
+          return False
+
     def get_height(self):
         return self.get_block_count()
 

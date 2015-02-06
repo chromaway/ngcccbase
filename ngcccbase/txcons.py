@@ -46,7 +46,7 @@ class BasicTxSpec(object):
         colorvalue and address
         """
         if not isinstance(asset_target, AssetTarget):
-            raise InvalidTargetError("Not an asset target")
+            raise InvalidTargetError("Not an asset target!")
         self.targets.append(asset_target)
 
     def is_monoasset(self):
@@ -54,7 +54,7 @@ class BasicTxSpec(object):
         coins of exactly 1 color.
         """
         if not self.targets:
-            raise InvalidTargetError('basic txs is empty')
+            raise InvalidTargetError('Basic txs is empty!')
         asset = self.targets[0].get_asset()
         for target in self.targets:
             if target.get_asset() != asset:
@@ -75,7 +75,7 @@ class BasicTxSpec(object):
         a SimpleOperationalTxSpec.
         """
         if not self.is_monocolor():
-            raise InvalidTransformationError('tx spec type not supported')
+            raise InvalidTransformationError('Tx spec type not supported!')
         op_tx_spec = SimpleOperationalTxSpec(self.model, asset)
         color_id = list(asset.get_color_set().color_id_set)[0]
         color_def = self.model.get_color_def(color_id)
@@ -112,14 +112,16 @@ class BaseOperationalTxSpec(OperationalTxSpec):
             required_sum = required_sum_fn(utxo_list)
             if ssum >= required_sum:
                 return selection, ssum
-        raise InsufficientFundsError('not enough coins: %s requested, %s found'
+        raise InsufficientFundsError('Not enough coins: %s requested, %s found!'
                                      % (required_sum, ssum))
     
     def _validate_select_coins_parameters(self, colorvalue, use_fee_estimator):
+        if colorvalue.get_value() <= 0:
+          raise ZeroSelectError
         colordef = colorvalue.get_colordef()
         if colordef != UNCOLORED_MARKER and use_fee_estimator:
-            raise Exception("fee estimator can only be used\
-with uncolored coins")
+            msg = "Fee estimator can only be used with uncolored coins!"
+            raise Exception(msg)
 
 
 class SimpleOperationalTxSpec(BaseOperationalTxSpec):
@@ -140,7 +142,7 @@ class SimpleOperationalTxSpec(BaseOperationalTxSpec):
         """Add a ColorTarget <color_target> to the transaction
         """
         if not isinstance(color_target, ColorTarget):
-            raise InvalidTargetError("Target is not an instance of ColorTarget")
+            raise InvalidTargetError("Target is not an instance of ColorTarget!")
         self.targets.append(color_target)
 
     def get_targets(self):
@@ -162,7 +164,7 @@ class SimpleOperationalTxSpec(BaseOperationalTxSpec):
         elif self.asset.get_color_set().has_color_id(color_id):
             color_set = self.asset.get_color_set()
         if color_set is None:
-            raise InvalidColorIdError('wrong color id')
+            raise InvalidColorIdError('Wrong color id!')
         aw = wam.get_change_address(color_set)
         return aw.get_address()
 
@@ -325,7 +327,8 @@ class TransactionSpecTransformer(object):
                 asset = tx_spec.targets[0].get_asset()
                 operational_ts = tx_spec.make_operational_tx_spec(asset)
                 return self.transform(operational_ts, target_spec_kind)
-        raise InvalidTransformationError('do not know how to transform tx spec')
+        msg = 'Do not know how to transform tx spec!'
+        raise InvalidTransformationError(msg)
 
     def transform_operational(self, tx_spec, target_spec_kind):
         """Takes an operational transaction <tx_spec> and returns a
@@ -337,7 +340,8 @@ class TransactionSpecTransformer(object):
             if composer:
                 composed = composer(tx_spec)
                 return self.transform(composed, target_spec_kind)
-        raise InvalidTransformationError('do not know how to transform tx spec')
+        msg = 'Do not know how to transform tx spec!'
+        raise InvalidTransformationError(msg)
 
     def transform_composed(self, tx_spec, target_spec_kind):
         """Takes a SimpleComposedTxSpec <tx_spec> and returns
@@ -348,12 +352,14 @@ class TransactionSpecTransformer(object):
             rtxs = RawTxSpec.from_composed_tx_spec(self.model, tx_spec)
             rtxs.sign(tx_spec.get_txins())
             return rtxs
-        raise InvalidTransformationError('do not know how to transform tx spec')
+        msg = 'Do not know how to transform tx spec!'
+        raise InvalidTransformationError(msg)
 
     def transform_signed(self, tx_spec, target_spec_kind):
         """This method is not yet implemented.
         """
-        raise InvalidTransformationError('do not know how to transform tx spec')
+        msg = 'Do not know how to transform tx spec!'
+        raise InvalidTransformationError(msg)
 
     def transform(self, tx_spec, target_spec_kind):
         """Transform a transaction <tx_spec> into another type
@@ -361,7 +367,7 @@ class TransactionSpecTransformer(object):
         """
         spec_kind = self.classify_tx_spec(tx_spec)
         if spec_kind is None:
-            raise InvalidTransformationError('spec kind is not recognized')
+            raise InvalidTransformationError('Spec kind is not recognized!')
         if spec_kind == target_spec_kind:
             return tx_spec
         if spec_kind == 'basic':

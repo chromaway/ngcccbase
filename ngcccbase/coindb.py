@@ -226,7 +226,7 @@ class CoinManager(object):
         wam = self.model.get_address_manager()
         address_rec = wam.find_address_record(coin.address)
         if not address_rec:
-            raise Exception('address record not found')
+            raise Exception('Address record not found!')
         color_set = address_rec.get_color_set()
         if color_set.uncolored_only():
             return [SimpleColorValue(colordef=UNCOLORED_MARKER,

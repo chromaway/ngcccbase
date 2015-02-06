@@ -84,7 +84,7 @@ def group_targets_by_color(targets, compat_cls):
                 or isinstance(color_def, compat_cls):
             targets_by_color[color_def.color_id].append(target)
         else:
-            raise InvalidColorError('incompatible color definition')
+            raise InvalidColorError('Incompatible color definition %s' % color_def)
     return targets_by_color
 
 
@@ -108,7 +108,8 @@ class GenesisColorDefinition(ColorDefinition):
         description string and the blockchain state"""
         code, txhash, outindex, height = color_desc.split(':')
         if (code != cls.CLASS_CODE):
-            raise InvalidColorError('wrong color code in from_color_desc')
+            msg = 'Wrong color code "%s" in from_color_desc!'
+            raise InvalidColorError(msg % code)
         genesis = {'txhash': txhash,
                    'height': int(height),
                    'outindex': int(outindex)}
@@ -193,12 +194,12 @@ class OBColorDefinition(GenesisColorDefinition):
     def compose_genesis_tx_spec(self, op_tx_spec):
         targets = op_tx_spec.get_targets()
         if len(targets) != 1:
-            raise InvalidTargetError(
-                'genesis transaction spec needs exactly one target')
+            msg = 'Genesis transaction spec needs exactly one target!'
+            raise InvalidTargetError(msg)
         target = targets[0]
         if target.get_colordef() != GENESIS_OUTPUT_MARKER:
-            raise InvalidColorError(
-                'genesis transaction target should use -1 color_id')
+            msg = 'Genesis transaction target should use -1 color_id!'
+            raise InvalidColorError(msg)
         composed_tx_spec = op_tx_spec.make_composed_tx_spec()
         composed_tx_spec.add_txout(value=target.get_value(),
                                    target_addr=target.get_address())
@@ -273,7 +274,7 @@ class EPOBCColorDefinition(GenesisColorDefinition):
             while 2 ** padding_code < min_padding:
                 padding_code += 1
             if padding_code > 63:
-                raise Exception('requires too much padding')
+                raise Exception('Requires too much padding!')
             return padding_code
 
         @classmethod
@@ -473,12 +474,12 @@ class EPOBCColorDefinition(GenesisColorDefinition):
     @classmethod
     def compose_genesis_tx_spec(cls, op_tx_spec):
         if len(op_tx_spec.get_targets()) != 1:
-            raise InvalidTargetError(
-                'genesis transaction spec needs exactly one target')
+            msg = 'Genesis transaction spec needs exactly one target!'
+            raise InvalidTargetError(msg)
         g_target = op_tx_spec.get_targets()[0]
         if g_target.get_colordef() != GENESIS_OUTPUT_MARKER:
-            raise InvalidColorError(
-                'genesis transaction target should use -1 color_id')
+            msg = 'Genesis transaction target should use -1 color_id!'
+            raise InvalidColorError(msg)
         g_value = g_target.get_value()
         padding_needed = op_tx_spec.get_dust_threshold().get_value() - g_value
         tag = cls.Tag(cls.Tag.closest_padding_code(padding_needed), True)

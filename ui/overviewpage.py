@@ -28,9 +28,6 @@ class OverviewPage(QtGui.QWidget):
         hbox = QtGui.QHBoxLayout()
         hbox.addItem(QtGui.QSpacerItem(20, 0))
         hbox.setStretch(0, 1)
-        updateButton = QtGui.QPushButton('Update', self.scrollAreaContents)
-        updateButton.clicked.connect(self.updateButtonClicked)
-        hbox.addWidget(updateButton)
         self.scrollAreaLayout.addLayout(hbox)
 
         for moniker in wallet.get_all_monikers():
@@ -73,5 +70,3 @@ class OverviewPage(QtGui.QWidget):
         self.scrollAreaLayout.addItem(QtGui.QSpacerItem(20, 0))
         self.scrollAreaLayout.setStretch(self.scrollAreaLayout.count()-1, 1)
 
-    def updateButtonClicked(self):
-        self.parent().parent().parent().update()
