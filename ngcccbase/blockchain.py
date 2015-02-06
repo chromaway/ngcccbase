@@ -322,7 +322,8 @@ class VerifiedBlockchainState(BlockchainStateBase, threading.Thread):
 
         self.bcs = bcs
         self.txdb = txdb
-        self.store = FileStore(os.path.join(path, 'blockchain_headers'))
+        prefix = "testnet." if testnet else "mainnet."
+        self.store = FileStore(os.path.join(path, prefix + 'blockchain_headers'))
         self.bha = BlockHashingAlgorithm(self.store, testnet)
 
         self.local_height = 0
