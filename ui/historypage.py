@@ -31,8 +31,11 @@ class HistoryPage(QtGui.QWidget):
         self.model.removeRows(0, self.model.rowCount())
         tx_history = wallet.model.tx_history
         for ent in tx_history.get_all_entries():
-            datetime = QtCore.QDateTime.fromTime_t(ent.txtime)
-            datetime_str = datetime.toString(QtCore.Qt.DefaultLocaleShortDate)
+            if ent.txtime:
+                datetime = QtCore.QDateTime.fromTime_t(ent.txtime)
+                datetime_str = datetime.toString(QtCore.Qt.DefaultLocaleShortDate)
+            else:
+                datetime_str = "Unconfirmed"
             if (ent.txtype == 'send') or (ent.txtype == 'receive'):
                 for tgt in ent.get_targets():
                     asset = tgt.get_asset()

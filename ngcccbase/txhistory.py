@@ -120,7 +120,7 @@ class TxHistory(object):
                        for e in self.entries.values()],
                       key=lambda txe: txe.txtime)
 
-    def populate_history(self):
+    def _populate_history(self):
         txdb = self.model.get_tx_db()
         for txhash in txdb.get_all_tx_hashes():
             if txhash not in self.entries:
@@ -128,6 +128,14 @@ class TxHistory(object):
                 raw_tx  = RawTxSpec.from_tx_data(self.model,
                                                  tx_data.decode('hex'))
                 self.add_entry_from_tx(raw_tx)
+
+    def populate_history(self):
+        task = self._populate_history
+        class AsyncTask(threading.Thread):
+            def run(self):
+                task()
+        thread = AsyncTask()
+        thread.start()
 
     def get_tx_timestamp(self, txhash): # TODO move to suitable file
         txtime = 0
@@ -140,8 +148,7 @@ class TxHistory(object):
                 txtime = header.get('timestamp', txtime)
         return txtime
 
-    def add_receive_entry(self, raw_tx, received_coins):
-        txhash = raw_tx.get_hex_txhash()
+    def add_receive_entry(self, txhash, received_coins):
         txtime = self.get_tx_timestamp(txhash)
         out_idxs = [coin.outindex for coin in received_coins]
         self.entries[txhash] = {"txhash": txhash,
@@ -166,13 +173,26 @@ class TxHistory(object):
                                 "txtype": 'unknown',
                                 "txtime": txtime}        
         
+    
     def add_entry_from_tx(self, raw_tx):
         coindb = self.model.get_coin_manager()
+        adm = self.model.get_asset_definition_manager()
         spent_coins, received_coins = coindb.get_coins_for_transaction(raw_tx)
         if (not spent_coins) and (not received_coins):
             return
-        if not spent_coins:
-            self.add_receive_entry(raw_tx, received_coins)
+        txhash = raw_tx.get_hex_txhash()
+        if not spent_coins: # check for not spent because of change
+            self.add_receive_entry(txhash, received_coins)
         else:
-            # TODO: classify p2ptrade and send transactions
-            self.add_unknown_entry(raw_tx.get_hex_txhash())
+            # XXX assumes single color tx
+            main_color_value = spent_coins[0].get_colorvalues()[0]
+            asset = adm.get_asset_value_for_colorvalue(main_color_value).asset
+            target_addrs = []
+            target_values = []
+            for coin in spent_coins: # FIXME use output address and value
+                target_addrs.append(coin.address)
+                target_values.append(coin.get_colorvalues()[0].get_value())
+            self.add_send_entry(txhash, asset, target_addrs, target_values)
+
+
+
