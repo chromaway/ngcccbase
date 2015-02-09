@@ -1,6 +1,7 @@
 from coloredcoinlib import (ColorSet, IncompatibleTypesError, InvalidValueError, 
                             SimpleColorValue, ColorValue)
 from coloredcoinlib.comparable import ComparableMixin
+from decimal import Decimal
 
 
 class AssetDefinition(object):
@@ -69,7 +70,7 @@ class AssetDefinition(object):
             atoms = value.get_value()
         else:
             atoms = value
-        return '{0:g}'.format(atoms / float(self.unit))
+        return str(Decimal(atoms) / Decimal(self.unit))
 
     def get_data(self):
         """Returns a JSON-compatible object that represents this Asset

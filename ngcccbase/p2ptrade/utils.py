@@ -37,7 +37,9 @@ class HTTPInterface(object): # TODO test it
     try:
       return json.loads(urllib2.urlopen(url).read())
     except ValueError:
-      return []
+      return [] # bad data
+    except urllib2.URLError:
+      return [] # connection issues
 
   def post(self, url, content):
     data = json.dumps(content)

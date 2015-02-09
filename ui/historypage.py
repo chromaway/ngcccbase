@@ -38,6 +38,7 @@ class HistoryPage(QtGui.QWidget):
                 datetime_str = "Unconfirmed"
             if (ent.txtype == 'send') or (ent.txtype == 'receive'):
                 for tgt in ent.get_targets():
+                    # FIXME skip change
                     asset = tgt.get_asset()
                     moniker = asset.get_monikers()[0]
                     value_prefix = "-" if ent.txtype == 'send' else '+'
