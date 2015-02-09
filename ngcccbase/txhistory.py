@@ -125,8 +125,6 @@ class TxHistory(object):
         for txhash in txdb.get_all_tx_hashes():
             if (txhash not in self.entries or            # new transaction
                     not self.entries[txhash]['txtime']): # update unconfirmed
-                if (txhash not in self.entries and self.entries[txhash]['txtime'] == 0):
-                    print "updating unconfirmed"
                 tx_data = txdb.get_tx_by_hash(txhash)['data']
                 raw_tx  = RawTxSpec.from_tx_data(self.model,
                                                  tx_data.decode('hex'))
@@ -169,30 +167,44 @@ class TxHistory(object):
                                 "txtime": txtime}        
         
     
-    def _compose_and_add_send_entry(self, txhash, spent_coins):
-        # XXX assumes single color tx
+    def _compose_and_add_send_entry(self, raw_tx, spent_coins):
+        txhash = raw_tx.get_hex_txhash()
         adm = self.model.get_asset_definition_manager()
+        coindb = self.model.get_coin_manager()
         main_color_value = spent_coins[0].get_colorvalues()[0]
         asset = adm.get_asset_value_for_colorvalue(main_color_value).asset
-
+        all_addresses = self.model.get_address_manager().get_all_addresses()
+        all_addresses = [record.address for record in all_addresses]
         target_addrs = []
         target_values = []
-        for coin in spent_coins: # FIXME use output address and value
-            target_addrs.append(coin.address)
-            target_values.append(coin.get_colorvalues()[0].get_value())
-
+        for i, txout in enumerate(raw_tx.composed_tx_spec.txouts):
+            coin = coindb.find_coin(txhash, i)
+            if not coin: # uncolored
+                address = txout.target_addr
+                value = txout.value
+            else: # colored TODO test it!!
+                colorvalues = coin.get_colorvalues()
+                if not colorvalues:
+                    continue
+                assert len(colorvalues) == 1
+                address = coin.address
+                value = colorvalues[0].get_value()
+            if address in all_addresses:
+                continue
+            target_addrs.append(address)
+            target_values.append(value)
         self.add_send_entry(txhash, asset, target_addrs, target_values)
 
     def add_entry_from_tx(self, raw_tx):
+        txhash = raw_tx.get_hex_txhash()
         coindb = self.model.get_coin_manager()
         spent_coins, received_coins = coindb.get_coins_for_transaction(raw_tx)
         if (not spent_coins) and (not received_coins):
             return
-        txhash = raw_tx.get_hex_txhash()
-        if not spent_coins: # check for not spent because of change
+        if not spent_coins and received_coins: # ingnore change entries
             self.add_receive_entry(txhash, received_coins)
         else:
-            self._compose_and_add_send_entry(txhash, spent_coins)
+            self._compose_and_add_send_entry(raw_tx, spent_coins)
 
 
 
