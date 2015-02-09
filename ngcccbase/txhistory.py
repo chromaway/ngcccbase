@@ -120,22 +120,17 @@ class TxHistory(object):
                        for e in self.entries.values()],
                       key=lambda txe: txe.txtime)
 
-    def _populate_history(self):
+    def populate_history(self):
         txdb = self.model.get_tx_db()
         for txhash in txdb.get_all_tx_hashes():
-            if txhash not in self.entries:
+            if (txhash not in self.entries or            # new transaction
+                    not self.entries[txhash]['txtime']): # update unconfirmed
+                if (txhash not in self.entries and self.entries[txhash]['txtime'] == 0):
+                    print "updating unconfirmed"
                 tx_data = txdb.get_tx_by_hash(txhash)['data']
                 raw_tx  = RawTxSpec.from_tx_data(self.model,
                                                  tx_data.decode('hex'))
                 self.add_entry_from_tx(raw_tx)
-
-    def populate_history(self):
-        task = self._populate_history
-        class AsyncTask(threading.Thread):
-            def run(self):
-                task()
-        thread = AsyncTask()
-        thread.start()
 
     def get_tx_timestamp(self, txhash): # TODO move to suitable file
         txtime = 0
@@ -174,9 +169,22 @@ class TxHistory(object):
                                 "txtime": txtime}        
         
     
+    def _compose_and_add_send_entry(self, txhash, spent_coins):
+        # XXX assumes single color tx
+        adm = self.model.get_asset_definition_manager()
+        main_color_value = spent_coins[0].get_colorvalues()[0]
+        asset = adm.get_asset_value_for_colorvalue(main_color_value).asset
+
+        target_addrs = []
+        target_values = []
+        for coin in spent_coins: # FIXME use output address and value
+            target_addrs.append(coin.address)
+            target_values.append(coin.get_colorvalues()[0].get_value())
+
+        self.add_send_entry(txhash, asset, target_addrs, target_values)
+
     def add_entry_from_tx(self, raw_tx):
         coindb = self.model.get_coin_manager()
-        adm = self.model.get_asset_definition_manager()
         spent_coins, received_coins = coindb.get_coins_for_transaction(raw_tx)
         if (not spent_coins) and (not received_coins):
             return
@@ -184,15 +192,7 @@ class TxHistory(object):
         if not spent_coins: # check for not spent because of change
             self.add_receive_entry(txhash, received_coins)
         else:
-            # XXX assumes single color tx
-            main_color_value = spent_coins[0].get_colorvalues()[0]
-            asset = adm.get_asset_value_for_colorvalue(main_color_value).asset
-            target_addrs = []
-            target_values = []
-            for coin in spent_coins: # FIXME use output address and value
-                target_addrs.append(coin.address)
-                target_values.append(coin.get_colorvalues()[0].get_value())
-            self.add_send_entry(txhash, asset, target_addrs, target_values)
+            self._compose_and_add_send_entry(txhash, spent_coins)
 
 
 
