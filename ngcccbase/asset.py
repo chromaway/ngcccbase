@@ -304,11 +304,17 @@ class AssetDefinitionManager(object):
         msg = "No asset has a color set with this : %s"
         raise Exception(msg % color_set_hash)
 
-    def get_asset_value_for_colorvalue(self, colorvalue):
-        colorset = ColorSet.from_color_ids(self.colormap, 
-                                           [colorvalue.get_color_id()])
+
+    def get_assetvalue_for_color_id_value(self, colorid, colorvalue):
+        colorset = ColorSet.from_color_ids(self.colormap, [colorid])
         asset = self.find_asset_by_color_set(colorset)
         if not asset:
             raise Exception('Asset not found!')
-        return AdditiveAssetValue(asset=asset,
-                                  value=colorvalue.get_value())
+        return AdditiveAssetValue(asset=asset, value=colorvalue)
+
+    def get_asset_value_for_colorvalue(self, colorvalue):
+        return self.get_assetvalue_for_color_id_value(
+            colorvalue.get_color_id(), 
+            colorvalue.get_value()
+        )
+

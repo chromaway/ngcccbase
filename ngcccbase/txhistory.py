@@ -2,6 +2,7 @@ import time
 from coloredcoinlib.store import PersistentDictStore
 from asset import AdditiveAssetValue, AssetTarget
 from txcons import RawTxSpec
+from ngcccbase.address import AddressRecord
 
 def asset_value_to_data(av):
     return (av.get_asset().get_id(),
@@ -31,22 +32,17 @@ class TxHistoryEntry(object):
 class TxHistoryEntry_Send(TxHistoryEntry):
     def __init__(self, model, data):
         super(TxHistoryEntry_Send, self).__init__(model, data)
-        self.asset_id = data['asset_id']
-        self.targets = data['targets']
+        self.data = data
 
-    def get_asset(self):
+    def get_deltas(self):
         adm = self.model.get_asset_definition_manager()
-        return adm.get_asset_by_id(self.asset_id)
+        deltas = []
+        for colorid, value in self.data['deltas'].items():
+            deltas.append(adm.get_assetvalue_for_color_id_value(colorid, value))
+        return deltas
 
-    def get_targets(self):
-        asset = self.get_asset()
-        asset_targets = []
-        for (tgt_addr, tgt_value) in self.targets:
-            asset_value = AdditiveAssetValue(asset=asset,
-                                             value=tgt_value)
-            asset_targets.append(AssetTarget(tgt_addr, 
-                                             asset_value))
-        return asset_targets
+    def get_addresses(self):
+        return ", ".join(self.data['addresses'])
 
 class TxHistoryEntry_Receive(TxHistoryEntry):
     def __init__(self, model, data):
@@ -107,14 +103,6 @@ class TxHistory(object):
         else:
             return None
 
-    def add_send_entry(self, txhash, asset, target_addrs, target_values):
-        txtime = self.get_tx_timestamp(txhash)
-        self.entries[txhash] = {"txhash": txhash,
-                                "txtype": 'send',
-                                "txtime": txtime,
-                                "asset_id": asset.get_id(),
-                                "targets": zip(target_addrs, target_values)}
-
     def get_all_entries(self):
         return sorted([self.decode_entry(e) 
                        for e in self.entries.values()],
@@ -166,34 +154,41 @@ class TxHistory(object):
                                 "txtype": 'unknown',
                                 "txtime": txtime}        
         
-    
-    def _compose_and_add_send_entry(self, raw_tx, spent_coins):
+    def get_delta_color_values(self, spent_coins, received_coins):
+        deltas = {}
+        for coin in received_coins: # add received
+            for cv in coin.get_colorvalues():
+                colorid = cv.get_colordef().get_color_id()
+                deltas[colorid] = deltas.get(colorid, 0) + cv.get_value()
+        for coin in spent_coins: # subtract sent
+            for cv in coin.get_colorvalues():
+                colorid = cv.get_colordef().get_color_id()
+                deltas[colorid] = deltas.get(colorid, 0) - cv.get_value()
+        return dict(deltas)
+
+    def add_send_entry(self, raw_tx, spent_coins, received_coins):
+        am = self.model.get_address_manager()
+
         txhash = raw_tx.get_hex_txhash()
-        adm = self.model.get_asset_definition_manager()
-        coindb = self.model.get_coin_manager()
-        main_color_value = spent_coins[0].get_colorvalues()[0]
-        asset = adm.get_asset_value_for_colorvalue(main_color_value).asset
-        all_addresses = self.model.get_address_manager().get_all_addresses()
-        all_addresses = [record.address for record in all_addresses]
-        target_addrs = []
-        target_values = []
-        for i, txout in enumerate(raw_tx.composed_tx_spec.txouts):
-            coin = coindb.find_coin(txhash, i)
-            if not coin: # uncolored
-                address = txout.target_addr
-                value = txout.value
-            else: # colored TODO test it!!
-                colorvalues = coin.get_colorvalues()
-                if not colorvalues:
-                    continue
-                assert len(colorvalues) == 1
-                address = coin.address
-                value = colorvalues[0].get_value()
-            if address in all_addresses:
-                continue
-            target_addrs.append(address)
-            target_values.append(value)
-        self.add_send_entry(txhash, asset, target_addrs, target_values)
+        txtime = self.get_tx_timestamp(txhash)
+
+        # get addresses
+        outputs = raw_tx.composed_tx_spec.txouts
+        wallet_addrs = set([r.address for r in am.get_all_addresses()])
+        output_addrs = set([out.target_addr for out in outputs])
+        send_addrs = list(output_addrs.difference(wallet_addrs))
+        if not send_addrs:
+          return # apperently this happens, issuance, self send?
+
+        deltas = self.get_delta_color_values(spent_coins, received_coins)
+
+        self.entries[txhash] = {
+            "txhash": txhash,
+            "txtype": 'send',
+            "txtime": txtime,
+            "addresses" : send_addrs,
+            "deltas" : deltas,
+        }
 
     def add_entry_from_tx(self, raw_tx):
         txhash = raw_tx.get_hex_txhash()
@@ -204,7 +199,7 @@ class TxHistory(object):
         if not spent_coins and received_coins: # ingnore change entries
             self.add_receive_entry(txhash, received_coins)
         else:
-            self._compose_and_add_send_entry(raw_tx, spent_coins)
+            self.add_send_entry(raw_tx, spent_coins, received_coins)
 
 
 
