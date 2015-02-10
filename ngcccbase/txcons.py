@@ -4,6 +4,7 @@ txcons.py
 Transaction Constructors for the blockchain.
 """
 
+from collections import defaultdict
 from asset import AssetTarget
 from coloredcoinlib import (ColorSet, ColorTarget, SimpleColorValue,
                             ComposedTxSpec, OperationalTxSpec,

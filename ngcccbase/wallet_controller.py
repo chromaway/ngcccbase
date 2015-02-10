@@ -71,6 +71,7 @@ class WalletController(object):
         txdb = self.model.get_tx_db()
         for tx in sorted_txs:
             txdb.add_tx_by_hash(tx.hash)
+        self.model.tx_history.entries.clear()
         self.model.tx_history.populate_history()
 
     def scan_utxos(self):
@@ -102,8 +103,10 @@ class WalletController(object):
             for txout in signed_tx_spec.composed_tx_spec.txouts:
                 print (txout.value)
         txhash = self.publish_tx(signed_tx_spec)
-        self.model.tx_history.add_send_entry(txhash, asset, 
-                                             target_addrs, raw_colorvalues)
+
+        # FIXME
+        #self.model.tx_history.add_send_entry(txhash, asset, 
+        #                                     target_addrs, raw_colorvalues)
 
     def issue_coins(self, moniker, pck, units, atoms_in_unit):
         """Issues a new color of name <moniker> using coloring scheme

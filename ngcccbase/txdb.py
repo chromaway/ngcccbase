@@ -111,7 +111,11 @@ class BaseTxDb(object):
         return self.add_tx(txhash, txdata, raw_tx, status)
 
     def add_tx(self, txhash, txdata, raw_tx, status=None):
-        self.model.tx_history.add_entry_from_tx(raw_tx)
+        entries = self.model.tx_history.entries
+        if (txhash not in entries or            # new transaction
+                not entries[txhash]['txtime']): # update unconfirmed
+            self.model.tx_history.add_entry_from_tx(raw_tx)
+
         if not self.store.get_tx_by_hash(txhash):
             if not status:
                 status = self.identify_tx_status(txhash)
