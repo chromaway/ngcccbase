@@ -18,6 +18,7 @@ from ngcccbase.pwallet import PersistentWallet
 from ngcccbase.logger import setup_logging
 
 from time import sleep
+from decimal import Decimal
 
 class _ApplicationHelpFormatter(argparse.HelpFormatter):
     def add_usage(self, usage, actions, groups, prefix=None):
@@ -398,7 +399,7 @@ class Application(object):
         value = asset.parse_value(params['value'])
         bitcoin = self.get_asset_definition('bitcoin')
         price = bitcoin.parse_value(params['price'])
-        total = int(float(value)/float(asset.unit)*float(price))
+        total = int(Decimal(value)/Decimal(asset.unit)*Decimal(price))
         color_desc = asset.get_color_set().color_desc_list[0]
         sell_side = {"color_spec": color_desc, "value": value}
         buy_side = {"color_spec": "", "value": total}

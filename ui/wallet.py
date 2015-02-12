@@ -12,6 +12,7 @@ from ngcccbase.utxo_fetcher import AsyncUTXOFetcher
 import time
 import argparse
 import threading
+from decimal import Decimal
 
 
 class TimedAsyncTask(threading.Thread):
@@ -172,7 +173,7 @@ class Wallet(object):
         value = asset.parse_value(params['value'])
         bitcoin = self.get_asset_definition('bitcoin')
         price = bitcoin.parse_value(params['price'])
-        total = int(float(value)/float(asset.unit)*float(price))
+        total = int(Decimal(value)/Decimal(asset.unit)*Decimal(price))
         color_desc = asset.get_color_set().color_desc_list[0]
         sell_side = {"color_spec": color_desc, "value": value}
         buy_side = {"color_spec": "", "value": total}

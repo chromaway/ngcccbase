@@ -3,6 +3,7 @@ import collections
 from PyQt4 import QtGui, uic
 
 from wallet import wallet
+from decimal import Decimal
 
 
 class SendcoinsEntry(QtGui.QFrame):
@@ -139,7 +140,7 @@ class SendcoinsPage(QtGui.QWidget):
         if retval != QtGui.QMessageBox.Yes:
             return
         # check value exceeds balance
-        currency = collections.defaultdict(float)
+        currency = collections.defaultdict(Decimal)
         for recipient in data:
             currency[recipient['moniker']] += recipient['value']
         for moniker, value in currency.items():

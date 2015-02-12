@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import unittest
+from decimal import Decimal
 
 from ngcccbase.services.blockchain import BlockchainInfoInterface, AbeInterface
 from ngcccbase.services.electrum import (ConnectionError,
@@ -25,7 +26,7 @@ class TestElectrum(unittest.TestCase):
         self.assertEqual(self.ei.get_utxo(self.address), [])
 
     def test_get_version(self):
-        self.assertTrue(float(self.ei.get_version()) >= 0.8)
+        self.assertTrue(Decimal(self.ei.get_version()) >= 0.8)
 
     def test_get_height(self):
         self.assertTrue(self.ei.get_height() > 296217)

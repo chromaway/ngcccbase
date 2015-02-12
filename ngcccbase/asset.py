@@ -56,21 +56,27 @@ class AssetDefinition(object):
                     return cv
         raise Exception("Cannot get colorvalue for UTXO!")
 
+    def validate_value(self, portion):
+        """Returns True if the portion is an exact multiple of the Asset atoms.
+        """
+        if isinstance(portion, ColorValue) or isinstance(portion, AssetValue):
+            portion = portion.get_value()
+        atom = Decimal("1") / Decimal(self.unit)
+        return portion % atom == Decimal("0")
+
     def parse_value(self, portion):
         """Returns actual number of Satoshis for this Asset
         given the <portion> of the asset.
         """
-        return int(float(portion) * self.unit)
+        return int(Decimal(portion) * Decimal(self.unit))
 
-    def format_value(self, value):
+    def format_value(self, portion):
         """Returns a string representation of the portion of the asset.
         can involve rounding.  doesn't display insignificant zeros
         """
-        if isinstance(value, ColorValue) or isinstance(value, AssetValue):
-            atoms = value.get_value()
-        else:
-            atoms = value
-        return str(Decimal(atoms) / Decimal(self.unit))
+        if isinstance(portion, ColorValue) or isinstance(portion, AssetValue):
+            portion = portion.get_value()
+        return str(Decimal(portion) / Decimal(self.unit))
 
     def get_data(self):
         """Returns a JSON-compatible object that represents this Asset
