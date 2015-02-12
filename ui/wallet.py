@@ -184,7 +184,7 @@ class Wallet(object):
 
     def p2ptrade_make_mirror_offer(self, offer):
         data = offer.get_data()
-        return MyEOffer(None, data['B'], data['A'], False)
+        return MyEOffer(None, data['B'], data['A'])
 
     def stop_all(self):
         self.scan_thread.stop()
