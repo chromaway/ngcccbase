@@ -25,13 +25,32 @@ class TxHistoryEntry(object):
             return TxHistoryEntry_Receive(model, data)
         elif txtype == 'trade':
             return TxHistoryEntry_Trade(model, data)
+        if txtype == 'complex':
+            return TxHistoryEntry_Complex(model, data)
         else:
             return TxHistoryEntry(model, data)
-
 
 class TxHistoryEntry_Send(TxHistoryEntry):
     def __init__(self, model, data):
         super(TxHistoryEntry_Send, self).__init__(model, data)
+        self.asset_id = data['asset_id']
+        self.targets = data['targets']
+
+    def get_asset(self):
+        adm = self.model.get_asset_definition_manager()
+        return adm.get_asset_by_id(self.asset_id)
+
+    def get_targets(self):
+        asset = self.get_asset()
+        asset_targets = []
+        for (tgt_addr, tgt_value) in self.targets:
+            asset_value = AdditiveAssetValue(asset=asset, value=tgt_value)
+            asset_targets.append(AssetTarget(tgt_addr, asset_value))
+        return asset_targets
+
+class TxHistoryEntry_Complex(TxHistoryEntry):
+    def __init__(self, model, data):
+        super(TxHistoryEntry_Complex, self).__init__(model, data)
         self.data = data
 
     def get_deltas(self):
@@ -48,7 +67,7 @@ class TxHistoryEntry_Receive(TxHistoryEntry):
     def __init__(self, model, data):
         super(TxHistoryEntry_Receive, self).__init__(model, data)
         self.out_idxs = data['out_idxs']
-        
+
     def get_targets(self):
         targets = []
         coindb = self.model.get_coin_manager()
@@ -70,7 +89,7 @@ class TxHistoryEntry_Trade(TxHistoryEntry):
         TxHistoryEntry.__init__(self, model, data)
         self.in_values = data['in_values']
         self.out_values = data['out_values']
-        
+
     def get_values(self, values):
         adm = self.model.get_asset_definition_manager()
         avalues = []
@@ -86,13 +105,13 @@ class TxHistoryEntry_Trade(TxHistoryEntry):
     def get_out_values(self):
         return self.get_values(self.out_values)
 
-    
+
 class TxHistory(object):
     def __init__(self, model):
         self.model = model
         self.entries = PersistentDictStore(
             self.model.store_conn.conn, "txhistory")
-    
+
     def decode_entry(self, entry_data):
         return TxHistoryEntry.from_data(self.model, entry_data)
 
@@ -104,7 +123,7 @@ class TxHistory(object):
             return None
 
     def get_all_entries(self):
-        return sorted([self.decode_entry(e) 
+        return sorted([self.decode_entry(e)
                        for e in self.entries.values()],
                       key=lambda txe: txe.txtime)
 
@@ -129,7 +148,11 @@ class TxHistory(object):
                 txtime = header.get('timestamp', txtime)
         return txtime
 
-    def add_receive_entry(self, txhash, received_coins):
+    def is_receive_entry(self, raw_tx, spent_coins, received_coins):
+        return not spent_coins and received_coins
+
+    def create_receive_entry(self, raw_tx, received_coins):
+        txhash = raw_tx.get_hex_txhash()
         txtime = self.get_tx_timestamp(txhash)
         out_idxs = [coin.outindex for coin in received_coins]
         self.entries[txhash] = {"txhash": txhash,
@@ -147,13 +170,13 @@ class TxHistory(object):
                                 "txtime": txtime,
                                 "in_values": [asset_value_to_data(in_assetvalue)],
                                 "out_values": [asset_value_to_data(out_assetvalue)]}
-    
+
     def add_unknown_entry(self, txhash):
         txtime = self.get_tx_timestamp(txhash)
         self.entries[txhash] = {"txhash": txhash,
                                 "txtype": 'unknown',
-                                "txtime": txtime}        
-        
+                                "txtime": txtime}
+
     def get_delta_color_values(self, spent_coins, received_coins):
         deltas = {}
         for coin in received_coins: # add received
@@ -166,7 +189,7 @@ class TxHistory(object):
                 deltas[colorid] = deltas.get(colorid, 0) - cv.get_value()
         return dict(deltas)
 
-    def add_send_entry(self, raw_tx, spent_coins, received_coins):
+    def add_complex_entry(self, raw_tx, spent_coins, received_coins):
         am = self.model.get_address_manager()
 
         txhash = raw_tx.get_hex_txhash()
@@ -178,28 +201,45 @@ class TxHistory(object):
         output_addrs = set([out.target_addr for out in outputs])
         send_addrs = list(output_addrs.difference(wallet_addrs))
         if not send_addrs:
-          return # apperently this happens, issuance, self send?
-
+          return # TODO apperently this happens, issuance, self send?
         deltas = self.get_delta_color_values(spent_coins, received_coins)
-
         self.entries[txhash] = {
             "txhash": txhash,
-            "txtype": 'send',
+            "txtype": 'complex',
             "txtime": txtime,
             "addresses" : send_addrs,
             "deltas" : deltas,
         }
 
+    def is_send_entry(self, raw_tx, spent_coins, received_coins):
+        return False # TODO
+
+    def create_send_entry(self, raw_tx, spent_coins, received_coins):
+        pass # TODO
+
+    def add_send_entry(self, txhash, asset, target_addrs, target_values):
+        self.entries[txhash] = {"txhash": txhash,
+                                "txtype": 'send',
+                                "txtime": int(time.time()),
+                                "asset_id": asset.get_id(),
+                                "targets": zip(target_addrs, target_values)}
+
     def add_entry_from_tx(self, raw_tx):
-        txhash = raw_tx.get_hex_txhash()
         coindb = self.model.get_coin_manager()
         spent_coins, received_coins = coindb.get_coins_for_transaction(raw_tx)
         if (not spent_coins) and (not received_coins):
-            return
-        if not spent_coins and received_coins: # ingnore change entries
-            self.add_receive_entry(txhash, received_coins)
-        else:
-            self.add_send_entry(raw_tx, spent_coins, received_coins)
+            return # no effect
+
+        # receive coins
+        if self.is_receive_entry(raw_tx, spent_coins, received_coins):
+            self.create_receive_entry(raw_tx, received_coins)
+
+        # send coins
+        elif self.is_send_entry(raw_tx, spent_coins, received_coins):
+            self.create_send_entry(raw_tx, spent_coins, received_coins)
+
+        else: # default for non obvious
+            self.add_complex_entry(raw_tx, spent_coins, received_coins)
 
 
 

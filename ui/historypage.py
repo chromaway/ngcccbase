@@ -36,7 +36,7 @@ class HistoryPage(QtGui.QWidget):
                 datetime_str = datetime.toString(QtCore.Qt.DefaultLocaleShortDate)
             else:
                 datetime_str = "Unconfirmed"
-            if ent.txtype == 'receive':
+            if ent.txtype == 'receive' or ent.txtype == 'send':
                 for tgt in ent.get_targets():
                     asset = tgt.get_asset()
                     moniker = asset.get_monikers()[0]
@@ -44,7 +44,8 @@ class HistoryPage(QtGui.QWidget):
                     self.model.addRow([datetime_str, ent.txtype, 
                                        value_prefix + tgt.get_formatted_value(),
                                        moniker, tgt.get_address()])
-            elif ent.txtype == 'send':
+
+            elif ent.txtype == 'complex':
                 for asset_value in ent.get_deltas():
                     self.model.addRow([
                       datetime_str,

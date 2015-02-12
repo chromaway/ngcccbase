@@ -25,7 +25,6 @@ class WalletController(object):
         """Given a wallet model <model>, create a wallet controller.
         """
         self.model = model
-        self.debug = False
         self.testing = False
 
     def publish_tx(self, signed_tx_spec):
@@ -34,7 +33,6 @@ class WalletController(object):
         side effect. Returns the transaction hash.
         """
         txhex = signed_tx_spec.get_hex_tx_data()
-        print txhex
         txhash = signed_tx_spec.get_hex_txhash()
         r_txhash = None
         blockchain_state = self.model.ccc.blockchain_state
@@ -95,18 +93,11 @@ class WalletController(object):
                                                          value=raw_colorvalue))
             tx_spec.add_target(assettarget)
         signed_tx_spec = self.model.transform_tx_spec(tx_spec, 'signed')
-        if self.debug:
-            print ("In:")
-            for txin in signed_tx_spec.composed_tx_spec.txins:
-                print (txin.prevout)
-            print ("Out:")
-            for txout in signed_tx_spec.composed_tx_spec.txouts:
-                print (txout.value)
         txhash = self.publish_tx(signed_tx_spec)
 
-        # FIXME
-        #self.model.tx_history.add_send_entry(txhash, asset, 
-        #                                     target_addrs, raw_colorvalues)
+        self.model.tx_history.add_send_entry(
+            txhash, asset, target_addrs, raw_colorvalues
+        )
 
     def issue_coins(self, moniker, pck, units, atoms_in_unit):
         """Issues a new color of name <moniker> using coloring scheme
