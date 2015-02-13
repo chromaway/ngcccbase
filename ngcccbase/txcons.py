@@ -102,8 +102,7 @@ class BaseOperationalTxSpec(OperationalTxSpec):
     def get_dust_threshold(self):
         return SimpleColorValue(colordef=UNCOLORED_MARKER, value=5500)
 
-    def _select_enough_coins(self, colordef,
-                             utxo_list, required_sum_fn):
+    def _select_enough_coins(self, colordef, utxo_list, required_sum_fn):
         ssum = SimpleColorValue(colordef=colordef, value=0)
         selection = []
         required_sum = None
@@ -117,8 +116,13 @@ class BaseOperationalTxSpec(OperationalTxSpec):
                                      % (required_sum, ssum))
     
     def _validate_select_coins_parameters(self, colorvalue, use_fee_estimator):
-        if colorvalue.get_value() <= 0:
-          raise ZeroSelectError
+        fee = None
+        if use_fee_estimator:
+            fee = use_fee_estimator.estimate_required_fee()
+        if not fee and colorvalue.get_value() < 0:
+            raise Exception("Cannot select negative coins!")
+        elif fee and (colorvalue + fee).get_value() < 0:
+            raise Exception("Cannot select negative coins!")
         colordef = colorvalue.get_colordef()
         if colordef != UNCOLORED_MARKER and use_fee_estimator:
             msg = "Fee estimator can only be used with uncolored coins!"

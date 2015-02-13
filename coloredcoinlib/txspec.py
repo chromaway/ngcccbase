@@ -168,8 +168,6 @@ value isn't uncolored!")
                                extra_bytes=extra_bytes))
 
     def get_fee(self):
-        sum_txins = sum([inp.value 
-                         for inp in self.txins])
-        sum_txouts = sum([out.value
-                          for out in self.txouts])
+        sum_txins = sum([inp.value for inp in self.txins])
+        sum_txouts = sum([out.value for out in self.txouts])
         return sum_txins - sum_txouts

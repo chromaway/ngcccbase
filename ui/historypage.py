@@ -41,9 +41,10 @@ class HistoryPage(QtGui.QWidget):
                     asset = tgt.get_asset()
                     moniker = asset.get_monikers()[0]
                     value_prefix = "-" if ent.txtype == 'send' else '+'
+                    address = tgt.get_address() if tgt.get_address() else "fee"
                     self.model.addRow([datetime_str, ent.txtype, 
                                        value_prefix + tgt.get_formatted_value(),
-                                       moniker, tgt.get_address()])
+                                       moniker, address])
 
             elif ent.txtype == 'complex':
                 for asset_value in ent.get_deltas():
@@ -54,6 +55,7 @@ class HistoryPage(QtGui.QWidget):
                       asset_value.get_asset().get_monikers()[0],
                       ent.get_addresses()
                     ])
+
             elif ent.txtype == 'trade':
                 print ent.get_in_values()
                 print ent.get_out_values()

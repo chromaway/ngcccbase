@@ -40,12 +40,20 @@ class TxHistoryEntry_Send(TxHistoryEntry):
         adm = self.model.get_asset_definition_manager()
         return adm.get_asset_by_id(self.asset_id)
 
+    def get_fee_asset_target(self):
+        adm = self.model.get_asset_definition_manager()
+        asset = adm.get_asset_by_moniker("bitcoin")
+        fee = self.model.get_blockchain_state().get_tx(self.txhash).get_fee()
+        asset_value = AdditiveAssetValue(asset=asset, value=fee)
+        return AssetTarget(None, asset_value)
+
     def get_targets(self):
         asset = self.get_asset()
         asset_targets = []
         for (tgt_addr, tgt_value) in self.targets:
             asset_value = AdditiveAssetValue(asset=asset, value=tgt_value)
             asset_targets.append(AssetTarget(tgt_addr, asset_value))
+        asset_targets.append(self.get_fee_asset_target())
         return asset_targets
 
 class TxHistoryEntry_Complex(TxHistoryEntry):
@@ -56,8 +64,8 @@ class TxHistoryEntry_Complex(TxHistoryEntry):
     def get_deltas(self):
         adm = self.model.get_asset_definition_manager()
         deltas = []
-        for colorid, value in self.data['deltas'].items():
-            deltas.append(adm.get_assetvalue_for_color_id_value(colorid, value))
+        for assetid, value in self.data['deltas'].items():
+            deltas.append(adm.get_assetvalue_for_assetid_value(assetid, value))
         return deltas
 
     def get_addresses(self):
@@ -78,7 +86,7 @@ class TxHistoryEntry_Receive(TxHistoryEntry):
             if not colorvalues:
                 continue
             assert len(colorvalues) == 1
-            asset_value = adm.get_asset_value_for_colorvalue(
+            asset_value = adm.get_assetvalue_for_colorvalue(
                 colorvalues[0])
             targets.append(AssetTarget(coin.address,
                                        asset_value))
@@ -162,8 +170,8 @@ class TxHistory(object):
 
     def add_trade_entry(self, txhash, in_colorvalue, out_colorvalue):
         adm = self.model.get_asset_definition_manager()
-        in_assetvalue = adm.get_asset_value_for_colorvalue(in_colorvalue)
-        out_assetvalue = adm.get_asset_value_for_colorvalue(out_colorvalue)
+        in_assetvalue = adm.get_assetvalue_for_colorvalue(in_colorvalue)
+        out_assetvalue = adm.get_assetvalue_for_colorvalue(out_colorvalue)
         txtime = self.get_tx_timestamp(txhash)
         self.entries[txhash] = {"txhash": txhash,
                                 "txtype": 'trade',
@@ -178,20 +186,22 @@ class TxHistory(object):
                                 "txtime": txtime}
 
     def get_delta_color_values(self, spent_coins, received_coins):
+        adm = self.model.get_asset_definition_manager()
         deltas = {}
         for coin in received_coins: # add received
             for cv in coin.get_colorvalues():
                 colorid = cv.get_colordef().get_color_id()
-                deltas[colorid] = deltas.get(colorid, 0) + cv.get_value()
+                assetid = adm.get_asset_by_color_id(colorid).get_id()
+                deltas[assetid] = deltas.get(assetid, 0) + cv.get_value()
         for coin in spent_coins: # subtract sent
             for cv in coin.get_colorvalues():
                 colorid = cv.get_colordef().get_color_id()
-                deltas[colorid] = deltas.get(colorid, 0) - cv.get_value()
+                assetid = adm.get_asset_by_color_id(colorid).get_id()
+                deltas[assetid] = deltas.get(assetid, 0) - cv.get_value()
         return dict(deltas)
 
     def add_complex_entry(self, raw_tx, spent_coins, received_coins):
         am = self.model.get_address_manager()
-
         txhash = raw_tx.get_hex_txhash()
         txtime = self.get_tx_timestamp(txhash)
 
@@ -200,8 +210,7 @@ class TxHistory(object):
         wallet_addrs = set([r.address for r in am.get_all_addresses()])
         output_addrs = set([out.target_addr for out in outputs])
         send_addrs = list(output_addrs.difference(wallet_addrs))
-        if not send_addrs:
-          return # TODO apperently this happens, issuance, self send?
+
         deltas = self.get_delta_color_values(spent_coins, received_coins)
         self.entries[txhash] = {
             "txhash": txhash,
@@ -212,6 +221,7 @@ class TxHistory(object):
         }
 
     def is_send_entry(self, raw_tx, spent_coins, received_coins):
+        # only inputs from this wallet with one color + fee
         return False # TODO
 
     def create_send_entry(self, raw_tx, spent_coins, received_coins):
