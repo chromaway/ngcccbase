@@ -96,7 +96,7 @@ class BaseOperationalTxSpec(OperationalTxSpec):
         """
         base_fee = 10000.0
         fee_value = math.ceil((tx_size * base_fee) / 1000)
-        return SimpleColorValue(colordef=UNCOLORED_MARKER, 
+        return SimpleColorValue(colordef=UNCOLORED_MARKER,
                                 value=fee_value)
 
     def get_dust_threshold(self):
@@ -114,7 +114,7 @@ class BaseOperationalTxSpec(OperationalTxSpec):
                 return selection, ssum
         raise InsufficientFundsError('Not enough coins: %s requested, %s found!'
                                      % (required_sum, ssum))
-    
+
     def _validate_select_coins_parameters(self, colorvalue, use_fee_estimator):
         fee = None
         if use_fee_estimator:

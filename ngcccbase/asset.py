@@ -1,4 +1,4 @@
-from coloredcoinlib import (ColorSet, IncompatibleTypesError, InvalidValueError, 
+from coloredcoinlib import (ColorSet, IncompatibleTypesError, InvalidValueError,
                             SimpleColorValue, ColorValue)
 from coloredcoinlib.comparable import ComparableMixin
 from decimal import Decimal
@@ -16,7 +16,7 @@ class AssetDefinition(object):
         self.colormap = colormap
         self.monikers = params.get('monikers', [])
         # currently only single-color assets are supported
-        assert len(params.get('color_set')) == 1 
+        assert len(params.get('color_set')) == 1
         self.color_set = ColorSet(colormap, params.get('color_set'))
         self.unit = int(params.get('unit', 1))
 
@@ -45,10 +45,13 @@ class AssetDefinition(object):
         """
         return self.color_set
 
-    def get_null_colorvalue(self):
-        color_set = self.get_color_set() 
+    def get_color_def(self):
+        color_set = self.get_color_set()
         assert len(color_set.color_desc_list) == 1
-        cd = self.colormap.get_color_def(color_set.color_desc_list[0])
+        return self.colormap.get_color_def(color_set.color_desc_list[0])
+
+    def get_null_colorvalue(self):
+        cd = self.get_color_def()
         return SimpleColorValue(colordef=cd, value=0)
 
     def get_colorvalue(self, utxo):
@@ -73,13 +76,13 @@ class AssetDefinition(object):
         """
         return int(Decimal(portion) * Decimal(self.unit))
 
-    def format_value(self, portion):
+    def format_value(self, value):
         """Returns a string representation of the portion of the asset.
         can involve rounding.  doesn't display insignificant zeros
         """
-        if isinstance(portion, ColorValue) or isinstance(portion, AssetValue):
-            portion = portion.get_value()
-        return str(Decimal(portion) / Decimal(self.unit))
+        if isinstance(value, ColorValue) or isinstance(value, AssetValue):
+            value = value.get_value()
+        return str(Decimal(value) / Decimal(self.unit))
 
     def get_atom(self):
         return self.format_value(1)
@@ -109,7 +112,7 @@ class AssetValue(object):
 
     def check_compatibility(self, other):
         if self.get_color_set() != other.get_color_set():
-            raise IncompatibleTypesError        
+            raise IncompatibleTypesError
 
     def get_asset(self):
         return self.asset
@@ -288,7 +291,7 @@ class AssetDefinitionManager(object):
         if assets:
             return assets[0]
         else:
-            return None        
+            return None
 
     def update_config(self):
         """Write the current asset definitions to the persistent data-store
@@ -334,7 +337,7 @@ class AssetDefinitionManager(object):
 
     def get_assetvalue_for_colorvalue(self, colorvalue):
         return self.get_assetvalue_for_colorid_value(
-            colorvalue.get_color_id(), 
+            colorvalue.get_color_id(),
             colorvalue.get_value()
         )
 

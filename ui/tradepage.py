@@ -90,7 +90,7 @@ class TradePage(QtGui.QWidget):
 
         def set_need_update_offers(data):
             self.need_update_offers = True
-        wallet.p2p_agent.set_event_handler('offers_updated', 
+        wallet.p2p_agent.set_event_handler('offers_updated',
                                            set_need_update_offers)
 
         def information_about_offer(offer, action, buysell_text):
@@ -114,28 +114,28 @@ class TradePage(QtGui.QWidget):
             self.add_log_entry(text)
 
         wallet.p2p_agent.set_event_handler(
-            'register_my_offer', 
+            'register_my_offer',
             lambda offer: information_about_offer(offer, 'Created', ("bid", "ask")))
         wallet.p2p_agent.set_event_handler(
-            'cancel_my_offer',   
+            'cancel_my_offer',
             lambda offer: information_about_offer(offer, 'Canceled', ("bid", "ask")))
         wallet.p2p_agent.set_event_handler(
-            'make_ep', 
-            lambda ep: information_about_offer(ep.my_offer, 'In progress', 
+            'make_ep',
+            lambda ep: information_about_offer(ep.my_offer, 'In progress',
                                                ('buying', 'selling')))
         wallet.p2p_agent.set_event_handler(
-            'accept_ep', 
-            lambda eps: information_about_offer(eps[1].my_offer, 'In progress', 
+            'accept_ep',
+            lambda eps: information_about_offer(eps[1].my_offer, 'In progress',
                                                 ('buying', 'selling')))
         def on_trade_complete(ep):
-            information_about_offer(ep.my_offer, 
+            information_about_offer(ep.my_offer,
                                     'Trade complete:', ('bought', 'sold'))
             self.update_balance()
         wallet.p2p_agent.set_event_handler('trade_complete', on_trade_complete)
 
     def add_log_entry(self, text):
         self.listEventLog.addItem(text)
-        
+
     def update(self):
         monikers = wallet.get_all_monikers()
         monikers.remove('bitcoin')
@@ -312,11 +312,11 @@ class TradePage(QtGui.QWidget):
             moniker = str(self.cbMoniker.currentText())
             asset = wallet.get_asset_definition(moniker)
             if wallet.get_available_balance(asset) < offer.get_data()['B']['value']:
-                self.logger.warn("%s avail <  %s required", 
+                self.logger.warn("%s avail <  %s required",
                                  wallet.get_available_balance(asset),
                                  offer.get_data()['A']['value'])
                 msg = "Not enough coins: %s %s needed, %s available" % \
-                    (str(self.proxyModelBuy.data(selected[2]).toString()), 
+                    (str(self.proxyModelBuy.data(selected[2]).toString()),
                      moniker,
                      asset.format_value(wallet.get_available_balance(asset)))
                 QtGui.QMessageBox.warning(self, '', msg,
@@ -430,7 +430,7 @@ bitcoin each. <br> (Total: <b>{total}</b> bitcoin)".format(**{
                                  wallet.get_available_balance(bitcoin),
                                  offer.get_data()['B']['value'])
                 msg = "Not enough money: %s bitcoins needed, %s available" % \
-                    (self.proxyModelSell.data(selected[2]).toString(), 
+                    (self.proxyModelSell.data(selected[2]).toString(),
                      bitcoin.format_value(wallet.get_available_balance(bitcoin)))
                 QtGui.QMessageBox.warning(self, '', msg,
                                           QtGui.QMessageBox.Ok)

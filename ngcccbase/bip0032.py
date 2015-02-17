@@ -76,7 +76,7 @@ class HDWalletAddressManager(DWalletAddressManager):
         self.master_key = config['hdw_master_key']
         master = hashlib.sha512(self.master_key.decode('hex')).digest()
         self.pycoin_wallet = BIP32Node(
-            netcode='BTC', chain_code=master[32:], 
+            netcode='BTC', chain_code=master[32:],
             secret_exponent=from_bytes_32(master[:32])
         )
 

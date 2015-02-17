@@ -63,7 +63,7 @@ class WalletModel(object):
         self.init_blockchain_state(config)
         self.init_tx_db(config)
         self.init_utxo_fetcher(config)
-        self.ccc = ColoredCoinContext(config, 
+        self.ccc = ColoredCoinContext(config,
                                       self.blockchain_state)
         self.ass_def_man = AssetDefinitionManager(self.ccc.colormap, config)
         self.init_wallet_address_manager(config)
@@ -79,7 +79,7 @@ class WalletModel(object):
         else:
             from deterministic import DWalletAddressManager
             self.address_man = DWalletAddressManager(self.ccc.colormap, config)
-            
+
     def init_tx_db(self, config):
         if self.testnet:
             self.txdb = NaiveTxDb(self, config)

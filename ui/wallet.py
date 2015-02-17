@@ -68,7 +68,7 @@ class Wallet(object):
         except:
             raise
             self.is_connected = False
-      
+
     def get_asset_definition(self, moniker):
         if isinstance(moniker, AssetDefinition):
             return moniker
@@ -195,6 +195,6 @@ class Wallet(object):
         self.p2ptrade_stop()
         if hasattr(self.model.txdb, 'vbs'):
             self.model.txdb.vbs.stop()
-        
+
 
 wallet = Wallet()

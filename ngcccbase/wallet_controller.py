@@ -7,9 +7,14 @@ Executes high level tasks such as get balance
 
 import os
 import csv
+from collections import defaultdict
 from decimal import Decimal
 from asset import AssetTarget, AdditiveAssetValue
 from coindb import CoinQuery
+from coloredcoinlib.colordef import OBColorDefinition
+from coloredcoinlib.colordef import EPOBCColorDefinition
+from coloredcoinlib.colordef import InvalidColorError
+from coloredcoinlib.colordef import UNCOLORED_MARKER
 from coloredcoinlib import (InvalidColorDefinitionError, ColorDefinition,
                             GENESIS_OUTPUT_MARKER,
                             ColorTarget, SimpleColorValue)
@@ -97,24 +102,29 @@ class WalletController(object):
         # asset must match address asset
         address_asset, address = adm.get_asset_and_address(target_addr)
         if asset != address_asset:
-            msg = "Address and asset don't match in row: %s!" 
+            msg = "Address and asset don't match in row: %s!"
             raise AssetMismatchError(msg % row)
 
         # check if valid address
         if not self.model.validate_address(address):
-            msg = "Address %s in row: %s is not valid!" 
+            msg = "Address %s in row: %s is not valid!"
             raise Exception(msg % (target_addr, row))
 
         # make sure value is a number
         try:
             value = Decimal(value)
         except:
-            msg = "Value '%s' in row %s is not a number.!" 
+            msg = "Value '%s' in row %s is not a number.!"
+            raise Exception(msg % (value, row))
+
+        # value must be positive
+        if value < Decimal("0"):
+            msg = "Value '%s' in row %s not > 0.!"
             raise Exception(msg % (value, row))
 
         # check if valid amount for asset
         if not asset.validate_value(value):
-            msg = "Value '%s' in row %s is not a multiple of %s.!" 
+            msg = "Value '%s' in row %s is not a multiple of %s.!"
             raise Exception(msg % (value, row, asset.get_atom()))
 
         # convert to amount to satoshis
@@ -122,23 +132,68 @@ class WalletController(object):
 
         return asset, address, value
 
-    def send_coins_csv(self, csv_file_path):
+    def sendmany_sums(self, entries):
+        sums = defaultdict(Decimal)
+        for asset, address, value in entries:
+            sums[asset] += value
+        return sums
+
+    def validate_sendmany_entries(self, entries):
+        sums = self.sendmany_sums(entries)
+
+        # check if required asset amount available
+        for asset, amount in sums.items():
+            available = Decimal(self.get_available_balance(asset))
+            if amount > available:
+                msg = ("Requred amount of %(value)s %(moniker)s exceeds your "
+                       "available balance of %(available)s %(moniker)s!") % {
+                    'moniker' : asset.get_monikers()[0],
+                    'value' : asset.format_value(amount),
+                    'available' : asset.format_value(available),
+                }
+                raise Exception(msg)
+
+        # check inputs are only obc or only epobc
+        def reduce_function(a, b):
+            adef = a.get_color_def()
+            bdef = b.get_color_def()
+            if adef == UNCOLORED_MARKER:
+                return b
+            if bdef == UNCOLORED_MARKER:
+                return a
+            a_is_obc = isinstance(adef, OBColorDefinition)
+            b_is_obc = isinstance(bdef, OBColorDefinition)
+            a_is_epobc = isinstance(adef, EPOBCColorDefinition)
+            b_is_epobc = isinstance(bdef, EPOBCColorDefinition)
+            if a_is_obc and b_is_obc:
+                return a
+            elif a_is_epobc and b_is_epobc:
+                return a
+            raise InvalidColorError("Colortype miss match for %s and %s!" % (
+                a.get_monikers()[0], b.get_monikers()[0]
+            ))
+        reduce(reduce_function, sums.keys())
+
+        # TODO check for max entries
+
+
+    def parse_sendmany_csv(self, csv_file_path):
         """Send amounts in csv file with format 'moniker,address,value'"""
-        #tx_spec = BasicTxSpec(self.model)
-        tx_spec = SimpleOperationalTxSpec(self.model, None)
+        entries = []
         with open(csv_file_path, 'rb') as csvfile:
             for index, csvvalues in enumerate(csv.reader(csvfile)):
-                row = index + 1
-                asset, address, value = self.sanitize_csv_input(csvvalues, row)
-                #asset_value = AdditiveAssetValue(asset=asset, value=value)
-                #assettarget = AssetTarget(address, asset_value)
-                #tx_spec.add_target(assettarget)
-                color_id = asset.get_color_id()
-                colordef = self.model.get_color_def(color_id)
-                colorvalue = SimpleColorValue(colordef=colordef, value=value)
-                tx_spec.add_target(ColorTarget(address, colorvalue))
-        # TODO check if required assets exist
-        # TODO check if tx size ok
+                entries.append(self.sanitize_csv_input(csvvalues, index + 1))
+        self.validate_sendmany_entries(entries)
+        return entries
+
+    def sendmany_coins(self, entries):
+        """Sendmany coins given in entries [(asset, address, value), ...] """
+        tx_spec = SimpleOperationalTxSpec(self.model, None)
+        for asset, address, value in entries:
+            color_id = asset.get_color_id()
+            colordef = self.model.get_color_def(color_id)
+            colorvalue = SimpleColorValue(colordef=colordef, value=value)
+            tx_spec.add_target(ColorTarget(address, colorvalue))
         signed_tx_spec = self.model.transform_tx_spec(tx_spec, 'signed')
         txhash = self.publish_tx(signed_tx_spec)
         # TODO add to history
@@ -284,7 +339,6 @@ class WalletController(object):
     def get_unconfirmed_balance(self, asset):
         return self._get_balance(asset, {"spent": False,
                                         "only_unconfirmed": True})
-
 
     def get_history(self, asset):
         """Returns the history of an asset for all addresses of that color

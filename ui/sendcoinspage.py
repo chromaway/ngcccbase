@@ -95,6 +95,7 @@ class SendcoinsPage(QtGui.QWidget):
         self.btnAddRecipient.clicked.connect(self.btnAddRecipientClicked)
         self.btnClearAll.clicked.connect(self.btnClearAllClicked)
         self.btnSend.clicked.connect(self.btnSendClicked)
+        self.btnBatchSendCSV.clicked.connect(self.btnBatchSendCSVClicked)
 
         self.btnAddRecipientClicked()
 
@@ -114,6 +115,30 @@ class SendcoinsPage(QtGui.QWidget):
                 break
             layout.widget().close()
         self.btnAddRecipientClicked()
+
+    def btnBatchSendCSVClicked(self):
+        wc = wallet.controller
+        QMB = QtGui.QMessageBox
+
+        # get send many entries
+        msg = 'Select CSV file'
+        csv_file_path = QtGui.QFileDialog.getOpenFileName(self, msg)
+        entries = wc.parse_sendmany_csv(csv_file_path)
+
+        # confirm send coins
+        options = QMB.Yes | QMB.Cancel
+        title = 'Confirm send many.'
+        msg = 'Are you sure you want to send:'
+        for asset, amount in wc.sendmany_sums(entries).items():
+            msg += "<p>Total of <b>{value} {moniker}</b></p>".format(**{
+                'value' : asset.format_value(amount),
+                'moniker' : asset.get_monikers()[0],
+            })
+
+        if QMB.question(self, title, msg, options, QMB.Cancel) != QMB.Yes:
+            return
+
+        wc.sendmany_coins(entries)
 
     def btnSendClicked(self):
         entries = [self.entries.itemAt(i).widget()

@@ -223,7 +223,7 @@ class OBColorDefinition(GenesisColorDefinition):
             color_def = targets[0].get_colordef()
             needed_sum = ColorTarget.sum(targets)
             inputs, total = op_tx_spec.select_coins(needed_sum)
-            change = total - needed_sum           
+            change = total - needed_sum
             if change > 0:
                 targets.append(
                     ColorTarget(op_tx_spec.get_change_addr(color_def), change))
@@ -281,14 +281,14 @@ class EPOBCColorDefinition(GenesisColorDefinition):
         def from_nSequence(cls, nSequence):
             bits = uint_to_bit_list(nSequence)
             tag_bits = bits[0:6]
-            
+
             if ((tag_bits != cls.XFER_TAG_BITS) and
                 (tag_bits != cls.GENESIS_TAG_BITS)):
                 return None
-            
+
             padding_code = bit_list_to_uint(bits[6:12])
             return cls(padding_code, tag_bits == cls.GENESIS_TAG_BITS)
-        
+
         def to_nSequence(self):
             if self.is_genesis:
                 bits = self.GENESIS_TAG_BITS[:]
@@ -359,7 +359,7 @@ class EPOBCColorDefinition(GenesisColorDefinition):
                 value_wop = tx.outputs[0].value - tag.get_padding()
                 if value_wop > 0:
                     return ([SimpleColorValue(colordef=self,
-                                              value=value_wop)] + 
+                                              value=value_wop)] +
                             [None] * (len(tx.outputs) - 1))
             # we get here if it is a genesis for a different color
             # or if genesis transaction is misconstructed
@@ -427,7 +427,7 @@ class EPOBCColorDefinition(GenesisColorDefinition):
                 targets.append(
                     ColorTarget(op_tx_spec.get_change_addr(color_def), change))
             for target in targets:
-                padding_needed = dust_threshold - target.get_value() 
+                padding_needed = dust_threshold - target.get_value()
                 if padding_needed > min_padding:
                     min_padding = padding_needed
 
@@ -461,7 +461,7 @@ class EPOBCColorDefinition(GenesisColorDefinition):
             uncolored_change = uncolored_total - uncolored_needed - fee
         else:
             uncolored_change =  (- uncolored_needed) - fee
-            
+
         if uncolored_change > op_tx_spec.get_dust_threshold():
             composed_tx_spec.add_txout(value=uncolored_change,
                                        target_addr=op_tx_spec.get_change_addr(UNCOLORED_MARKER),
@@ -488,8 +488,8 @@ class EPOBCColorDefinition(GenesisColorDefinition):
         composed_tx_spec.add_txout(value=padding + g_value,
                                    target=g_target)
         uncolored_needed = SimpleColorValue(colordef=UNCOLORED_MARKER,
-                                           value=padding + g_value)        
-        uncolored_inputs, uncolored_total = op_tx_spec.select_coins(uncolored_needed, 
+                                           value=padding + g_value)
+        uncolored_inputs, uncolored_total = op_tx_spec.select_coins(uncolored_needed,
                                                                     composed_tx_spec)
         composed_tx_spec.add_txins(uncolored_inputs)
 

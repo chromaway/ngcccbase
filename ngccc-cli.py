@@ -358,8 +358,10 @@ class Application(object):
     def command_sendmany_csv(self, **kwargs):
         """Send amounts in csv file with format 'moniker,address,value'
         """
-        print "Sending amounts listed in %s." % kwargs['csv_file_path']
-        self.controller.send_coins_csv(kwargs['csv_file_path'])
+        csv_file_path = kwargs['csv_file_path']
+        print "Sending amounts listed in %s." % csv_file_path
+        sendmany_entries = self.controller.parse_sendmany_csv(csv_file_path)
+        self.controller.sendmany_coins(sendmany_entries)
 
     def command_send(self, **kwargs):
         """Send some amount of an asset/color to an address
@@ -427,7 +429,7 @@ class Application(object):
         else:
             for _ in xrange(4*6):
                 agent.update()
-                sleep(0.25)            
+                sleep(0.25)
 
     def command_p2p_show_orders(self, **kwargs):
         agent = self.init_p2ptrade()
