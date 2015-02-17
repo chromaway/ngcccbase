@@ -160,14 +160,17 @@ class SimpleOperationalTxSpec(BaseOperationalTxSpec):
         """Get an address associated with color definition <color_def>
         that is in the current wallet for receiving change.
         """
-        color_id = color_def.color_id
+        am = self.model.get_asset_definition_manager()
         wam = self.model.get_address_manager()
+
+        color_id = color_def.color_id
+        asset = am.get_asset_by_color_id(color_id)
+
         color_set = None
         if color_def == UNCOLORED_MARKER:
-            color_set = ColorSet.from_color_ids(self.model.get_color_map(),
-                                                [0])
-        elif self.asset.get_color_set().has_color_id(color_id):
-            color_set = self.asset.get_color_set()
+            color_set = ColorSet.from_color_ids(self.model.get_color_map(), [0])
+        elif asset.get_color_set().has_color_id(color_id):
+            color_set = asset.get_color_set()
         if color_set is None:
             raise InvalidColorIdError('Wrong color id!')
         aw = wam.get_change_address(color_set)
@@ -248,6 +251,13 @@ class RawTxSpec(object):
         """Returns the hex version of the signed transaction data.
         """
         return hexlify(self.tx_data).decode("utf8")
+
+    def get_input_addresses(self):
+        ccc = self.model.ccc
+        bs = self.model.get_blockchain_state()
+        inputs = [ti.get_outpoint() for ti in self.composed_tx_spec.txins]
+        raw_addrs = [bs.get_tx(tx).outputs[n].raw_address for tx, n in inputs]
+        return [ccc.raw_to_address(raw) for raw in raw_addrs]
 
 def compose_uncolored_tx(tx_spec):
     """ compose a simple bitcoin transaction """

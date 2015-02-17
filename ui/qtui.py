@@ -167,7 +167,7 @@ class QtUI(object):
             window.move(center - window.rect().center())
             window.show()
         else: # not connected
-            msg = "Couldn't connect to bitcoind server!"
+            msg = "Couldn't connect to server!"
             QtGui.QMessageBox.critical(None, '', msg, QtGui.QMessageBox.Ok)
             return
 

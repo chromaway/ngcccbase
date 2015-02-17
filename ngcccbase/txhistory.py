@@ -200,7 +200,7 @@ class TxHistory(object):
                 deltas[assetid] = deltas.get(assetid, 0) - cv.get_value()
         return dict(deltas)
 
-    def add_complex_entry(self, raw_tx, spent_coins, received_coins):
+    def create_complex_entry(self, raw_tx, spent_coins, received_coins):
         am = self.model.get_address_manager()
         txhash = raw_tx.get_hex_txhash()
         txtime = self.get_tx_timestamp(txhash)
@@ -221,8 +221,22 @@ class TxHistory(object):
         }
 
     def is_send_entry(self, raw_tx, spent_coins, received_coins):
-        # only inputs from this wallet with one color + fee
-        return False # TODO
+        am = self.model.get_address_manager()
+
+        # only inputs from this wallet
+        input_addrs = set(raw_tx.get_input_addresses())
+        wallet_addrs = set([r.address for r in am.get_all_addresses()])
+        if wallet_addrs.intersection(input_addrs) != input_addrs:
+            return False # foreign inputs
+
+        # only one color + uncolored sent
+        cvlists = [coin.get_colorvalues() for coin in spent_coins]
+        cvs = [item for sublist in cvlists for item in sublist] # flatten
+        cids = set([cv.get_color_id() for cv in cvs])
+        if len(cids) > 2 or (len(cids) == 2 and 0 not in cids):
+            return False
+
+        return False  # FIXME disabled for now
 
     def create_send_entry(self, raw_tx, spent_coins, received_coins):
         pass # TODO
@@ -249,7 +263,7 @@ class TxHistory(object):
             self.create_send_entry(raw_tx, spent_coins, received_coins)
 
         else: # default for non obvious
-            self.add_complex_entry(raw_tx, spent_coins, received_coins)
+            self.create_complex_entry(raw_tx, spent_coins, received_coins)
 
 
 

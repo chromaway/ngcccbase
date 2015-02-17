@@ -134,6 +134,11 @@ class Application(object):
         parser.add_argument('value')
 
         parser = subparsers.add_parser(
+            'sendmany_csv', description=
+            "Send amounts in csv file with format 'moniker,address,value'")
+        parser.add_argument('csv_file_path')
+
+        parser = subparsers.add_parser(
             'scan', description=
             "Check for received payments (unspent transaction outputs).")
 
@@ -349,6 +354,12 @@ class Application(object):
         if kwargs['available']:
             fn = self.controller.get_available_balance
         print (asset.format_value(fn(asset)))
+
+    def command_sendmany_csv(self, **kwargs):
+        """Send amounts in csv file with format 'moniker,address,value'
+        """
+        print "Sending amounts listed in %s." % kwargs['csv_file_path']
+        self.controller.send_coins_csv(kwargs['csv_file_path'])
 
     def command_send(self, **kwargs):
         """Send some amount of an asset/color to an address

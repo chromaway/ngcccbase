@@ -10,6 +10,7 @@ definitions, but it doesn't implement high-level operations
 
 from collections import defaultdict
 
+from pycoin.key.validate import is_address_valid
 from asset import AssetDefinitionManager
 from color import ColoredCoinContext
 from coloredcoinlib import ColorSet, toposorted
@@ -293,3 +294,8 @@ class WalletModel(object):
 
     def get_color_def(self, color):
         return self.ccc.colormap.get_color_def(color)
+
+    def validate_address(self, address):
+        netcodes = ['XTN'] if self.testnet else ['BTC']
+        return bool(is_address_valid(address, allowable_netcodes=netcodes))
+

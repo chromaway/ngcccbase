@@ -5,6 +5,9 @@ Controls wallet model in a high level manner
 Executes high level tasks such as get balance
 """
 
+import os
+import csv
+from decimal import Decimal
 from asset import AssetTarget, AdditiveAssetValue
 from coindb import CoinQuery
 from coloredcoinlib import (InvalidColorDefinitionError, ColorDefinition,
@@ -40,10 +43,10 @@ class WalletController(object):
             r_txhash = blockchain_state.publish_tx(txhex)
         except Exception as e:                      # pragma: no cover
             print ("got error %s from bitcoind" % e)  # pragma: no cover
-        
+
         if r_txhash and (r_txhash != txhash) and not self.testing:
             raise Exception('Bitcoind reports different txhash!')
-        
+
         """if r_txhash is None:                                      # pragma: no cover
             # bitcoind did not eat our txn, check if it is mempool
             mempool = bitcoind.getrawmempool()                    # pragma: no cover
@@ -75,13 +78,77 @@ class WalletController(object):
     def scan_utxos(self):
         self.model.utxo_fetcher.scan_all_addresses()
 
+    def sanitize_csv_input(self, csvvalues, row):
+        adm = self.model.get_asset_definition_manager()
+
+        # must have three entries
+        if len(csvvalues) != 3:
+            msg = ("CSV entry must have three values 'moniker,address,value'. "
+                   "Row %s has %s values!")
+            raise Exception(msg % (row, len(csvvalues)))
+        moniker, target_addr, value = csvvalues
+
+        # asset must exist
+        asset = adm.get_asset_by_moniker(moniker)
+        if not asset:
+            msg = "Asset '%s' in row %s not found!"
+            raise Exception(msg % (moniker, row))
+
+        # asset must match address asset
+        address_asset, address = adm.get_asset_and_address(target_addr)
+        if asset != address_asset:
+            msg = "Address and asset don't match in row: %s!" 
+            raise AssetMismatchError(msg % row)
+
+        # check if valid address
+        if not self.model.validate_address(address):
+            msg = "Address %s in row: %s is not valid!" 
+            raise Exception(msg % (target_addr, row))
+
+        # make sure value is a number
+        try:
+            value = Decimal(value)
+        except:
+            msg = "Value '%s' in row %s is not a number.!" 
+            raise Exception(msg % (value, row))
+
+        # check if valid amount for asset
+        if not asset.validate_value(value):
+            msg = "Value '%s' in row %s is not a multiple of %s.!" 
+            raise Exception(msg % (value, row, asset.get_atom()))
+
+        # convert to amount to satoshis
+        value = asset.parse_value(value)
+
+        return asset, address, value
+
+    def send_coins_csv(self, csv_file_path):
+        """Send amounts in csv file with format 'moniker,address,value'"""
+        #tx_spec = BasicTxSpec(self.model)
+        tx_spec = SimpleOperationalTxSpec(self.model, None)
+        with open(csv_file_path, 'rb') as csvfile:
+            for index, csvvalues in enumerate(csv.reader(csvfile)):
+                row = index + 1
+                asset, address, value = self.sanitize_csv_input(csvvalues, row)
+                #asset_value = AdditiveAssetValue(asset=asset, value=value)
+                #assettarget = AssetTarget(address, asset_value)
+                #tx_spec.add_target(assettarget)
+                color_id = asset.get_color_id()
+                colordef = self.model.get_color_def(color_id)
+                colorvalue = SimpleColorValue(colordef=colordef, value=value)
+                tx_spec.add_target(ColorTarget(address, colorvalue))
+        # TODO check if required assets exist
+        # TODO check if tx size ok
+        signed_tx_spec = self.model.transform_tx_spec(tx_spec, 'signed')
+        txhash = self.publish_tx(signed_tx_spec)
+        # TODO add to history
+
     def send_coins(self, asset, target_addrs, raw_colorvalues):
         """Sends coins to address <target_addr> of asset/color <asset>
         of amount <colorvalue> Satoshis.
         """
         tx_spec = BasicTxSpec(self.model)
         adm = self.model.get_asset_definition_manager()
-        colormap = self.model.get_color_map()
         for target_addr, raw_colorvalue in zip(target_addrs, raw_colorvalues):
             # decode the address
             address_asset, address = adm.get_asset_and_address(target_addr)
@@ -209,15 +276,15 @@ class WalletController(object):
 
     def get_available_balance(self, asset):
         return self._get_balance(asset, {"spent": False})
-    
+
     def get_total_balance(self, asset):
-        return self._get_balance(asset, {"spent": False, 
+        return self._get_balance(asset, {"spent": False,
                                         "include_unconfirmed": True})
 
     def get_unconfirmed_balance(self, asset):
-        return self._get_balance(asset, {"spent": False, 
+        return self._get_balance(asset, {"spent": False,
                                         "only_unconfirmed": True})
-    
+
 
     def get_history(self, asset):
         """Returns the history of an asset for all addresses of that color

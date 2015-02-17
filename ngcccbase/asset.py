@@ -34,6 +34,9 @@ class AssetDefinition(object):
         """
         return self.monikers
 
+    def get_color_id(self):
+        return list(self.get_color_set().color_id_set)[0]
+
     def has_color_id(self, color_id):
         return self.get_color_set().has_color_id(color_id)
 
@@ -62,7 +65,7 @@ class AssetDefinition(object):
         if isinstance(portion, ColorValue) or isinstance(portion, AssetValue):
             portion = portion.get_value()
         atom = Decimal("1") / Decimal(self.unit)
-        return portion % atom == Decimal("0")
+        return Decimal(portion) % atom == Decimal("0")
 
     def parse_value(self, portion):
         """Returns actual number of Satoshis for this Asset
@@ -77,6 +80,9 @@ class AssetDefinition(object):
         if isinstance(portion, ColorValue) or isinstance(portion, AssetValue):
             portion = portion.get_value()
         return str(Decimal(portion) / Decimal(self.unit))
+
+    def get_atom(self):
+        return self.format_value(1)
 
     def get_data(self):
         """Returns a JSON-compatible object that represents this Asset

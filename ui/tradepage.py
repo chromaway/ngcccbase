@@ -251,16 +251,14 @@ class TradePage(QtGui.QWidget):
 
         # quantity must be multiple of atom
         if not asset.validate_value(quantity):
-            atom = asset.format_value(1)
-            message = "Quantity must be a multiple of %s!" % atom
+            message = "Quantity must be a multiple of %s!" % asset.get_atom()
             QtGui.QMessageBox.critical(self, '', message, QtGui.QMessageBox.Ok)
             self.edtBuyQuantity.setStyleSheet('background:#FF8080')
             return False
 
         # price must be multiple of atom
         if not bitcoin.validate_value(price):
-            atom = bitcoin.format_value(1)
-            message = "Price must be a multiple of %s!" % atom
+            message = "Price must be a multiple of %s!" % asset.get_atom()
             QtGui.QMessageBox.critical(self, '', message, QtGui.QMessageBox.Ok)
             self.edtBuyPrice.setStyleSheet('background:#FF8080')
             return False
