@@ -57,7 +57,7 @@
    </item>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
-     <item>
+     <!--item>
       <widget class="QPushButton" name="btnAddRecipient">
        <property name="text">
         <string>Add &amp;Recipient</string>
@@ -67,7 +67,7 @@
          <normaloff>../icons/add.png</normaloff>../icons/add.png</iconset>
        </property>
       </widget>
-     </item>
+     </item-->
      <item>
       <widget class="QPushButton" name="btnClearAll">
        <property name="text">
@@ -120,7 +120,7 @@
  </widget>
  <tabstops>
   <tabstop>scrollArea</tabstop>
-  <tabstop>btnAddRecipient</tabstop>
+  <!--tabstop>btnAddRecipient</tabstop-->
   <tabstop>btnClearAll</tabstop>
   <tabstop>btnBatchSendCSV</tabstop>
   <tabstop>btnSend</tabstop>

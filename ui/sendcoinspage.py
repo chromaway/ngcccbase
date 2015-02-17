@@ -92,7 +92,7 @@ class SendcoinsPage(QtGui.QWidget):
         QtGui.QWidget.__init__(self, parent)
         uic.loadUi(uic.getUiPath('sendcoinspage.ui'), self)
 
-        self.btnAddRecipient.clicked.connect(self.btnAddRecipientClicked)
+        # FIXME self.btnAddRecipient.clicked.connect(self.btnAddRecipientClicked)
         self.btnClearAll.clicked.connect(self.btnClearAllClicked)
         self.btnSend.clicked.connect(self.btnSendClicked)
         self.btnBatchSendCSV.clicked.connect(self.btnBatchSendCSVClicked)
