@@ -18,6 +18,7 @@ from ngcccbase.pwallet import PersistentWallet
 from ngcccbase.logger import setup_logging
 
 from time import sleep
+from decimal import Decimal
 
 class _ApplicationHelpFormatter(argparse.HelpFormatter):
     def add_usage(self, usage, actions, groups, prefix=None):
@@ -131,6 +132,11 @@ class Application(object):
         parser.add_argument('moniker')
         parser.add_argument('address')
         parser.add_argument('value')
+
+        parser = subparsers.add_parser(
+            'sendmany_csv', description=
+            "Send amounts in csv file with format 'moniker,address,value'")
+        parser.add_argument('csv_file_path')
 
         parser = subparsers.add_parser(
             'scan', description=
@@ -349,6 +355,14 @@ class Application(object):
             fn = self.controller.get_available_balance
         print (asset.format_value(fn(asset)))
 
+    def command_sendmany_csv(self, **kwargs):
+        """Send amounts in csv file with format 'moniker,address,value'
+        """
+        csv_file_path = kwargs['csv_file_path']
+        print "Sending amounts listed in %s." % csv_file_path
+        sendmany_entries = self.controller.parse_sendmany_csv(csv_file_path)
+        self.controller.sendmany_coins(sendmany_entries)
+
     def command_send(self, **kwargs):
         """Send some amount of an asset/color to an address
         """
@@ -398,7 +412,7 @@ class Application(object):
         value = asset.parse_value(params['value'])
         bitcoin = self.get_asset_definition('bitcoin')
         price = bitcoin.parse_value(params['price'])
-        total = int(float(value)/float(asset.unit)*float(price))
+        total = int(Decimal(value)/Decimal(asset.unit)*Decimal(price))
         color_desc = asset.get_color_set().color_desc_list[0]
         sell_side = {"color_spec": color_desc, "value": value}
         buy_side = {"color_spec": "", "value": total}
@@ -415,7 +429,7 @@ class Application(object):
         else:
             for _ in xrange(4*6):
                 agent.update()
-                sleep(0.25)            
+                sleep(0.25)
 
     def command_p2p_show_orders(self, **kwargs):
         agent = self.init_p2ptrade()

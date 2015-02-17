@@ -36,12 +36,12 @@ class Application(QtGui.QApplication):
 
 
 class ConnectionStatus(QtGui.QLabel):
-    
+
     def updateStatus(self):
         self.setStatus(wallet.connected())
 
     def setStatus(self, connected):
-        if connected: 
+        if connected:
             self.setText("Status: Connected")
         else:
             self.setText("Status: Disconnected")
@@ -99,7 +99,7 @@ class MainWindow(QtGui.QMainWindow):
             self.connectionStatus.setStatus(False)
         except urllib2.HTTPError: # chromanode disconnected
             self.connectionStatus.setStatus(False)
-              
+
 
     def bindActions(self):
         self.actionExit.triggered.connect(
@@ -167,7 +167,7 @@ class QtUI(object):
             window.move(center - window.rect().center())
             window.show()
         else: # not connected
-            msg = "Couldn't connect to bitcoind server!"
+            msg = "Couldn't connect to server!"
             QtGui.QMessageBox.critical(None, '', msg, QtGui.QMessageBox.Ok)
             return
 

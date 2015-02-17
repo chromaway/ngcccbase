@@ -99,7 +99,7 @@ class MyEProposal(EProposal):
                                       reply_ep.etx_data.decode('hex'))
         if self.ewctrl.check_tx(rtxs, self.etx_spec):
             rtxs.sign(self.etx_spec.my_utxo_list)
-            self.ewctrl.publish_tx(rtxs, self.my_offer) 
+            self.ewctrl.publish_tx(rtxs, self.my_offer)
             self.etx_data = rtxs.get_hex_tx_data()
         else:
             raise Exception('P2ptrade reply tx check failed!')
@@ -111,10 +111,10 @@ class MyReplyEProposal(EProposal):
                                              ewctrl,
                                              foreign_ep.offer)
         self.my_offer = my_offer
-        self.tx = self.ewctrl.make_reply_tx(foreign_ep.etx_spec, 
+        self.tx = self.ewctrl.make_reply_tx(foreign_ep.etx_spec,
                                             my_offer.A,
                                             my_offer.B)
-        
+
     def get_data(self):
         data = super(MyReplyEProposal, self).get_data()
         data['etx_data'] = self.tx.get_hex_tx_data()
@@ -125,7 +125,7 @@ class MyReplyEProposal(EProposal):
         rtxs = RawTxSpec.from_tx_data(self.ewctrl.model,
                                       reply_ep.etx_data.decode('hex'))
         self.ewctrl.publish_tx(rtxs, self.my_offer) # TODO: ???
-        
+
 
 class ForeignEProposal(EProposal):
     def __init__(self, ewctrl, ep_data):

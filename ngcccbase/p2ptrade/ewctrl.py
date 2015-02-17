@@ -32,7 +32,7 @@ class OperationalETxSpec(SimpleOperationalTxSpec):
     def set_our_value_limit(self, our):
         our_colordef = self.ewctrl.resolve_color_spec(our['color_spec'])
         self.our_value_limit = SimpleColorValue(colordef=our_colordef,
-                                                value=our['value'])      
+                                                value=our['value'])
 
     def prepare_inputs(self, etx_spec):
         self.inputs = defaultdict(list)
@@ -66,7 +66,7 @@ class OperationalETxSpec(SimpleOperationalTxSpec):
         self.targets = []
         for address, color_spec, value in etx_spec.targets:
             colordef = self.ewctrl.resolve_color_spec(color_spec)
-            self.targets.append(ColorTarget(address, 
+            self.targets.append(ColorTarget(address,
                                        SimpleColorValue(colordef=colordef,
                                                         value=value)))
         wam = self.model.get_address_manager()
@@ -124,7 +124,7 @@ class OperationalETxSpec(SimpleOperationalTxSpec):
                 msg = 'Not enough coins: %s requested, %s found!'
                 raise InsufficientFundsError(msg % (colorvalue, total))
             return [cv_u[1] for cv_u in self.inputs[color_id]], total
-        
+
         if colorvalue > self.our_value_limit:
             raise InsufficientFundsError("%s requested, %s found!"
                                          % (colorvalue, self.our_value_limit))
@@ -163,7 +163,7 @@ class EWalletController(object):
 
         used_outputs = set([])
         satisfied_targets = set([])
-        
+
         for color_id in color_id_set:
             if color_id == 0:
                 continue
@@ -216,12 +216,12 @@ class EWalletController(object):
             if change < op_tx_spec.get_dust_threshold():
                 change = SimpleColorValue(colordef=UNCOLORED_MARKER,
                                           value=0)
-            return selection, change            
+            return selection, change
         else:
             selection, total = op_tx_spec.select_coins(colorvalue)
             change = total - colorvalue
             return selection, change
-    
+
     def make_etx_spec(self, our, their):
         our_color_def = self.resolve_color_spec(our['color_spec'])
         our_color_set = ColorSet.from_color_ids(self.model.get_color_map(),
@@ -236,7 +236,7 @@ class EWalletController(object):
         c_utxos, c_change = self.select_inputs(
             SimpleColorValue(colordef=our_color_def,
                              value=our['value'] + extra_value))
-        inputs = {our['color_spec']: 
+        inputs = {our['color_spec']:
                   [utxo.get_outpoint() for utxo in c_utxos]}
         wam = self.model.get_address_manager()
 

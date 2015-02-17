@@ -106,8 +106,7 @@ class BaseTxDb(object):
     def add_tx_by_hash(self, txhash, status=None):
         bs = self.model.get_blockchain_state()
         txdata = bs.get_raw(txhash)
-        raw_tx = RawTxSpec.from_tx_data(self.model,
-                                        txdata.decode('hex'))
+        raw_tx = RawTxSpec.from_tx_data(self.model, txdata.decode('hex'))
         return self.add_tx(txhash, txdata, raw_tx, status)
 
     def add_tx(self, txhash, txdata, raw_tx, status=None):

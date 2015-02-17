@@ -1,5 +1,5 @@
 from pycoin.ecdsa.secp256k1 import generator_secp256k1 as BasePoint
-from pycoin.encoding import (b2a_hashed_base58, from_bytes_32, to_bytes_32, 
+from pycoin.encoding import (b2a_hashed_base58, from_bytes_32, to_bytes_32,
                              a2b_hashed_base58, public_pair_to_bitcoin_address,
                              public_pair_to_hash160_sec, secret_exponent_to_wif)
 
@@ -68,7 +68,7 @@ class LooseAddressRecord(AddressRecord):
         key_type = bin_privkey[0]
         if key_type != self.prefix:
             raise InvalidAddressError
-                
+
         self.rawPrivKey = from_bytes_32(bin_privkey[1:])
         self.publicPoint = BasePoint * self.rawPrivKey
         self.address = public_pair_to_bitcoin_address(

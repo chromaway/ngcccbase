@@ -96,14 +96,13 @@ class BaseOperationalTxSpec(OperationalTxSpec):
         """
         base_fee = 10000.0
         fee_value = math.ceil((tx_size * base_fee) / 1000)
-        return SimpleColorValue(colordef=UNCOLORED_MARKER, 
+        return SimpleColorValue(colordef=UNCOLORED_MARKER,
                                 value=fee_value)
 
     def get_dust_threshold(self):
         return SimpleColorValue(colordef=UNCOLORED_MARKER, value=5500)
 
-    def _select_enough_coins(self, colordef,
-                             utxo_list, required_sum_fn):
+    def _select_enough_coins(self, colordef, utxo_list, required_sum_fn):
         ssum = SimpleColorValue(colordef=colordef, value=0)
         selection = []
         required_sum = None
@@ -115,10 +114,15 @@ class BaseOperationalTxSpec(OperationalTxSpec):
                 return selection, ssum
         raise InsufficientFundsError('Not enough coins: %s requested, %s found!'
                                      % (required_sum, ssum))
-    
+
     def _validate_select_coins_parameters(self, colorvalue, use_fee_estimator):
-        if colorvalue.get_value() <= 0:
-          raise ZeroSelectError
+        fee = None
+        if use_fee_estimator:
+            fee = use_fee_estimator.estimate_required_fee()
+        if not fee and colorvalue.get_value() < 0:
+            raise Exception("Cannot select negative coins!")
+        elif fee and (colorvalue + fee).get_value() < 0:
+            raise Exception("Cannot select negative coins!")
         colordef = colorvalue.get_colordef()
         if colordef != UNCOLORED_MARKER and use_fee_estimator:
             msg = "Fee estimator can only be used with uncolored coins!"
@@ -156,14 +160,17 @@ class SimpleOperationalTxSpec(BaseOperationalTxSpec):
         """Get an address associated with color definition <color_def>
         that is in the current wallet for receiving change.
         """
-        color_id = color_def.color_id
+        am = self.model.get_asset_definition_manager()
         wam = self.model.get_address_manager()
+
+        color_id = color_def.color_id
+        asset = am.get_asset_by_color_id(color_id)
+
         color_set = None
         if color_def == UNCOLORED_MARKER:
-            color_set = ColorSet.from_color_ids(self.model.get_color_map(),
-                                                [0])
-        elif self.asset.get_color_set().has_color_id(color_id):
-            color_set = self.asset.get_color_set()
+            color_set = ColorSet.from_color_ids(self.model.get_color_map(), [0])
+        elif asset.get_color_set().has_color_id(color_id):
+            color_set = asset.get_color_set()
         if color_set is None:
             raise InvalidColorIdError('Wrong color id!')
         aw = wam.get_change_address(color_set)
@@ -244,6 +251,13 @@ class RawTxSpec(object):
         """Returns the hex version of the signed transaction data.
         """
         return hexlify(self.tx_data).decode("utf8")
+
+    def get_input_addresses(self):
+        ccc = self.model.ccc
+        bs = self.model.get_blockchain_state()
+        inputs = [ti.get_outpoint() for ti in self.composed_tx_spec.txins]
+        raw_addrs = [bs.get_tx(tx).outputs[n].raw_address for tx, n in inputs]
+        return [ccc.raw_to_address(raw) for raw in raw_addrs]
 
 def compose_uncolored_tx(tx_spec):
     """ compose a simple bitcoin transaction """

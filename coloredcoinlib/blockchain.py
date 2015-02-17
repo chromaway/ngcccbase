@@ -54,6 +54,12 @@ class CTransaction(object):
         self.bs = bs
         self.have_input_values = False
 
+    def get_fee(self):
+        self.ensure_input_values()
+        input_value = sum([txin.value for txin in self.inputs])
+        output_value = sum([txout.value for txout in self.outputs])
+        return input_value - output_value
+
     @classmethod
     def from_bitcoincore(klass, txhash, bctx, bs):
         tx = CTransaction(bs)

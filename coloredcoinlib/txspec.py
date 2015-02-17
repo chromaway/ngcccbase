@@ -58,7 +58,7 @@ class OperationalTxSpec(object):
         the same as <colorvalue> and have a sum colorvalues
         have at least the <colorvalue>.
         For uncolored coins sum of values of UTXO objects must
-        also include a fee (if <use_fee_estimator> parameter is 
+        also include a fee (if <use_fee_estimator> parameter is
         provided, usually it is composed_tx_spec)."""
         raise Exception('not implemented')  # pragma: no cover
 
@@ -73,7 +73,7 @@ class OperationalTxSpec(object):
         raise Exception('not implemented')  # pragma: no cover
 
     def get_dust_threshold(self):
-        """returns ColorValue object representing smallest 
+        """returns ColorValue object representing smallest
         satoshi value which isn't dust according to current
         parameters"""
         raise Exception('not implemented')  # pragma: no cover
@@ -116,7 +116,7 @@ class ComposedTxSpec(object):
         assert isinstance(txin, self.TxIn)
         self.txins.append(txin)
 
-    def add_txout(self, txout=None, value=None, target_addr=None, 
+    def add_txout(self, txout=None, value=None, target_addr=None,
                   target=None, is_fee_change=False):
         if not txout:
             if not value:
@@ -132,7 +132,7 @@ value is provided and target is not uncolored!")
                     raise Exception("Error in ComposedTxSpec.add_txout: no\
 value isn't uncolored!")
             if not target_addr:
-                target_addr = target.get_address()      
+                target_addr = target.get_address()
             cls = self.FeeChangeTxOut if is_fee_change else self.TxOut
             txout = cls(value, target_addr)
         self.txouts.append(txout)
@@ -157,8 +157,8 @@ value isn't uncolored!")
         return self.txouts
 
     def estimate_size(self, extra_txins=0, extra_txouts=0, extra_bytes=0):
-        return (181 * (len(self.txins) + extra_txins) + 
-                34 * (len(self.txouts) + extra_txouts) + 
+        return (181 * (len(self.txins) + extra_txins) +
+                34 * (len(self.txouts) + extra_txouts) +
                 10 + extra_bytes)
 
     def estimate_required_fee(self, extra_txins=0, extra_txouts=1, extra_bytes=0):
@@ -168,8 +168,6 @@ value isn't uncolored!")
                                extra_bytes=extra_bytes))
 
     def get_fee(self):
-        sum_txins = sum([inp.value 
-                         for inp in self.txins])
-        sum_txouts = sum([out.value
-                          for out in self.txouts])
+        sum_txins = sum([inp.value for inp in self.txins])
+        sum_txouts = sum([out.value for out in self.txouts])
         return sum_txins - sum_txouts

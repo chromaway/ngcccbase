@@ -1,5 +1,6 @@
 from PyQt4 import QtCore, QtGui, uic
 
+from decimal import Decimal
 from wallet import wallet
 from tablemodel import TableModel, ProxyModel
 
@@ -86,9 +87,10 @@ class TradePage(QtGui.QWidget):
         self.tvSell.doubleClicked.connect(self.tvSellDoubleClicked)
 
         self.need_update_offers = False
+
         def set_need_update_offers(data):
             self.need_update_offers = True
-        wallet.p2p_agent.set_event_handler('offers_updated', 
+        wallet.p2p_agent.set_event_handler('offers_updated',
                                            set_need_update_offers)
 
         def information_about_offer(offer, action, buysell_text):
@@ -99,6 +101,8 @@ class TradePage(QtGui.QWidget):
                 (A if sell_offer else B)['color_spec'])
             value = (A if sell_offer else B)['value']
             total = (B if sell_offer else A)['value']
+            if not value:
+                return # division by zero
             text = '{action} {type} {value} {moniker} @{price} btc ea. (Total: {total} btc)'.format(**{
                 'action': action,
                 'type': buysell_text[sell_offer],
@@ -110,28 +114,28 @@ class TradePage(QtGui.QWidget):
             self.add_log_entry(text)
 
         wallet.p2p_agent.set_event_handler(
-            'register_my_offer', 
+            'register_my_offer',
             lambda offer: information_about_offer(offer, 'Created', ("bid", "ask")))
         wallet.p2p_agent.set_event_handler(
-            'cancel_my_offer',   
+            'cancel_my_offer',
             lambda offer: information_about_offer(offer, 'Canceled', ("bid", "ask")))
         wallet.p2p_agent.set_event_handler(
-            'make_ep', 
-            lambda ep: information_about_offer(ep.my_offer, 'In progress', 
+            'make_ep',
+            lambda ep: information_about_offer(ep.my_offer, 'In progress',
                                                ('buying', 'selling')))
         wallet.p2p_agent.set_event_handler(
-            'accept_ep', 
-            lambda eps: information_about_offer(eps[1].my_offer, 'In progress', 
+            'accept_ep',
+            lambda eps: information_about_offer(eps[1].my_offer, 'In progress',
                                                 ('buying', 'selling')))
         def on_trade_complete(ep):
-            information_about_offer(ep.my_offer, 
+            information_about_offer(ep.my_offer,
                                     'Trade complete:', ('bought', 'sold'))
             self.update_balance()
         wallet.p2p_agent.set_event_handler('trade_complete', on_trade_complete)
 
     def add_log_entry(self, text):
         self.listEventLog.addItem(text)
-        
+
     def update(self):
         monikers = wallet.get_all_monikers()
         monikers.remove('bitcoin')
@@ -179,7 +183,7 @@ class TradePage(QtGui.QWidget):
             if data['A'].get('color_spec') == color_desc:
                 value = data['A']['value']
                 total = data['B']['value']
-                price = int(total*asset.unit/float(value))
+                price = int(Decimal(total)*Decimal(asset.unit)/Decimal(value))
                 self.modelSell.addRow([
                     bitcoin.format_value(price),
                     asset.format_value(value),
@@ -189,7 +193,7 @@ class TradePage(QtGui.QWidget):
             if data['B'].get('color_spec') == color_desc:
                 value = data['B']['value']
                 total = data['A']['value']
-                price = int(total*asset.unit/float(value))
+                price = int(Decimal(total)*Decimal(asset.unit)/Decimal(value))
                 self.modelBuy.addRow([
                     bitcoin.format_value(price),
                     asset.format_value(value),
@@ -221,40 +225,74 @@ class TradePage(QtGui.QWidget):
         self.update_offers()
 
     def lblBuyTotalChange(self):
-        self.lblBuyTotal.setText('')
-        if self.edtBuyQuantity.text().toDouble()[1] \
-                and self.edtBuyPrice.text().toDouble()[1]:
-            value = self.edtBuyQuantity.text().toDouble()[0]
-            bitcoin = wallet.get_asset_definition('bitcoin')
-            price = bitcoin.parse_value(
-                self.edtBuyPrice.text().toDouble()[0])
-            total = value*price
-            self.lblBuyTotal.setText('%s bitcoin' % bitcoin.format_value(total))
+        bitcoin = wallet.get_asset_definition('bitcoin')
+        quantity = self._to_decimal(self.edtBuyQuantity)
+        price = bitcoin.parse_value(self._to_decimal(self.edtBuyPrice))
+        total = quantity * price
+        if total:
+            self.lblBuyTotal.setText('%sBTC' % bitcoin.format_value(total))
+        else:
+            self.lblBuyTotal.setText('')
 
-    def btnBuyClicked(self):
-        valid = True
-        if not self.edtBuyQuantity.text().toDouble()[1]:
-            self.edtBuyQuantity.setStyleSheet('background:#FF8080')
-            valid = False
-        if not self.edtBuyPrice.text().toDouble()[1]:
-            self.edtBuyPrice.setStyleSheet('background:#FF8080')
-            valid = False
-        if not valid:
-            return
+    def validate_buy_input(self, quantity, price):
         moniker = str(self.cbMoniker.currentText())
         asset = wallet.get_asset_definition(moniker)
-        value = self.edtBuyQuantity.text().toDouble()[0]
         bitcoin = wallet.get_asset_definition('bitcoin')
-        price = self.edtBuyPrice.text().toDouble()[0]
-        delta = wallet.get_available_balance(bitcoin) - value*bitcoin.parse_value(price)
-        if delta < 0:
-            message = 'The transaction amount exceeds available balance by %s bitcoin' % \
-                bitcoin.format_value(-delta)
+
+        # check if quantity was given
+        if quantity <= Decimal("0"): # no quantity
+            self.edtBuyQuantity.setStyleSheet('background:#FF8080')
+            return False
+
+        # check if price was given
+        if price <= Decimal("0"): # no price
+            self.edtBuyPrice.setStyleSheet('background:#FF8080')
+            return False
+
+        # quantity must be multiple of atom
+        if not asset.validate_value(quantity):
+            message = "Quantity must be a multiple of %s!" % asset.get_atom()
             QtGui.QMessageBox.critical(self, '', message, QtGui.QMessageBox.Ok)
-            return
+            self.edtBuyQuantity.setStyleSheet('background:#FF8080')
+            return False
+
+        # price must be multiple of atom
+        if not bitcoin.validate_value(price):
+            message = "Price must be a multiple of %s!" % asset.get_atom()
+            QtGui.QMessageBox.critical(self, '', message, QtGui.QMessageBox.Ok)
+            self.edtBuyPrice.setStyleSheet('background:#FF8080')
+            return False
+
+        # check if amount exceeds available balance
+        needed = quantity * bitcoin.parse_value(price)
+        available = wallet.get_available_balance(bitcoin)
+        delta = available - needed
+        if delta < 0:
+            neg_delta = bitcoin.format_value(-delta)
+            msg_str = 'The amount exceeds available balance by %s bitcoin!'
+            message = msg_str % neg_delta
+            QtGui.QMessageBox.critical(self, '', message, QtGui.QMessageBox.Ok)
+            self.edtBuyQuantity.setStyleSheet('background:#FF8080')
+            self.edtBuyPrice.setStyleSheet('background:#FF8080')
+            return False
+
+        return True
+
+    def _to_decimal(self, edit_field):
+        try:
+            return Decimal(str(edit_field.text()))
+        except:
+            return Decimal("0")
+
+    def btnBuyClicked(self):
+        quantity = self._to_decimal(self.edtBuyQuantity)
+        price = self._to_decimal(self.edtBuyPrice)
+        if not self.validate_buy_input(quantity, price):
+            return # invalid input
+        moniker = str(self.cbMoniker.currentText())
         offer = wallet.p2ptrade_make_offer(False, {
             'moniker': moniker,
-            'value': value,
+            'value': quantity,
             'price': price,
         })
         wallet.p2p_agent.register_my_offer(offer)
@@ -274,11 +312,11 @@ class TradePage(QtGui.QWidget):
             moniker = str(self.cbMoniker.currentText())
             asset = wallet.get_asset_definition(moniker)
             if wallet.get_available_balance(asset) < offer.get_data()['B']['value']:
-                self.logger.warn("%s avail <  %s required", 
+                self.logger.warn("%s avail <  %s required",
                                  wallet.get_available_balance(asset),
                                  offer.get_data()['A']['value'])
                 msg = "Not enough coins: %s %s needed, %s available" % \
-                    (str(self.proxyModelBuy.data(selected[2]).toString()), 
+                    (str(self.proxyModelBuy.data(selected[2]).toString()),
                      moniker,
                      asset.format_value(wallet.get_available_balance(asset)))
                 QtGui.QMessageBox.warning(self, '', msg,
@@ -305,40 +343,70 @@ bitcoin each. <br> (Total: <b>{total}</b> bitcoin)".format(**{
         self.update_offers()
 
     def lblSellTotalChange(self):
-        self.lblSellTotal.setText('')
-        if self.edtSellQuantity.text().toDouble()[1] \
-                and self.edtSellPrice.text().toDouble()[1]:
-            value = self.edtSellQuantity.text().toDouble()[0]
-            bitcoin = wallet.get_asset_definition('bitcoin')
-            price = bitcoin.parse_value(
-                self.edtSellPrice.text().toDouble()[0])
-            total = value*price
-            self.lblSellTotal.setText('%s bitcoin' % bitcoin.format_value(total))
+        bitcoin = wallet.get_asset_definition('bitcoin')
+        quantity = self._to_decimal(self.edtSellQuantity)
+        price = bitcoin.parse_value(self._to_decimal(self.edtSellPrice))
+        total = quantity * price
+        if total:
+            self.lblSellTotal.setText('%sBTC' % bitcoin.format_value(total))
+        else:
+            self.lblSellTotal.setText('')
 
-    def btnSellClicked(self):
-        valid = True
-        if not self.edtSellQuantity.text().toDouble()[1]:
-            self.edtSellQuantity.setStyleSheet('background:#FF8080')
-            valid = False
-        if not self.edtSellPrice.text().toDouble()[1]:
-            self.edtSellPrice.setStyleSheet('background:#FF8080')
-            valid = False
-        if not valid:
-            return
+    def validate_sell_input(self, quantity, price):
         moniker = str(self.cbMoniker.currentText())
         asset = wallet.get_asset_definition(moniker)
-        value = self.edtSellQuantity.text().toDouble()[0]
         bitcoin = wallet.get_asset_definition('bitcoin')
-        price = self.edtSellPrice.text().toDouble()[0]
-        delta = wallet.get_available_balance(asset) - asset.parse_value(value)
-        if delta < 0:
-            message = 'The transaction amount exceeds available balance by %s %s' % \
-                (asset.format_value(-delta), moniker)
+
+        # check if quantity was given
+        if quantity <= Decimal("0"): # no quantity
+            self.edtSellQuantity.setStyleSheet('background:#FF8080')
+            return False
+
+        # check if price was given
+        if price <= Decimal("0"): # no price
+            self.edtSellPrice.setStyleSheet('background:#FF8080')
+            return False
+
+        # quantity must be multiple of atom
+        if not asset.validate_value(quantity):
+            atom = asset.format_value(1)
+            message = "Quantity must be a multiple of %s!" % atom
             QtGui.QMessageBox.critical(self, '', message, QtGui.QMessageBox.Ok)
-            return
+            self.edtSellQuantity.setStyleSheet('background:#FF8080')
+            return False
+
+        # price must be multiple of atom
+        if not bitcoin.validate_value(price):
+            atom = bitcoin.format_value(1)
+            message = "Price must be a multiple of %s!" % atom
+            QtGui.QMessageBox.critical(self, '', message, QtGui.QMessageBox.Ok)
+            self.edtSellPrice.setStyleSheet('background:#FF8080')
+            return False
+
+        # check if amount exceeds available balance
+        needed = asset.parse_value(quantity)
+        delta = wallet.get_available_balance(asset) - needed
+        if delta < 0:
+            args = (asset.format_value(-delta), moniker)
+            msg_str = 'The amount exceeds available balance by %s %s'
+            message = msg_str % args
+            QtGui.QMessageBox.critical(self, '', message, QtGui.QMessageBox.Ok)
+            self.edtSellQuantity.setStyleSheet('background:#FF8080')
+            self.edtSellPrice.setStyleSheet('background:#FF8080')
+            return False
+
+        return True
+
+
+    def btnSellClicked(self):
+        quantity = self._to_decimal(self.edtSellQuantity)
+        price = self._to_decimal(self.edtSellPrice)
+        if not self.validate_sell_input(quantity, price):
+            return # invalid input
+        moniker = str(self.cbMoniker.currentText())
         offer = wallet.p2ptrade_make_offer(True, {
             'moniker': moniker,
-            'value': value,
+            'value': quantity,
             'price': price,
         })
         wallet.p2p_agent.register_my_offer(offer)
@@ -362,7 +430,7 @@ bitcoin each. <br> (Total: <b>{total}</b> bitcoin)".format(**{
                                  wallet.get_available_balance(bitcoin),
                                  offer.get_data()['B']['value'])
                 msg = "Not enough money: %s bitcoins needed, %s available" % \
-                    (self.proxyModelSell.data(selected[2]).toString(), 
+                    (self.proxyModelSell.data(selected[2]).toString(),
                      bitcoin.format_value(wallet.get_available_balance(bitcoin)))
                 QtGui.QMessageBox.warning(self, '', msg,
                                           QtGui.QMessageBox.Ok)

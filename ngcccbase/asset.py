@@ -1,4 +1,4 @@
-from coloredcoinlib import (ColorSet, IncompatibleTypesError, InvalidValueError, 
+from coloredcoinlib import (ColorSet, IncompatibleTypesError, InvalidValueError,
                             SimpleColorValue, ColorValue)
 from coloredcoinlib.comparable import ComparableMixin
 from decimal import Decimal
@@ -16,7 +16,7 @@ class AssetDefinition(object):
         self.colormap = colormap
         self.monikers = params.get('monikers', [])
         # currently only single-color assets are supported
-        assert len(params.get('color_set')) == 1 
+        assert len(params.get('color_set')) == 1
         self.color_set = ColorSet(colormap, params.get('color_set'))
         self.unit = int(params.get('unit', 1))
 
@@ -34,6 +34,9 @@ class AssetDefinition(object):
         """
         return self.monikers
 
+    def get_color_id(self):
+        return list(self.get_color_set().color_id_set)[0]
+
     def has_color_id(self, color_id):
         return self.get_color_set().has_color_id(color_id)
 
@@ -42,10 +45,13 @@ class AssetDefinition(object):
         """
         return self.color_set
 
-    def get_null_colorvalue(self):
-        color_set = self.get_color_set() 
+    def get_color_def(self):
+        color_set = self.get_color_set()
         assert len(color_set.color_desc_list) == 1
-        cd = self.colormap.get_color_def(color_set.color_desc_list[0])
+        return self.colormap.get_color_def(color_set.color_desc_list[0])
+
+    def get_null_colorvalue(self):
+        cd = self.get_color_def()
         return SimpleColorValue(colordef=cd, value=0)
 
     def get_colorvalue(self, utxo):
@@ -56,21 +62,30 @@ class AssetDefinition(object):
                     return cv
         raise Exception("Cannot get colorvalue for UTXO!")
 
+    def validate_value(self, portion):
+        """Returns True if the portion is an exact multiple of the Asset atoms.
+        """
+        if isinstance(portion, ColorValue) or isinstance(portion, AssetValue):
+            portion = portion.get_value()
+        atom = Decimal("1") / Decimal(self.unit)
+        return Decimal(portion) % atom == Decimal("0")
+
     def parse_value(self, portion):
         """Returns actual number of Satoshis for this Asset
         given the <portion> of the asset.
         """
-        return int(float(portion) * self.unit)
+        return int(Decimal(portion) * Decimal(self.unit))
 
     def format_value(self, value):
         """Returns a string representation of the portion of the asset.
         can involve rounding.  doesn't display insignificant zeros
         """
         if isinstance(value, ColorValue) or isinstance(value, AssetValue):
-            atoms = value.get_value()
-        else:
-            atoms = value
-        return str(Decimal(atoms) / Decimal(self.unit))
+            value = value.get_value()
+        return str(Decimal(value) / Decimal(self.unit))
+
+    def get_atom(self):
+        return self.format_value(1)
 
     def get_data(self):
         """Returns a JSON-compatible object that represents this Asset
@@ -97,7 +112,7 @@ class AssetValue(object):
 
     def check_compatibility(self, other):
         if self.get_color_set() != other.get_color_set():
-            raise IncompatibleTypesError        
+            raise IncompatibleTypesError
 
     def get_asset(self):
         return self.asset
@@ -276,7 +291,7 @@ class AssetDefinitionManager(object):
         if assets:
             return assets[0]
         else:
-            return None        
+            return None
 
     def update_config(self):
         """Write the current asset definitions to the persistent data-store
@@ -305,16 +320,24 @@ class AssetDefinitionManager(object):
         raise Exception(msg % color_set_hash)
 
 
-    def get_assetvalue_for_color_id_value(self, colorid, colorvalue):
+    def get_asset_by_color_id(self, colorid):
         colorset = ColorSet.from_color_ids(self.colormap, [colorid])
         asset = self.find_asset_by_color_set(colorset)
         if not asset:
             raise Exception('Asset not found!')
+        return asset
+
+    def get_assetvalue_for_assetid_value(self, assetid, value):
+        asset = self.get_asset_by_id(assetid)
+        return AdditiveAssetValue(asset=asset, value=value)
+
+    def get_assetvalue_for_colorid_value(self, colorid, colorvalue):
+        asset = self.get_asset_by_color_id(colorid)
         return AdditiveAssetValue(asset=asset, value=colorvalue)
 
-    def get_asset_value_for_colorvalue(self, colorvalue):
-        return self.get_assetvalue_for_color_id_value(
-            colorvalue.get_color_id(), 
+    def get_assetvalue_for_colorvalue(self, colorvalue):
+        return self.get_assetvalue_for_colorid_value(
+            colorvalue.get_color_id(),
             colorvalue.get_value()
         )
 
