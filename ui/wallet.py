@@ -16,7 +16,6 @@ from decimal import Decimal
 
 
 class TimedAsyncTask(threading.Thread):
-
     def __init__(self, task, sleep_time):
         super(TimedAsyncTask, self).__init__()
         self._stop = threading.Event()
@@ -49,8 +48,6 @@ class Wallet(object):
         self.async_utxo_fetcher = AsyncUTXOFetcher(
             self.model, self.wallet.wallet_config.get('utxo_fetcher', {}))
 
-        self.scan_thread = TimedAsyncTask(self.scan, 2.5)
-        self.scan_thread.start()
         self.update_connected_thread = TimedAsyncTask(self.update_connected, 2.5)
         self.update_connected_thread.start()
         self.update_connected()
@@ -187,8 +184,6 @@ class Wallet(object):
         return MyEOffer(None, data['B'], data['A'])
 
     def stop_all(self):
-        self.scan_thread.stop()
-        self.scan_thread.join()
         self.update_connected_thread.stop()
         self.update_connected_thread.join()
         self.async_utxo_fetcher.stop()

@@ -71,7 +71,6 @@ class MainWindow(QtGui.QMainWindow):
 
         self.utxo_timer = QtCore.QTimer()
         self.utxo_timer.timeout.connect(self.update_utxo_fetcher)
-        self.utxo_timer.timeout.connect(self.update)
         self.utxo_timer.start(2500)
         wallet.async_utxo_fetcher.start_thread()
 
