@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 # setup virtualenv
 rm -rf env # remove previous virtualenv
 virtualenv -p /usr/bin/python2 env # create virtualenv
@@ -8,10 +7,10 @@ source env/bin/activate # activate virtualenv
 python setup.py develop # install packages
 
 # run test
-# FIXME python -m coloredcoinlib.tests.test_colormap
-# FIXME python -m coloredcoinlib.tests.test_colorset
-# FIXME python -m coloredcoinlib.tests.test_store
-# FIXME python -m coloredcoinlib.tests.test_colorvalue
+python -m coloredcoinlib.tests.test_colormap
+python -m coloredcoinlib.tests.test_colorset
+python -m coloredcoinlib.tests.test_store
+python -m coloredcoinlib.tests.test_colorvalue
 # FIXME python -m coloredcoinlib.tests.test_colordata
 # FIXME python -m coloredcoinlib.tests.test_colordef
 # FIXME python -m coloredcoinlib.tests.test_txspec
