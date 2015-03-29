@@ -15,7 +15,7 @@ python -m coloredcoinlib.tests.test_colorvalue
 # FIXME python -m coloredcoinlib.tests.test_colordef
 # FIXME python -m coloredcoinlib.tests.test_txspec
 # FIXME python -m coloredcoinlib.tests.test_builder
-# FIXME python -m coloredcoinlib.tests.test_toposort
+python -m coloredcoinlib.tests.test_toposort
 # FIXME python -m coloredcoinlib.tests.test_blockchain
 python -m ngcccbase.p1ptrade.tests.test_ewctrl
 # FIXME python -m ngcccbase.p2ptrade.tests.test_agent
