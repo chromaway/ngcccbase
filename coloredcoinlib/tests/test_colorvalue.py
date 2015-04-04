@@ -4,12 +4,12 @@ import unittest
 
 from coloredcoinlib.colorvalue import (SimpleColorValue,
                                        IncompatibleTypesError)
-from coloredcoinlib.colordef import POBColorDefinition, OBColorDefinition
+from coloredcoinlib.colordef import EPOBCColorDefinition, OBColorDefinition
 
  
 class TestColorValue(unittest.TestCase):
     def setUp(self):
-        self.colordef1 = POBColorDefinition(
+        self.colordef1 = EPOBCColorDefinition(
             1, {'txhash': 'genesis', 'outindex': 0})
         self.colordef2 = OBColorDefinition(
             2, {'txhash': 'genesis', 'outindex': 0})

@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # setup virtualenv
-rm -rf env # remove previous virtualenv
-virtualenv -p /usr/bin/python2 env # create virtualenv
-source env/bin/activate # activate virtualenv
+rm -rf /tmp/test_env # remove previous virtualenv
+virtualenv -p /usr/bin/python2 /tmp/test_env # create virtualenv
+source /tmp/test_env/bin/activate # activate virtualenv
 python setup.py develop # install packages
 
 # run test
