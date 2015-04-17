@@ -8,37 +8,36 @@ This command will start a server at hostname/port that takes
 in JSON-RPC commands for execution.
 """
 
-import install_https
-from ngcccbase.rpc_interface import RPCRequestHandler
+import argparse
 from BaseHTTPServer import HTTPServer
-import sys
-import getopt
+from ngcccbase.rpc_interface import RPCRequestHandler
 
-from ngcccbase.logger import setup_logging
+def get_arguments():
+  parser = argparse.ArgumentParser()
+  parser.add_argument("--hostname", default="localhost", 
+                      help="default: localhost")
+  parser.add_argument("--port", type=int, default=8080, 
+                      help="default: 8080")
+  parser.add_argument("--wallet",  
+                      help="default: <blockchain>.wallet")
+  parser.add_argument("--testnet", action="store_true",
+                      help="use testnet blockchain")
+  args = vars(parser.parse_args())
+  args["blockchain"] = "testnet" if args["testnet"] else "mainnet"
+  if not args["wallet"]:
+    args["wallet"] = "%s.wallet" % args["blockchain"]
+  return args
 
-setup_logging()
+if __name__ == "__main__":
+  args = get_arguments()
+  print """Starting json-rpc service
+  Location: http://%(hostname)s:%(port)s 
+  Blockchain: %(blockchain)s 
+  Wallet: %(wallet)s """ % args
+  http_server = HTTPServer(
+    server_address=(args["hostname"], args["port"]), 
+    RequestHandlerClass=RPCRequestHandler
+  )
+  http_server.args = args
+  http_server.serve_forever()
 
-args = []
-
-# grab the hostname and port from the command-line
-try:
-    opts, args = getopt.getopt(sys.argv[1:], "", "")
-except getopt.GetoptError:
-    pass
-
-if len(args) != 2:
-    print ("Error: parameters are required")
-    print ("python ngccc-server.py hostname port")
-    sys.exit(2)
-
-hostname = args[0]
-port = int(args[1])
-
-# create a server to accept the JSON-RPC requests
-http_server = HTTPServer(
-    server_address=(hostname, port), RequestHandlerClass=RPCRequestHandler
-)
-
-# start the server
-print ("Starting HTTP server on http://%s:%s" % (hostname, port))
-http_server.serve_forever()
