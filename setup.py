@@ -14,6 +14,7 @@ requires = [
     'pycoin == 0.52',
     'bunch',
     'python-jsonrpc',
+    'python-bitcoinaddress',
     'python-bitcoinlib == 0.1.1',
     'web.py',
 ]
