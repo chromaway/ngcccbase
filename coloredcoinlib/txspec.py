@@ -1,7 +1,7 @@
 """ Transaction specification language """
 
 from blockchain import CTxIn
-from colorvalue import ColorValue
+from colorvalue import ColorValue, SimpleColorValue
 
 
 class InvalidColorIdError(Exception):
@@ -41,7 +41,8 @@ class ColorTarget(object):
     @classmethod
     def sum(cls, targets):
         if len(targets) == 0:
-            return 0
+            from colordef import UNCOLORED_MARKER # circular import
+            return SimpleColorValue(colordef=UNCOLORED_MARKER, value=0)
         c = targets[0].colorvalue.__class__
         return c.sum([t.colorvalue for t in targets])
 
