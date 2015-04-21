@@ -2,6 +2,7 @@
 mainnet.wallet*
 testnet.wallet*
 color.db
+mainnet.blockchain_headers
 
 # setuptools files
 ngcccbase.egg-info

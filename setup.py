@@ -16,6 +16,7 @@ requires = [
     'python-jsonrpc',
     'python-bitcoinaddress',
     'python-bitcoinlib == 0.1.1',
+    'apigen',
     'web.py',
 ]
 

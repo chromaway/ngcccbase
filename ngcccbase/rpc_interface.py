@@ -14,28 +14,6 @@ import pyjsonrpc
 from wallet_controller import WalletController
 from pwallet import PersistentWallet
 
-# COMMAND              implemented  tested
-# import_config        no           no   
-# setval               no           no   
-# getval               no           no   
-# dump_config          no           no   
-# addasset             no           no   
-# issue                no           no   
-# newaddr              yes          partial
-# alladdresses         no           no   
-# privatekeys          no           no   
-# allassets            no           no   
-# balance              no           no   
-# received_by_address  no           no   
-# coinlog              no           no   
-# send                 no           no   
-# sendmany_csv         no           no   
-# scan                 no           no   
-# full_rescan          no           no   
-# history              no           no   
-# p2p_show_orders      no           no   
-# p2p_sell             no           no
-# p2p_buy              no           no
 
 
 class RPCRequestHandler(pyjsonrpc.HttpRequestHandler):
