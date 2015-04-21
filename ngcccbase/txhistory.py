@@ -53,7 +53,10 @@ class TxHistoryEntry_Send(TxHistoryEntry):
         for (tgt_addr, tgt_value) in self.targets:
             asset_value = AdditiveAssetValue(asset=asset, value=tgt_value)
             asset_targets.append(AssetTarget(tgt_addr, asset_value))
-        asset_targets.append(self.get_fee_asset_target())
+        try:
+            asset_targets.append(self.get_fee_asset_target())
+        except:
+            pass
         return asset_targets
 
 class TxHistoryEntry_Complex(TxHistoryEntry):

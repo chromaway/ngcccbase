@@ -27,7 +27,7 @@ dependency_links = [
 
 setup(
     name='ngcccbase',
-    version='0.0.6',
+    version='0.0.10',
     description='A flexible and modular base for colored coin software.',
     long_description=README,
     classifiers=[
