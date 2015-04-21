@@ -41,11 +41,3 @@ python -m ngcccbase.p2ptrade.tests.test_basic
 # FIXME python -m ngcccbase.tests.test_txcons
 # FIXME python -m ngcccbase.tests.test_blockchain
 
-
-
-# rpc api tests
-python -m api_tests.newaddr
-
-
-
-
