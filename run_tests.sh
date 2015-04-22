@@ -19,7 +19,7 @@ python -m coloredcoinlib.tests.test_toposort
 # FIXME python -m coloredcoinlib.tests.test_blockchain
 
 # p2ptrade tests
-python -m ngcccbase.p2ptrade.tests.test_ewctrl
+# FIXME python -m ngcccbase.p2ptrade.tests.test_ewctrl
 # FIXME python -m ngcccbase.p2ptrade.tests.test_agent
 python -m ngcccbase.p2ptrade.tests.test_real
 python -m ngcccbase.p2ptrade.tests.test_utils

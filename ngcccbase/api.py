@@ -12,33 +12,33 @@ from ngcccbase.p2ptrade.comm import HTTPComm
 from ngcccbase.p2ptrade.protocol_objects import MyEOffer
 
 
-# COMMAND               ported validation errors testcli testrpc
+# COMMAND               validation errors testcli testrpc
 
-# setconfigval          yes    no         no     no      no
-# getconfigval          yes    no         no     no      no
-# dumpconfig            yes    no         no     no      no
-# importconfig          yes    no         no     no      no
+# setconfigval          no         no     no      no
+# getconfigval          no         no     no      no
+# dumpconfig            no         no     no      no
+# importconfig          no         no     no      no
 
-# issueasset            yes    no         no     no      no
-# getasset              yes    no         no     no      no
-# addasset              yes    no         no     no      no
-# listassets            yes    no         no     no      no
-# balance               yes    no         no     no      no
+# issueasset            no         no     no      no
+# getasset              no         no     no      no
+# addasset              no         no     no      no
+# listassets            no         no     no      no
+# balance               no         no     no      no
 
-# newaddress            yes    no         no     no      no
-# listaddresses         yes    no         no     no      no
-# send                  yes    no         no     no      no
-# scan                  yes?   no         no     no      no
-# history               yes?   no         no     no      no
-# received              yes    no         no     no      no
-# privatekeys           yes    no         no     no      no
-# coinlog               yes    no         no     no      no
-# sendmanycsv           yes?   no         no     no      no
-# fullrescan            yes?   no         no     no      no
+# newaddress            no         no     no      no
+# listaddresses         no         no     no      no
+# send                  no         no     no      no
+# scan                  no         no     no      no
+# history               no         no     no      no
+# received              no         no     no      no
+# privatekeys           no         no     no      no
+# coinlog               no         no     no      no
+# sendmanycsv           no         no     no      no
+# fullrescan            no         no     no      no
 
-# p2porders             no     no         no     no      no
-# p2psell               no     no         no     no      no
-# p2pbuy                no     no         no     no      no
+# p2porders             no         no     no      no
+# p2psell               no         no     no      no
+# p2pbuy                no         no     no      no
 
 
 class Ngccc(apigen.Definition):
@@ -271,11 +271,11 @@ class Ngccc(apigen.Definition):
         agent = EAgent(ewctrl, config, comm)
         return agent
 
-    def p2ptrade_make_offer(self, we_sell, params):
-        asset = self.get_asset_definition(params['moniker'])
-        value = asset.parse_value(params['value'])
-        bitcoin = self.get_asset_definition('bitcoin')
-        price = bitcoin.parse_value(params['price'])
+    def p2ptrade_make_offer(self, we_sell, moniker, value, price):
+        asset = self.getAssetDefinition(moniker)
+        value = asset.parse_value(value)
+        bitcoin = self.getAssetDefinition('bitcoin')
+        price = bitcoin.parse_value(price)
         total = int(Decimal(value)/Decimal(asset.unit)*Decimal(price))
         color_desc = asset.get_color_set().color_desc_list[0]
         sell_side = {"color_spec": color_desc, "value": value}
@@ -308,18 +308,18 @@ class Ngccc(apigen.Definition):
         return offers
 
     @apigen.command()
-    def p2psell(self, moniker, amount, price, wait):
+    def p2psell(self, moniker, amount, price, wait=30):
         """Sell asset/color for bitcoin via peer to peer trade."""
         agent = self.init_p2ptrade()
-        offer = self.p2ptrade_make_offer(True, kwargs)
+        offer = self.p2ptrade_make_offer(True, moniker, amount, price)
         agent.register_my_offer(offer)
         self.p2ptrade_wait(agent, int(wait))
 
     @apigen.command()
-    def p2pbuy(self, moniker, amount, price, wait):
+    def p2pbuy(self, moniker, amount, price, wait=30):
         """Buy asset/color for bitcoin via peer to peer trade."""
         agent = self.init_p2ptrade()
-        offer = self.p2ptrade_make_offer(False, kwargs)
+        offer = self.p2ptrade_make_offer(False, moniker, amount, price)
         agent.register_my_offer(offer)
         self.p2ptrade_wait(agent, int(wait))
 
