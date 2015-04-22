@@ -14,7 +14,7 @@ requires = [
     'pycoin == 0.51',
     'bunch',
     'python-jsonrpc',
-    'python-bitcoinaddress',
+    #'python-bitcoinaddress = 0.2.2',
     'python-bitcoinlib == 0.1.1',
     'apigen',
     'web.py',
