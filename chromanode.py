@@ -2,7 +2,11 @@
 import os, sys
 import json
 import hashlib
+import httplib
 import threading, time
+from socket import error as SocketError
+from bitcoin.rpc import JSONRPCException
+
 
 import web
 
@@ -28,19 +32,6 @@ HEADERS_FILE = 'headers.testnet' if testnet else 'headers.mainnet'
 if (len(sys.argv) > 3):
     HEADERS_FILE = sys.argv[3]
 
-blockchainstate = BlockchainState.from_url(None, testnet)
-
-my_lock = threading.RLock()
-def call_synchronized(f):
-    def newFunction(*args, **kw):
-        with my_lock:
-            return f(*args, **kw)
-    return newFunction
-
-blockchainstate.bitcoind._call = call_synchronized(
-    blockchainstate.bitcoind._call)
-blockchainstate.bitcoind._batch = call_synchronized(
-    blockchainstate.bitcoind._batch)
 
 class ErrorThrowingRequestProcessor:
     def require(self, data, key, message):
@@ -58,6 +49,7 @@ class Tx(ErrorThrowingRequestProcessor):
         self.require(data, 'txhash', "TX requires txhash")
         txhash = data.get('txhash')
         print txhash
+        blockchainstate = BlockchainState.from_url(None, testnet)
         return blockchainstate.get_raw(txhash)
 
 
@@ -66,6 +58,7 @@ class PublishTx(ErrorThrowingRequestProcessor):
         txdata = web.data()
         reply = None
         try:
+            blockchainstate = BlockchainState.from_url(None, testnet)
             reply = blockchainstate.bitcoind.sendrawtransaction(txdata)
         except Exception as e:
             reply = ("Error: " + str(e))
@@ -79,12 +72,14 @@ class TxBlockhash(ErrorThrowingRequestProcessor):
         self.require(data, 'txhash', "TX requires txhash")
         txhash = data.get('txhash')
         print txhash
+        blockchainstate = BlockchainState.from_url(None, testnet)
         blockhash, in_mempool = blockchainstate.get_tx_blockhash(txhash)
         return json.dumps([blockhash, in_mempool])
 
 
 class Prefetch(ErrorThrowingRequestProcessor):
     def POST(self):
+        blockchainstate = BlockchainState.from_url(None, testnet)
         # data is sent in as json
         data = json.loads(web.data())
         self.require(data, 'txhash', "Prefetch requires txhash")
@@ -130,6 +125,7 @@ class Prefetch(ErrorThrowingRequestProcessor):
 
 class BlockCount(ErrorThrowingRequestProcessor):
     def GET(self):
+        blockchainstate = BlockchainState.from_url(None, testnet)
         return str(blockchainstate.get_block_count())
 
 
@@ -143,6 +139,7 @@ class DecimalEncoder(json.JSONEncoder):
 
 class Header(ErrorThrowingRequestProcessor):
     def POST(self):
+        blockchainstate = BlockchainState.from_url(None, testnet)
         data = json.loads(web.data())
         block_hash = data.get('block_hash')
         if not block_hash:
@@ -166,7 +163,6 @@ class ChunkThread(threading.Thread):
         threading.Thread.__init__(self, *args, **kwargs)
         self.running = False
         self.lock = threading.Lock()
-        self.blockchainstate = BlockchainState.from_url(None, testnet)
         self.headers = ''
 
     def is_running(self):
@@ -189,28 +185,38 @@ class ChunkThread(threading.Thread):
                 time.sleep(0.05)
                 continue
             run_time = time.time() + 1
+            
+            try:
+                blockchainstate = BlockchainState.from_url(None, testnet)
+                height = blockchainstate.get_block_count()
+                if height == self.height:
+                    continue
+                if height < self.height:
+                    self.headers = self.headers[:height*80]
+                while height > self.height:
+                    if not self.is_running():
+                        break
+                    block_height = self.height + 1
+                    blockhash = blockchainstate.get_block_hash(block_height)
+                    block = blockchainstate.get_block(blockhash)
 
-            height = self.blockchainstate.get_block_count()
-            if height == self.height:
-                continue
-            if height < self.height:
-                self.headers = self.headers[:height*80]
-            while height > self.height:
-                if not self.is_running():
-                    break
-                block_height = self.height + 1
-                blockhash = self.blockchainstate.get_block_hash(block_height)
-                block = self.blockchainstate.get_block(blockhash)
-
-                if block_height == 0:
-                    self.headers = self._header_to_string(block)
-                else:
-                    prev_hash = self._hash_header(self.headers[-80:])
-                    if prev_hash == block['previousblockhash']:
-                        self.headers += self._header_to_string(block)
+                    if block_height == 0:
+                        self.headers = self._header_to_string(block)
                     else:
-                        self.headers = self.headers[:-80]
-            open(HEADERS_FILE, 'wb').write(self.headers)
+                        prev_hash = self._hash_header(self.headers[-80:])
+                        if prev_hash == block['previousblockhash']:
+                            self.headers += self._header_to_string(block)
+                        else:
+                            self.headers = self.headers[:-80]
+                open(HEADERS_FILE, 'wb').write(self.headers)
+            except httplib.BadStatusLine:
+                pass # bad connection, try again later
+            except SocketError:
+                pass # bad connection, try again later
+            except JSONRPCException as e:
+                if e.error["code"] != -28:
+                    raise # Not error we are looking for
+                pass # Loading block index... , try again later
 
     @property
     def height(self):
@@ -261,6 +267,7 @@ class Merkle(ErrorThrowingRequestProcessor):
         hash_encode = lambda x: x[::-1].encode('hex')
         Hash = lambda x: hashlib.sha256(hashlib.sha256(x).digest()).digest()
 
+        blockchainstate = BlockchainState.from_url(None, testnet)
         b = blockchainstate.get_block(blockhash)
         tx_list = b.get('tx')
         tx_pos = tx_list.index(txhash)
@@ -300,3 +307,4 @@ if __name__ == "__main__":
 
     app = web.application(urls, globals())
     app.run()
+
