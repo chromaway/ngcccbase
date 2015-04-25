@@ -57,67 +57,6 @@ class Ngccc(apigen.Definition):
         return adm.get_asset_by_moniker(moniker)
 
     @apigen.command()
-    def getasset(self, moniker):
-        """Get the asset/color associated with the moniker."""
-        asset = self.getAssetDefinition(moniker)
-        if not asset:
-          pass # FIXME handle error
-        data = asset.get_data()
-        print json.dumps(data, indent=2)
-        return data
-
-    @apigen.command()
-    def newaddress(self, moniker):
-        """Creates a new address for a given asset/color."""
-        asset = self.getAssetDefinition(moniker)
-        address = self.controller.get_new_address(asset).get_color_address()
-        print address
-        return address
-
-    @apigen.command()
-    def listaddresses(self, moniker):
-        """Lists all addresses for a given asset/color"""
-        asset = self.getAssetDefinition(moniker)
-        addressobjs = self.controller.get_all_addresses(asset)
-        addresses = [ao.get_color_address() for ao in addressobjs]
-        for address in addresses:
-            print address
-        return addresses
-
-    @apigen.command()
-    def history(self, moniker):
-        """Show the history of transactions for given asset/color."""
-        asset = self.getAssetDefinition(moniker)
-        history = self.controller.get_history(asset)
-        for item in history:
-            _item = item.copy()
-            _item['mempool'] = "(mempool)" if item['mempool'] else ""
-            print ("%(action)s %(value)s %(address)s %(mempool)s" % _item)
-        return history
-
-
-    @apigen.command()
-    def scan(self):
-        """Update the database of transactions."""
-        sleep(5)
-        self.controller.scan_utxos()
-
-    @apigen.command()
-    def issueasset(self, moniker, units, atoms="100000000", scheme="epobc"):
-        """ Issue color of name <moniker> with <units> and <atoms> per unit,
-        based on <scheme (epobc|obc)>."""
-        self.controller.issue_coins(moniker, scheme, int(units), int(atoms))
-        # FIXME rest is quiet
-        # FIXME print asset
-        # FIXME return asset
-
-    @apigen.command()
-    def send(self, moniker, address, amount):
-        """Send <amount> in satoshis of <moniker> to an <address>."""
-        asset = self.getAssetDefinition(moniker)
-        self.controller.send_coins(asset, [address], [int(amount)])
-
-    @apigen.command()
     def setconfigval(self, key, value): # FIXME behaviour ok?
         """Sets a value in the configuration.
         Key is expressed as: key.subkey.subsubkey
@@ -163,6 +102,24 @@ class Ngccc(apigen.Definition):
         return dict_config
 
     @apigen.command()
+    def importconfig(self, path): # FIXME what about subkeys and removed keys?
+        """Import JSON config."""
+        with open(path, 'r') as fp:
+            config = json.loads(fp.read())
+            wallet_config = self.wallet.wallet_config
+            for k in config:
+                wallet_config[k] = config[k]
+
+    @apigen.command()
+    def issueasset(self, moniker, units, atoms="100000000", scheme="epobc"):
+        """ Issue color of name <moniker> with <units> and <atoms> per unit,
+        based on <scheme (epobc|obc)>."""
+        self.controller.issue_coins(moniker, scheme, int(units), int(atoms))
+        # FIXME rest is quiet
+        # FIXME print asset
+        # FIXME return asset
+
+    @apigen.command()
     def addasset(self, moniker, color_description, unit=100000000):
         """Imports a color definition.
         Enables the use of colors issued by others.
@@ -172,6 +129,27 @@ class Ngccc(apigen.Definition):
             "color_set": [color_description],
             "unit" : int(unit)
         })
+
+    @apigen.command()
+    def getasset(self, moniker):
+        """Get the asset/color associated with the moniker."""
+        asset = self.getAssetDefinition(moniker)
+        if not asset:
+          pass # FIXME handle error
+        data = asset.get_data()
+        print json.dumps(data, indent=2)
+        return data
+
+    @apigen.command()
+    def listassets(self):
+        """Lists all assets registered."""
+        assets = []
+        for asset in self.controller.get_all_assets():
+            assets.append(asset.get_data())
+            monikers = ', '.join(asset.monikers)
+            color_hash = asset.get_color_set().get_color_hash()
+            print "%s: %s" % (monikers, color_hash)
+        return assets
 
     @apigen.command()
     def balance(self, moniker, unconfirmed=False, available=False):
@@ -189,24 +167,57 @@ class Ngccc(apigen.Definition):
         return balance
 
     @apigen.command()
-    def listassets(self):
-        """Lists all assets registered."""
-        assets = []
-        for asset in self.controller.get_all_assets():
-            assets.append(asset.get_data())
-            monikers = ', '.join(asset.monikers)
-            color_hash = asset.get_color_set().get_color_hash()
-            print "%s: %s" % (monikers, color_hash)
-        return assets
+    def newaddress(self, moniker):
+        """Creates a new address for a given asset/color."""
+        asset = self.getAssetDefinition(moniker)
+        address = self.controller.get_new_address(asset).get_color_address()
+        print address
+        return address
 
     @apigen.command()
-    def importconfig(self, path): # FIXME what about subkeys and removed keys?
-        """Import JSON config."""
-        with open(path, 'r') as fp:
-            config = json.loads(fp.read())
-            wallet_config = self.wallet.wallet_config
-            for k in config:
-                wallet_config[k] = config[k]
+    def listaddresses(self, moniker):
+        """Lists all addresses for a given asset/color"""
+        asset = self.getAssetDefinition(moniker)
+        addressobjs = self.controller.get_all_addresses(asset)
+        addresses = [ao.get_color_address() for ao in addressobjs]
+        for address in addresses:
+            print address
+        return addresses
+
+    @apigen.command()
+    def send(self, moniker, address, amount):
+        """Send <amount> in satoshis of <moniker> to an <address>."""
+        asset = self.getAssetDefinition(moniker)
+        self.controller.send_coins(asset, [address], [int(amount)])
+
+    @apigen.command()
+    def sendmanycsv(self, path):
+        """Send amounts in csv file with format 'moniker,address,value'."""
+        print "Sending amounts listed in %s." % path
+        sendmany_entries = self.controller.parse_sendmany_csv(path)
+        self.controller.sendmany_coins(sendmany_entries)
+
+    @apigen.command()
+    def scan(self):
+        """Update the database of transactions."""
+        sleep(5)
+        self.controller.scan_utxos()
+
+    @apigen.command()
+    def fullrescan(self):
+        """Rebuild database of wallet transactions."""
+        self.controller.full_rescan()
+
+    @apigen.command()
+    def history(self, moniker):
+        """Show the history of transactions for given asset/color."""
+        asset = self.getAssetDefinition(moniker)
+        history = self.controller.get_history(asset)
+        for item in history:
+            _item = item.copy()
+            _item['mempool'] = "(mempool)" if item['mempool'] else ""
+            print ("%(action)s %(value)s %(address)s %(mempool)s" % _item)
+        return history
 
     @apigen.command()
     def received(self, moniker):
@@ -221,17 +232,6 @@ class Ngccc(apigen.Definition):
             received[address] = colorvalue.get_value()
             print ("%s: %s" % (address, colorvalue.get_value()))
         return received
-
-    @apigen.command()
-    def privatekeys(self, moniker):
-        """Lists all private keys for a given asset/color."""
-        asset = self.getAssetDefinition(moniker)
-        pks = []
-        for addr in self.controller.get_all_addresses(asset):
-            pk = addr.get_private_key()
-            pks.append(pk)
-            print pk
-        return pks
 
     @apigen.command()
     def coinlog(self):
@@ -253,16 +253,15 @@ class Ngccc(apigen.Definition):
         return log
 
     @apigen.command()
-    def sendmanycsv(self, path):
-        """Send amounts in csv file with format 'moniker,address,value'."""
-        print "Sending amounts listed in %s." % path
-        sendmany_entries = self.controller.parse_sendmany_csv(path)
-        self.controller.sendmany_coins(sendmany_entries)
-
-    @apigen.command()
-    def fullrescan(self):
-        """Rebuild database of wallet transactions."""
-        self.controller.full_rescan()
+    def privatekeys(self, moniker):
+        """Lists all private keys for a given asset/color."""
+        asset = self.getAssetDefinition(moniker)
+        pks = []
+        for addr in self.controller.get_all_addresses(asset):
+            pk = addr.get_private_key()
+            pks.append(pk)
+            print pk
+        return pks
 
     def init_p2ptrade(self):
         ewctrl = EWalletController(self.model, self.controller)
