@@ -12,33 +12,20 @@ from ngcccbase.p2ptrade.comm import HTTPComm
 from ngcccbase.p2ptrade.protocol_objects import MyEOffer
 
 
-# COMMAND               validation errors testcli testrpc
+class AssetNotFound(Exception):
+    def __init__(self, moniker):
+        super(AssetNotFound, self).__init__("Asset '%s' not found!" % moniker)
 
-# setconfigval          no         no     no      no
-# getconfigval          no         no     no      no
-# dumpconfig            no         no     no      no
-# importconfig          no         no     no      no
 
-# issueasset            no         no     no      no
-# getasset              no         no     no      no
-# addasset              no         no     no      no
-# listassets            no         no     no      no
-# balance               no         no     no      no
+class AddressNotFound(Exception):
+    def __init__(self, coloraddress):
+        msg = "Address '%s' not found!" % coloraddress
+        super(AddressNotFound, self).__init__(msg)
 
-# newaddress            no         no     no      no
-# listaddresses         no         no     no      no
-# send                  no         no     no      no
-# scan                  no         no     no      no
-# history               no         no     no      no
-# received              no         no     no      no
-# privatekeys           no         no     no      no
-# coinlog               no         no     no      no
-# sendmanycsv           no         no     no      no
-# fullrescan            no         no     no      no
 
-# p2porders             no         no     no      no
-# p2psell               no         no     no      no
-# p2pbuy                no         no     no      no
+def _print(data):
+    print json.dumps(data, indent=2)
+    return data
 
 
 class Ngccc(apigen.Definition):
@@ -46,7 +33,7 @@ class Ngccc(apigen.Definition):
 
     def __init__(self, wallet=None, testnet=False):
         if not wallet:
-          wallet = "%s.wallet" % ("testnet" if testnet else "mainnet")
+            wallet = "%s.wallet" % ("testnet" if testnet else "mainnet")
         self.wallet = PersistentWallet(wallet, testnet)
         self.wallet.init_model()
         self.model = self.wallet.get_model()
@@ -54,7 +41,10 @@ class Ngccc(apigen.Definition):
 
     def getAssetDefinition(self, moniker):
         adm = self.model.get_asset_definition_manager()
-        return adm.get_asset_by_moniker(moniker)
+        asset = adm.get_asset_by_moniker(moniker)
+        if not asset:
+          raise AssetNotFound(moniker)
+        return asset
 
     @apigen.command()
     def setconfigval(self, key, value): # FIXME behaviour ok?
@@ -91,15 +81,13 @@ class Ngccc(apigen.Definition):
         # traverse the path until we get the value
         for key in keys:
             config = config[key]
-        print json.dumps(config, indent=2)
-        return config
+        return _print(config)
 
     @apigen.command()
     def dumpconfig(self):
         """Returns a dump of the current configuration."""
         dict_config = dict(self.wallet.wallet_config.iteritems())
-        print json.dumps(dict_config, indent=2)
-        return dict_config
+        return _print(dict_config)
 
     @apigen.command()
     def importconfig(self, path): # FIXME what about subkeys and removed keys?
@@ -115,87 +103,88 @@ class Ngccc(apigen.Definition):
         """ Issue color of name <moniker> with <units> and <atoms> per unit,
         based on <scheme (epobc|obc)>."""
         self.controller.issue_coins(moniker, scheme, int(units), int(atoms))
-        # FIXME rest is quiet
-        # FIXME print asset
-        # FIXME return asset
+        # FIXME make quiet, output coming from somewhere
+        return self.getasset(moniker)
 
     @apigen.command()
     def addasset(self, moniker, color_description, unit=100000000):
-        """Imports a color definition.
-        Enables the use of colors issued by others.
+        """Imports a color/asset definition.
+        Enables the use of colors/assets issued by others.
         """
+        # TODO test interop with getasset
         self.controller.add_asset_definition({
             "monikers": [moniker],
             "color_set": [color_description],
             "unit" : int(unit)
         })
+        return self.getasset(moniker)
 
     @apigen.command()
     def getasset(self, moniker):
         """Get the asset/color associated with the moniker."""
-        asset = self.getAssetDefinition(moniker)
-        if not asset:
-          pass # FIXME handle error
-        data = asset.get_data()
-        print json.dumps(data, indent=2)
-        return data
+        # TODO test interop with addasset
+        return _print(self.getAssetDefinition(moniker).get_data())
 
     @apigen.command()
     def listassets(self):
-        """Lists all assets registered."""
-        assets = []
-        for asset in self.controller.get_all_assets():
-            assets.append(asset.get_data())
-            monikers = ', '.join(asset.monikers)
-            color_hash = asset.get_color_set().get_color_hash()
-            print "%s: %s" % (monikers, color_hash)
-        return assets
+        """Lists all assets/colors registered."""
+        assets = self.controller.get_all_assets()
+        return _print(map(lambda asset: asset.get_data(), assets))
 
-    @apigen.command()
-    def balance(self, moniker, unconfirmed=False, available=False):
-        """Returns the balance in Satoshi for a particular asset/color.
-        "bitcoin" is the generic uncolored coin.
-        """
-        asset = self.getAssetDefinition(moniker)
+    def _getbalance(self, asset, unconfirmed, available):
         if unconfirmed:
             balance = self.controller.get_unconfirmed_balance(asset)
         elif available:
             balance = self.controller.get_available_balance(asset)
         else:
             balance = self.controller.get_total_balance(asset)
-        print balance
-        return balance
+        return (asset.get_monikers()[0], asset.format_value(balance))
+
+    @apigen.command()
+    def getbalance(self, moniker, unconfirmed=False, available=False):
+        """Returns the balance for a particular asset/color."""
+        asset = self.getAssetDefinition(moniker)
+        balance = dict([self._getbalance(asset, unconfirmed, available)])
+        return _print(balance)
+
+    @apigen.command()
+    def getbalances(self, unconfirmed=False, available=False):
+        """Returns the balances for all assets/colors."""
+        assets = self.controller.get_all_assets()
+        func = lambda asset: self._getbalance(asset, unconfirmed, available)
+        balances = dict(map(func, assets))
+        return _print(balances)
 
     @apigen.command()
     def newaddress(self, moniker):
-        """Creates a new address for a given asset/color."""
+        """Creates a new coloraddress for a given asset/color."""
         asset = self.getAssetDefinition(moniker)
-        address = self.controller.get_new_address(asset).get_color_address()
-        print address
-        return address
+        addressrecord = self.controller.get_new_address(asset)
+        coloraddress = addressrecord.get_color_address()
+        return _print(coloraddress)
 
     @apigen.command()
     def listaddresses(self, moniker):
         """Lists all addresses for a given asset/color"""
         asset = self.getAssetDefinition(moniker)
-        addressobjs = self.controller.get_all_addresses(asset)
-        addresses = [ao.get_color_address() for ao in addressobjs]
-        for address in addresses:
-            print address
-        return addresses
+        addressrecords = self.controller.get_all_addresses(asset)
+        return _print([ao.get_color_address() for ao in addressrecords])
 
     @apigen.command()
-    def send(self, moniker, address, amount):
-        """Send <amount> in satoshis of <moniker> to an <address>."""
+    def send(self, moniker, coloraddress, amount):
+        """Send <coloraddress> given <amount> of an asset/color."""
         asset = self.getAssetDefinition(moniker)
-        self.controller.send_coins(asset, [address], [int(amount)])
+        amount = asset.parse_value(amount)
+        self.controller.send_coins(asset, [coloraddress], [int(amount)])
+        # TODO print/return txid
 
     @apigen.command()
     def sendmanycsv(self, path):
-        """Send amounts in csv file with format 'moniker,address,value'."""
-        print "Sending amounts listed in %s." % path
+        """Send amounts in csv file with format 'moniker,coloraddress,value'."""
+        # TODO test if it works correctly
         sendmany_entries = self.controller.parse_sendmany_csv(path)
         self.controller.sendmany_coins(sendmany_entries)
+        # TODO print/return txids
 
     @apigen.command()
     def scan(self):
@@ -212,26 +201,21 @@ class Ngccc(apigen.Definition):
     def history(self, moniker):
         """Show the history of transactions for given asset/color."""
         asset = self.getAssetDefinition(moniker)
-        history = self.controller.get_history(asset)
-        for item in history:
-            _item = item.copy()
-            _item['mempool'] = "(mempool)" if item['mempool'] else ""
-            print ("%(action)s %(value)s %(address)s %(mempool)s" % _item)
-        return history
+        return _print(self.controller.get_history(asset))
 
     @apigen.command()
     def received(self, moniker):
-        """Returns total received amount for each address
+        """Returns total received amount for each coloraddress
         of a given asset/color.
         """
         asset = self.getAssetDefinition(moniker)
         received = {}
-        for row in self.controller.get_received_by_address(asset):
-            address = row['color_address']
-            colorvalue = row['value']
-            received[address] = colorvalue.get_value()
-            print ("%s: %s" % (address, colorvalue.get_value()))
-        return received
+        def reformat(data):
+            coloraddress = data['color_address']
+            colorvalue = data['value'].get_value()
+            return (coloraddress, asset.format_value(colorvalue))
+        data = self.controller.get_received_by_address(asset)
+        return _print(dict(map(reformat, data)))
 
     @apigen.command()
     def coinlog(self):
@@ -249,26 +233,29 @@ class Ngccc(apigen.Definition):
               'confirmed' : coin.is_confirmed(),
               'spendingtxs' : coin.get_spending_txs(),
             })
-        print json.dumps(log, indent=2)
-        return log
+        return _print(log)
 
     @apigen.command()
-    def privatekeys(self, moniker):
+    def dumpprivkey(self, coloraddress):
+        """Private key for a given coloraddress."""
+        wam = self.model.get_address_manager()
+        for addressrecord in wam.get_all_addresses():
+            if coloraddress == addressrecord.get_color_address():
+                return _print(addressrecord.get_private_key())
+        raise AddressNotFound(coloraddress)
+
+    @apigen.command()
+    def dumpprivkeys(self, moniker):
         """Lists all private keys for a given asset/color."""
         asset = self.getAssetDefinition(moniker)
-        pks = []
-        for addr in self.controller.get_all_addresses(asset):
-            pk = addr.get_private_key()
-            pks.append(pk)
-            print pk
-        return pks
+        addressrecords = self.controller.get_all_addresses(asset)
+        return _print(map(lambda ar: ar.get_private_key(), addressrecords))
 
     def init_p2ptrade(self):
         ewctrl = EWalletController(self.model, self.controller)
         config = {"offer_expiry_interval": 30, "ep_expiry_interval": 30}
         comm = HTTPComm(config, 'http://p2ptrade.btx.udoidio.info/messages')
-        agent = EAgent(ewctrl, config, comm)
-        return agent
+        return EAgent(ewctrl, config, comm)
 
     def p2ptrade_make_offer(self, we_sell, moniker, value, price):
         asset = self.getAssetDefinition(moniker)
@@ -295,7 +282,7 @@ class Ngccc(apigen.Definition):
                 sleep(0.25)
 
     @apigen.command()
-    def p2porders(self):
+    def p2porders(self): # TODO add asset filter
         """Show peer to peer trade orders"""
         agent = self.init_p2ptrade()
         agent.update()
@@ -309,6 +296,7 @@ class Ngccc(apigen.Definition):
     @apigen.command()
     def p2psell(self, moniker, amount, price, wait=30):
         """Sell asset/color for bitcoin via peer to peer trade."""
+        # FIXME parse_value and make clear what amount and price are
         agent = self.init_p2ptrade()
         offer = self.p2ptrade_make_offer(True, moniker, amount, price)
         agent.register_my_offer(offer)
@@ -317,6 +305,7 @@ class Ngccc(apigen.Definition):
     @apigen.command()
     def p2pbuy(self, moniker, amount, price, wait=30):
         """Buy asset/color for bitcoin via peer to peer trade."""
+        # FIXME parse_value and make clear what amount and price are
         agent = self.init_p2ptrade()
         offer = self.p2ptrade_make_offer(False, moniker, amount, price)
         agent.register_my_offer(offer)
