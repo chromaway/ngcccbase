@@ -197,6 +197,7 @@ class WalletController(object):
         signed_tx_spec = self.model.transform_tx_spec(tx_spec, 'signed')
         txhash = self.publish_tx(signed_tx_spec)
         # TODO add to history
+        return txhash
 
     def send_coins(self, asset, target_addrs, raw_colorvalues):
         """Sends coins to address <target_addr> of asset/color <asset>
@@ -220,6 +221,7 @@ class WalletController(object):
         self.model.tx_history.add_send_entry(
             txhash, asset, target_addrs, raw_colorvalues
         )
+        return txhash
 
     def issue_coins(self, moniker, pck, units, atoms_in_unit):
         """Issues a new color of name <moniker> using coloring scheme

@@ -70,8 +70,7 @@ class Ngccc(apigen.Definition):
         if kpath[0] in self.wallet.wallet_config:
             self.wallet.wallet_config[kpath[0]] = value
         else:
-            # TODO throw error
-            pass
+            raise KeyNotFound(key)
 
     @apigen.command()
     def getconfigval(self, key):
@@ -103,18 +102,27 @@ class Ngccc(apigen.Definition):
                 wallet_config[k] = config[k]
 
     @apigen.command()
-    def issueasset(self, moniker, units, atoms="100000000", scheme="epobc"):
-        """ Issue color of name <moniker> with <units> and <atoms> per unit,
+    def issueasset(self, moniker, quantity, unit="100000000", scheme="epobc"):
+        """ Issue <quantity> of asset with name <moniker> and <unit> atoms,
         based on <scheme (epobc|obc)>."""
-        self.controller.issue_coins(moniker, scheme, Decimal(units), int(atoms))
+        quantity = Decimal(quantity)
+        self.controller.issue_coins(moniker, scheme, quantity, int(unit))
         return self.getasset(moniker)
 
     @apigen.command()
-    def addasset(self, moniker, color_description, unit=100000000):
-        """Imports a color/asset definition.
+    def addassetjson(self, data):
+        """Add a json asset definition.
         Enables the use of colors/assets issued by others.
         """
-        # TODO test interop with getasset
+        data = json.loads(data)
+        self.controller.add_asset_definition(data)
+        return self.getasset(data['monikers'][0])
+
+    @apigen.command()
+    def addasset(self, moniker, color_description, unit=100000000):
+        """Add a asset definition.
+        Enables the use of colors/assets issued by others.
+        """
         self.controller.add_asset_definition({
             "monikers": [moniker],
             "color_set": [color_description],
@@ -123,9 +131,20 @@ class Ngccc(apigen.Definition):
         return self.getasset(moniker)
 
     @apigen.command()
+    def removeasset(self, moniker):
+        """Not implemented yet."""
+        return _print("Sorry this feature is not implemented yet.")
+        # TODO implement
+
+    @apigen.command()
+    def setassetunit(self, moniker, unit):
+        """Not implemented yet."""
+        return _print("Sorry this feature is not implemented yet.")
+        # TODO implement
+
+    @apigen.command()
     def getasset(self, moniker):
-        """Get the asset/color associated with the moniker."""
-        # TODO test interop with addasset
+        """Get the asset associated with the moniker."""
         return _print(self.getAssetDefinition(moniker).get_data())
 
     @apigen.command()
@@ -145,7 +164,7 @@ class Ngccc(apigen.Definition):
 
     @apigen.command()
     def getbalance(self, moniker, unconfirmed=False, available=False):
-        """Returns the balance for a particular asset/color."""
+        """Returns the balance for a particular asset."""
         asset = self.getAssetDefinition(moniker)
         balance = dict([self._getbalance(asset, unconfirmed, available)])
         return _print(balance)
@@ -160,7 +179,7 @@ class Ngccc(apigen.Definition):
 
     @apigen.command()
     def newaddress(self, moniker):
-        """Creates a new coloraddress for a given asset/color."""
+        """Creates a new coloraddress for a given asset."""
         asset = self.getAssetDefinition(moniker)
         addressrecord = self.controller.get_new_address(asset)
         coloraddress = addressrecord.get_color_address()
@@ -168,26 +187,32 @@ class Ngccc(apigen.Definition):
 
     @apigen.command()
     def listaddresses(self, moniker):
-        """Lists all addresses for a given asset/color"""
+        """Lists all addresses for a given asset"""
         asset = self.getAssetDefinition(moniker)
         addressrecords = self.controller.get_all_addresses(asset)
         return _print([ao.get_color_address() for ao in addressrecords])
 
     @apigen.command()
     def send(self, moniker, coloraddress, amount):
-        """Send <coloraddress> given <amount> of an asset/color."""
+        """Send <coloraddress> given <amount> of an asset."""
         asset = self.getAssetDefinition(moniker)
         amount = asset.parse_value(amount)
-        self.controller.send_coins(asset, [coloraddress], [int(amount)])
-        # TODO print/return txid
+        txid = self.controller.send_coins(asset, [coloraddress], [int(amount)])
+        return _print(txid)
+
+    @apigen.command()
+    def sendmanyjson(self, data):
+        """Not implemented yet."""
+        return _print("Sorry this feature is not implemented yet.")
+        # TODO implement
 
     @apigen.command()
     def sendmanycsv(self, path):
         """Send amounts in csv file with format 'moniker,coloraddress,value'."""
         # TODO test if it works correctly
         sendmany_entries = self.controller.parse_sendmany_csv(path)
-        self.controller.sendmany_coins(sendmany_entries)
-        # TODO print/return txids
+        txid = self.controller.sendmany_coins(sendmany_entries)
+        return _print(txid)
 
     @apigen.command()
     def scan(self):
@@ -202,14 +227,14 @@ class Ngccc(apigen.Definition):
 
     @apigen.command()
     def history(self, moniker):
-        """Show the history of transactions for given asset/color."""
+        """Show the history of transactions for given asset."""
         asset = self.getAssetDefinition(moniker)
         return _print(self.controller.get_history(asset))
 
     @apigen.command()
     def received(self, moniker):
         """Returns total received amount for each coloraddress
-        of a given asset/color.
+        of a given asset.
         """
         asset = self.getAssetDefinition(moniker)
         received = {}
@@ -249,7 +274,7 @@ class Ngccc(apigen.Definition):
 
     @apigen.command()
     def dumpprivkeys(self, moniker):
-        """Lists all private keys for a given asset/color."""
+        """Lists all private keys for a given asset."""
         asset = self.getAssetDefinition(moniker)
         addressrecords = self.controller.get_all_addresses(asset)
         return _print(map(lambda ar: ar.get_private_key(), addressrecords))
