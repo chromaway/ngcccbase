@@ -231,7 +231,7 @@ class WalletController(object):
             msg = 'Color scheme "%s" not recognized'
             raise InvalidColorDefinitionError(msg % pck)
 
-        total = units * atoms_in_unit
+        total = int(units * atoms_in_unit)
         op_tx_spec = SimpleOperationalTxSpec(self.model, None)
         wam = self.model.get_address_manager()
         address = wam.get_new_genesis_address()

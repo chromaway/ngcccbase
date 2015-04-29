@@ -106,8 +106,7 @@ class Ngccc(apigen.Definition):
     def issueasset(self, moniker, units, atoms="100000000", scheme="epobc"):
         """ Issue color of name <moniker> with <units> and <atoms> per unit,
         based on <scheme (epobc|obc)>."""
-        self.controller.issue_coins(moniker, scheme, int(units), int(atoms))
-        # FIXME make quiet, output coming from somewhere
+        self.controller.issue_coins(moniker, scheme, Decimal(units), int(atoms))
         return self.getasset(moniker)
 
     @apigen.command()
