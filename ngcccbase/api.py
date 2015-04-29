@@ -257,7 +257,7 @@ class Ngccc(apigen.Definition):
         comm = HTTPComm(config, 'http://p2ptrade.btx.udoidio.info/messages')
         return EAgent(ewctrl, config, comm)
 
-    def p2ptrade_make_offer(self, we_sell, moniker, value, price):
+    def p2ptrade_make_offer(self, we_sell, moniker, value, price, wait):
         asset = self.getAssetDefinition(moniker)
         value = asset.parse_value(value)
         bitcoin = self.getAssetDefinition('bitcoin')
@@ -266,10 +266,12 @@ class Ngccc(apigen.Definition):
         color_desc = asset.get_color_set().color_desc_list[0]
         sell_side = {"color_spec": color_desc, "value": value}
         buy_side = {"color_spec": "", "value": total}
+        agent = self.init_p2ptrade()
         if we_sell:
-            return MyEOffer(None, sell_side, buy_side)
+            agent.register_my_offer(MyEOffer(None, sell_side, buy_side))
         else:
-            return MyEOffer(None, buy_side, sell_side)
+            agent.register_my_offer(MyEOffer(None, buy_side, sell_side))
+        self.p2ptrade_wait(agent, int(wait))
 
     def p2ptrade_wait(self, agent, wait):
         if wait and wait > 0:
@@ -282,33 +284,42 @@ class Ngccc(apigen.Definition):
                 sleep(0.25)
 
     @apigen.command()
-    def p2porders(self): # TODO add asset filter
-        """Show peer to peer trade orders"""
+    def p2porders(self, moniker="", sellonly=False, buyonly=False):
+        """Show peer to peer trade orders""" # FIXME std output somewhere
+
+        # get offers
         agent = self.init_p2ptrade()
         agent.update()
-        offers = []
-        for offer in agent.their_offers.values():
-            offerdata = offer.get_data()
-            offers.append(offerdata)
-            print offerdata
-        return offers
+        offers = agent.their_offers.values()
+        offers = map(lambda offer: offer.get_data(), offers)
+
+        # filter asset if given
+        if moniker and moniker != 'bitcoin':
+            asset = self.getAssetDefinition(moniker)
+            descs = asset.get_color_set().color_desc_list
+            def func(offer):
+                return (offer["A"]["color_spec"] in descs or 
+                        offer["B"]["color_spec"] in descs)
+            offers = filter(func, offers)
+        
+        # filter sellonly if given
+        if sellonly:
+            offers = filter(lambda o: o["A"]["color_spec"] != "", offers)
+
+        # filter buyonly if given
+        if buyonly:
+            offers = filter(lambda o: o["A"]["color_spec"] == "", offers)
+
+        return _print(offers)
 
     @apigen.command()
-    def p2psell(self, moniker, amount, price, wait=30):
-        """Sell asset/color for bitcoin via peer to peer trade."""
-        # FIXME parse_value and make clear what amount and price are
-        agent = self.init_p2ptrade()
-        offer = self.p2ptrade_make_offer(True, moniker, amount, price)
-        agent.register_my_offer(offer)
-        self.p2ptrade_wait(agent, int(wait))
+    def p2psell(self, moniker, assetamount, btcprice, wait=30):
+        """Sell <assetamount> for <btcprice> via peer to peer trade."""
+        self.p2ptrade_make_offer(True, moniker, amount, btcprice, wait)
 
     @apigen.command()
-    def p2pbuy(self, moniker, amount, price, wait=30):
-        """Buy asset/color for bitcoin via peer to peer trade."""
-        # FIXME parse_value and make clear what amount and price are
-        agent = self.init_p2ptrade()
-        offer = self.p2ptrade_make_offer(False, moniker, amount, price)
-        agent.register_my_offer(offer)
-        self.p2ptrade_wait(agent, int(wait))
+    def p2pbuy(self, moniker, assetamount, btcprice, wait=30):
+        """Buy <assetamount> for <btcprice> via peer to peer trade."""
+        self.p2ptrade_make_offer(False, moniker, amount, btcprice, wait)
 
 
