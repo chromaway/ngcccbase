@@ -1,6 +1,5 @@
 """ Color data builder objects"""
 
-from logger import log
 from explorer import get_spends
 from toposort import toposorted
 from colorvalue import SimpleColorValue
@@ -87,7 +86,6 @@ class BasicColorDataBuilder(ColorDataBuilder):
             return
         out_colorvalues = self.colordef.run_kernel(tx, in_colorvalues)
         for o_index, val in enumerate(out_colorvalues):
-            log("%s: %s, %s", o_index, val, output_indices and not (o_index in output_indices))
             if output_indices and not (o_index in output_indices):
                 continue
             if val:
@@ -107,7 +105,6 @@ class FullScanColorDataBuilder(BasicColorDataBuilder):
     def scan_block(self, blockhash):
         if self.metastore.did_scan(self.color_id, blockhash):
             return
-        log("scan block %s", blockhash)
         for tx in self.blockchain_state.iter_block_txs(blockhash):
             self.scan_tx(tx)
         self.metastore.set_as_scanned(self.color_id, blockhash)
@@ -130,7 +127,6 @@ class FullScanColorDataBuilder(BasicColorDataBuilder):
             self.genesis_blockhash)
         blocklist = []
         while not self.metastore.did_scan(self.color_id, blockhash):
-            log("recon block %s", blockhash)
             blocklist.insert(0, blockhash)
             blockhash, height = self.blockchain_state.get_previous_blockinfo(
                 blockhash)

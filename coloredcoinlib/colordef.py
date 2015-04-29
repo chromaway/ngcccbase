@@ -6,8 +6,6 @@ from collections import defaultdict
 from colorvalue import SimpleColorValue
 from txspec import ColorTarget
 
-from logger import log
-
 class InvalidTargetError(Exception):
     pass
 
@@ -350,7 +348,6 @@ class EPOBCColorDefinition(GenesisColorDefinition):
         """Given a transaction tx and the colorvalues in a list
         in_colorvalues, output the colorvalues of the outputs in a list
         """
-        log("in_colorvalues: %s", in_colorvalues)
         tag = self.get_tag(tx)
         if tag is None:
             return [None] * len(tx.outputs)
@@ -375,7 +372,6 @@ class EPOBCColorDefinition(GenesisColorDefinition):
                 continue
             affecting_inputs = self.get_xfer_affecting_inputs(tx, tag.get_padding(),
                                                               out_idx)
-            log("affecting inputs: %s", affecting_inputs)
             ai_colorvalue = SimpleColorValue(colordef=self, value=0)
             all_colored = True
             for ai in affecting_inputs:
@@ -383,12 +379,10 @@ class EPOBCColorDefinition(GenesisColorDefinition):
                     all_colored = False
                     break
                 ai_colorvalue += in_colorvalues[ai]
-            log("all colored: %s, colorvalue:%s", all_colored, ai_colorvalue.get_value())
             if (not all_colored) or (ai_colorvalue.get_value() < out_value_wop):
                 out_colorvalues.append(None)
                 continue
             out_colorvalues.append(SimpleColorValue(colordef=self, value=out_value_wop))
-        log("out_colorvalues: %s", out_colorvalues)
         return out_colorvalues
 
     def get_affecting_inputs(self, tx, output_set):
@@ -447,7 +441,6 @@ class EPOBCColorDefinition(GenesisColorDefinition):
                                            target=target)
                 uncolored_needed += SimpleColorValue(colordef=UNCOLORED_MARKER,
                                                value=svalue)
-                print uncolored_needed
 
         composed_tx_spec.add_txouts(uncolored_targets)
         fee = composed_tx_spec.estimate_required_fee()

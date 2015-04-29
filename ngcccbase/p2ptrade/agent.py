@@ -2,7 +2,6 @@ import Queue
 import time
 
 from protocol_objects import MyEOffer, EOffer, MyEProposal, ForeignEProposal
-from utils import LOGINFO, LOGDEBUG, LOGERROR
 
 
 class EAgent(object):
@@ -81,7 +80,6 @@ class EAgent(object):
         self.fire_event('cancel_my_offer', offer)
 
     def register_their_offer(self, offer):
-        LOGINFO("register oid %s ", offer.oid)
         self.their_offers[offer.oid] = offer
         offer.refresh(self.config['offer_expiry_interval'])
         self.offers_updated = True
@@ -92,16 +90,13 @@ class EAgent(object):
             return
         for my_offer in self.my_offers.values():
             for their_offer in self.their_offers.values():
-                LOGINFO("matches %s", my_offer.matches(their_offer))
                 if my_offer.matches(their_offer):
                     success = False
                     try:
                         self.make_exchange_proposal(their_offer, my_offer)
                         success = True
-                    except Exception as e:                # pragma: no cover
-                        LOGERROR("Exception during "      # pragma: no cover
-                                 "matching offer %s", e)  # pragma: no cover
-                        raise                             # pragma: no cover
+                    except Exception as e:
+                        raise
                     if success:
                         return
 
@@ -115,14 +110,11 @@ class EAgent(object):
 
     def dispatch_exchange_proposal(self, ep_data):
         ep = ForeignEProposal(self.ewctrl, ep_data)
-        LOGINFO("ep oid:%s, pid:%s, ag:%s", ep.offer.oid, ep.pid, self)
         if self.has_active_ep():
-            LOGDEBUG("has active EP")
             if ep.pid == self.active_ep.pid:
                 return self.update_exchange_proposal(ep)
         else:
             if ep.offer.oid in self.my_offers and not self.has_active_ep():
-                LOGDEBUG("accept exchange proposal")
                 return self.accept_exchange_proposal(ep)
         # We have neither an offer nor a proposal matching
         #  this ExchangeProposal
@@ -149,13 +141,11 @@ class EAgent(object):
                 del self.their_offers[ep.offer.oid]
             else:
                 del self.my_offers[ep.offer.oid]
-        except Exception as e:                       # pragma: no cover
-            LOGERROR("there was an exception "       # pragma: no cover
-                     "when clearing offers: %s", e)  # pragma: no cover
+        except Exception as e:
+            pass
         self.fire_event('offers_updated', None)
 
     def update_exchange_proposal(self, ep):
-        LOGDEBUG("updateExchangeProposal")
         my_ep = self.active_ep
         assert my_ep and my_ep.pid == ep.pid
         my_ep.process_reply(ep)
@@ -175,10 +165,8 @@ class EAgent(object):
                 self.register_their_offer(o)
             elif 'pid' in content:
                 self.dispatch_exchange_proposal(content)
-        except Exception as e:                         # pragma: no cover
-            LOGERROR("got exception %s "               # pragma: no cover
-                     "when dispatching a message", e)  # pragma: no cover
-            raise                                      # pragma: no cover
+        except Exception as e:
+            raise
 
     def update(self):
         self.comm.poll_and_dispatch()

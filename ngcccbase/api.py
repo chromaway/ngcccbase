@@ -23,6 +23,11 @@ class AddressNotFound(Exception):
         super(AddressNotFound, self).__init__(msg)
 
 
+class KeyNotFound(Exception):
+    def __init__(self, key):
+        super(KeyNotFound, self).__init__("Key '%s' not found!" % key)
+
+
 def _print(data):
     print json.dumps(data, indent=2)
     return data
@@ -74,8 +79,7 @@ class Ngccc(apigen.Definition):
         Key is expressed as: key.subkey.subsubkey
         """
         if not key:
-            print ("getconfigval command expects:  key")
-            return
+            raise KeyNotFound(key)
         keys = key.split('.')
         config = self.wallet.wallet_config
         # traverse the path until we get the value
@@ -285,7 +289,7 @@ class Ngccc(apigen.Definition):
 
     @apigen.command()
     def p2porders(self, moniker="", sellonly=False, buyonly=False):
-        """Show peer to peer trade orders""" # FIXME std output somewhere
+        """Show peer to peer trade orders"""
 
         # get offers
         agent = self.init_p2ptrade()
@@ -315,11 +319,11 @@ class Ngccc(apigen.Definition):
     @apigen.command()
     def p2psell(self, moniker, assetamount, btcprice, wait=30):
         """Sell <assetamount> for <btcprice> via peer to peer trade."""
-        self.p2ptrade_make_offer(True, moniker, amount, btcprice, wait)
+        self.p2ptrade_make_offer(True, moniker, assetamount, btcprice, wait)
 
     @apigen.command()
     def p2pbuy(self, moniker, assetamount, btcprice, wait=30):
         """Buy <assetamount> for <btcprice> via peer to peer trade."""
-        self.p2ptrade_make_offer(False, moniker, amount, btcprice, wait)
+        self.p2ptrade_make_offer(False, moniker, assetamount, btcprice, wait)
 
 

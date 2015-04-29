@@ -46,8 +46,8 @@ class WalletController(object):
         blockchain_state = self.model.ccc.blockchain_state
         try:
             r_txhash = blockchain_state.publish_tx(txhex)
-        except Exception as e:                      # pragma: no cover
-            print ("got error %s from bitcoind" % e)  # pragma: no cover
+        except Exception as e:
+            pass
 
         if r_txhash and (r_txhash != txhash) and not self.testing:
             raise Exception('Bitcoind reports different txhash!')
