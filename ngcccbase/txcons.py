@@ -94,13 +94,13 @@ class BaseOperationalTxSpec(OperationalTxSpec):
         return the transaction fee in Satoshi that needs to be
         paid out to miners.
         """
-        base_fee = 10000.0
+        base_fee = 11000.0
         fee_value = math.ceil((tx_size * base_fee) / 1000)
         return SimpleColorValue(colordef=UNCOLORED_MARKER,
                                 value=fee_value)
 
     def get_dust_threshold(self):
-        return SimpleColorValue(colordef=UNCOLORED_MARKER, value=5500)
+        return SimpleColorValue(colordef=UNCOLORED_MARKER, value=600)
 
     def _select_enough_coins(self, colordef, utxo_list, required_sum_fn):
         ssum = SimpleColorValue(colordef=colordef, value=0)
