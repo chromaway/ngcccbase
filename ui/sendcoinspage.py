@@ -2,8 +2,10 @@ import collections
 
 from PyQt4 import QtGui, uic
 
+
 from wallet import wallet
 from decimal import Decimal
+from ngcccbase import sanitize
 
 
 class SendcoinsEntry(QtGui.QFrame):
@@ -122,13 +124,15 @@ class SendcoinsPage(QtGui.QWidget):
 
         # get send many entries
         msg = 'Select CSV file'
-        csv_file_path = QtGui.QFileDialog.getOpenFileName(self, msg)
-        entries = wc.parse_sendmany_csv(csv_file_path)
+        path = QtGui.QFileDialog.getOpenFileName(self, msg)
+        if not path:
+          return # canceled file dialog
 
         # confirm send coins
         options = QMB.Yes | QMB.Cancel
         title = 'Confirm send many.'
         msg = 'Are you sure you want to send:'
+        entries = sanitize.sendmanycsv(wc.model, path)
         for asset, amount in wc.sendmany_sums(entries).items():
             msg += "<p>Total of <b>{value} {moniker}</b></p>".format(**{
                 'value' : asset.format_value(amount),

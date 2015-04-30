@@ -229,7 +229,7 @@ class Ngccc(apigen.Definition):
         # sanitize inputs
         asset = sanitize.asset(self.model, moniker)
         coloraddress = sanitize.coloraddress(self.model, asset, coloraddress)
-        amount = sanitize.amount(asset, amount)
+        amount = sanitize.assetamount(asset, amount)
 
         txid = self.controller.send_coins(asset, [coloraddress], [amount])
         return _print(txid)
@@ -237,7 +237,7 @@ class Ngccc(apigen.Definition):
     @apigen.command()
     def sendmanyjson(self, data):
         """Send amounts given in json fromatted data. 
-        Format [{'moniker':"val",'quantity':"val",'coloraddress':"val"}]
+        Format [{'moniker':"val",'amount':"val",'coloraddress':"val"}]
         """
         # TODO test if it works correctly
 
@@ -248,9 +248,11 @@ class Ngccc(apigen.Definition):
 
     @apigen.command()
     def sendmanycsv(self, path):
-        """Send amounts in csv file with format 'moniker,coloraddress,value'."""
+        """Send amounts in csv file with format 'moniker,coloraddress,amount'."""
         # TODO test if it works correctly
-        sendmany_entries = self.controller.parse_sendmany_csv(path)
+
+        # sanitize inputs
+        sendmany_entries = sanitize.sendmanycsv(self.model, path)
 
         return _print(self.controller.sendmany_coins(sendmany_entries))
 
@@ -344,8 +346,8 @@ class Ngccc(apigen.Definition):
         # sanitize inputs
         asset = sanitize.asset(self.model, moniker)
         bitcoin = sanitize.asset(self.model, 'bitcoin')
-        value = sanitize.amount(asset, value)
-        price = sanitize.amount(bitcoin, price)
+        value = sanitize.assetamount(asset, value)
+        price = sanitize.assetamount(bitcoin, price)
         wait = sanitize.integer(wait)
 
         total = int(Decimal(value)/Decimal(asset.unit)*Decimal(price))

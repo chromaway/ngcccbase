@@ -2,6 +2,7 @@
 
 import re
 import json
+import csv
 from decimal import Decimal
 
 
@@ -33,10 +34,12 @@ def quantity(quantity): # asset unknown
     return quantity
 
 
-def amount(asset, amount):
+def assetamount(asset, amount):
     amount = asset.parse_value(amount)
     if amount < 0:
         raise InvalidInput("Amount must be > 0!")
+    if not asset.validate_value(amount):
+        raise InvalidInput("Amount not a multiple of asset unit!")
     return amount
 
 
@@ -113,9 +116,30 @@ def sendmanyjson(model, data):
     sendmany_entries = []
     for entry in json.loads(data):
         _asset = asset(model, entry['moniker'])
-        quantity = _asset.quantity(entry['quantity'])
+        _amount = assetamount(model, entry['amount'])
         _coloraddress = coloraddress(model, _asset, entry['coloraddress'])
-        sendmany_entries.append((_asset, _coloraddress, quantity))
+        _address = _coloraddress.split('@')[1]
+        sendmany_entries.append((_asset, _address, _amount))
     return sendmany_entries
 
+
+def sendmanycsv(model, path):
+    entries = []
+    with open(path, 'rb') as csvfile:
+        for index, csvvalues in enumerate(csv.reader(csvfile)):
+            entries.append(_sanitize_csv_input(model, csvvalues, index + 1))
+    return entries
+
+
+def _sanitize_csv_input(model, csvvalues, row):
+    if len(csvvalues) != 3: # must have three entries
+        msg = ("CSV entry must have three values 'moniker,address,amount'. "
+               "Row %s has %s values!")
+        raise InvalidInput(msg % (row, len(csvvalues)))
+    _moniker, _coloraddress, _amount = csvvalues
+    _asset = asset(model, _moniker)
+    _coloraddress = coloraddress(model. _coloraddress)
+    _amount = assetamount(model, _amount)
+    _address = _coloraddress.split('@')[1]
+    return _asset, _address, _amount
 

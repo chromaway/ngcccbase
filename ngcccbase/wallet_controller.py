@@ -6,7 +6,7 @@ Executes high level tasks such as get balance
 """
 
 import os
-import csv
+from ngcccbase import sanitize
 from collections import defaultdict
 from decimal import Decimal
 from asset import AssetTarget, AdditiveAssetValue
@@ -83,55 +83,6 @@ class WalletController(object):
     def scan_utxos(self):
         self.model.utxo_fetcher.scan_all_addresses()
 
-    def sanitize_csv_input(self, csvvalues, row): # FIXME move to api sanitizer
-        adm = self.model.get_asset_definition_manager()
-
-        # must have three entries
-        if len(csvvalues) != 3:
-            msg = ("CSV entry must have three values 'moniker,address,value'. "
-                   "Row %s has %s values!")
-            raise Exception(msg % (row, len(csvvalues)))
-        moniker, target_addr, value = csvvalues
-
-        # asset must exist
-        asset = adm.get_asset_by_moniker(moniker)
-        if not asset:
-            msg = "Asset '%s' in row %s not found!"
-            raise Exception(msg % (moniker, row))
-
-        # asset must match address asset
-        address_asset, address = adm.get_asset_and_address(target_addr)
-        if asset != address_asset:
-            msg = "Address and asset don't match in row: %s!"
-            raise AssetMismatchError(msg % row)
-
-        # check if valid address
-        if not self.model.validate_address(address):
-            msg = "Address %s in row: %s is not valid!"
-            raise Exception(msg % (target_addr, row))
-
-        # make sure value is a number
-        try:
-            value = Decimal(value)
-        except:
-            msg = "Value '%s' in row %s is not a number.!"
-            raise Exception(msg % (value, row))
-
-        # value must be positive
-        if value < Decimal("0"):
-            msg = "Value '%s' in row %s not > 0.!"
-            raise Exception(msg % (value, row))
-
-        # check if valid amount for asset
-        if not asset.validate_value(value):
-            msg = "Value '%s' in row %s is not a multiple of %s.!"
-            raise Exception(msg % (value, row, asset.get_atom()))
-
-        # convert to amount to satoshis
-        value = asset.parse_value(value)
-
-        return asset, address, value
-
     def sendmany_sums(self, entries):
         sums = defaultdict(Decimal)
         for asset, address, value in entries:
@@ -174,14 +125,6 @@ class WalletController(object):
                 a.get_monikers()[0], b.get_monikers()[0]
             ))
         reduce(reduce_function, sums.keys())
-
-    def parse_sendmany_csv(self, csv_file_path):
-        """Send amounts in csv file with format 'moniker,address,value'"""
-        entries = []
-        with open(csv_file_path, 'rb') as csvfile:
-            for index, csvvalues in enumerate(csv.reader(csvfile)):
-                entries.append(self.sanitize_csv_input(csvvalues, index + 1))
-        return entries
 
     def sendmany_coins(self, entries):
         """Sendmany coins given in entries [(asset, address, value), ...] """
