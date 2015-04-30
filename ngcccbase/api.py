@@ -1,7 +1,9 @@
 
+
 import json
 import apigen
 from time import sleep
+from ngcccbase import sanitize
 from collections import defaultdict
 from decimal import Decimal
 from ngcccbase.wallet_controller import WalletController
@@ -10,6 +12,9 @@ from ngcccbase.p2ptrade.ewctrl import EWalletController
 from ngcccbase.p2ptrade.agent import EAgent
 from ngcccbase.p2ptrade.comm import HTTPComm
 from ngcccbase.p2ptrade.protocol_objects import MyEOffer
+
+
+# TODO validation and tests for everything!
 
 
 class AssetNotFound(Exception):
@@ -28,7 +33,7 @@ class KeyNotFound(Exception):
         super(KeyNotFound, self).__init__("Key '%s' not found!" % key)
 
 
-def _print(data):
+def _print(data): # TODO move this to apigen
     print json.dumps(data, indent=2)
     return data
 
@@ -37,6 +42,10 @@ class Ngccc(apigen.Definition):
     """Next-Generation Colored Coin Client interface."""
 
     def __init__(self, wallet=None, testnet=False):
+
+        # sanitize inputs
+        testnet = sanitize.flag(testnet)
+
         if not wallet:
             wallet = "%s.wallet" % ("testnet" if testnet else "mainnet")
         self.wallet = PersistentWallet(wallet, testnet)
@@ -44,21 +53,19 @@ class Ngccc(apigen.Definition):
         self.model = self.wallet.get_model()
         self.controller = WalletController(self.model)
 
-    def getAssetDefinition(self, moniker):
-        adm = self.model.get_asset_definition_manager()
-        asset = adm.get_asset_by_moniker(moniker)
-        if not asset:
-          raise AssetNotFound(moniker)
-        return asset
-
     @apigen.command()
     def setconfigval(self, key, value): # FIXME behaviour ok?
         """Sets a value in the configuration.
         Key is expressed as: key.subkey.subsubkey
         """
+
+        # sanitize inputs
+        key = sanitize.cfgkey(key)
+        value = sanitize.cfgvalue(value)
+
         kpath = key.split('.')
         value = json.loads(value)
-        
+
         # traverse the path until we get to the value we need to set
         if len(kpath) > 1:
             branch = self.wallet.wallet_config[kpath[0]]
@@ -77,6 +84,10 @@ class Ngccc(apigen.Definition):
         """Returns the value for a given key in the config.
         Key is expressed as: key.subkey.subsubkey
         """
+
+        # sanitize inputs
+        key = sanitize.cfgkey(key)
+
         if not key:
             raise KeyNotFound(key)
         keys = key.split('.')
@@ -105,8 +116,14 @@ class Ngccc(apigen.Definition):
     def issueasset(self, moniker, quantity, unit="100000000", scheme="epobc"):
         """ Issue <quantity> of asset with name <moniker> and <unit> atoms,
         based on <scheme (epobc|obc)>."""
-        quantity = Decimal(quantity)
-        self.controller.issue_coins(moniker, scheme, quantity, int(unit))
+
+        # sanitize inputs
+        moniker = sanitize.moniker(moniker)
+        quantity = sanitize.quantity(quantity)
+        unit = sanitize.unit(unit)
+        scheme = sanitize.scheme(scheme)
+
+        self.controller.issue_coins(moniker, scheme, quantity, unit)
         return self.getasset(moniker)
 
     @apigen.command()
@@ -114,7 +131,10 @@ class Ngccc(apigen.Definition):
         """Add a json asset definition.
         Enables the use of colors/assets issued by others.
         """
-        data = json.loads(data)
+
+        # sanitize inputs
+        data = sanitize.jsonasset(data)
+
         self.controller.add_asset_definition(data)
         return self.getasset(data['monikers'][0])
 
@@ -123,29 +143,23 @@ class Ngccc(apigen.Definition):
         """Add a asset definition.
         Enables the use of colors/assets issued by others.
         """
+
+        # sanitize inputs
+        moniker = sanitize.moniker(moniker)
+        color_description = sanitize.colordesc(color_description)
+        unit = sanitize.unit(unit)
+
         self.controller.add_asset_definition({
             "monikers": [moniker],
             "color_set": [color_description],
-            "unit" : int(unit)
+            "unit" : unit
         })
         return self.getasset(moniker)
 
     @apigen.command()
-    def removeasset(self, moniker):
-        """Not implemented yet."""
-        return _print("Sorry this feature is not implemented yet.")
-        # TODO implement
-
-    @apigen.command()
-    def setassetunit(self, moniker, unit):
-        """Not implemented yet."""
-        return _print("Sorry this feature is not implemented yet.")
-        # TODO implement
-
-    @apigen.command()
     def getasset(self, moniker):
         """Get the asset associated with the moniker."""
-        return _print(self.getAssetDefinition(moniker).get_data())
+        return _print(sanitize.asset(self.model, moniker).get_data())
 
     @apigen.command()
     def listassets(self):
@@ -165,13 +179,23 @@ class Ngccc(apigen.Definition):
     @apigen.command()
     def getbalance(self, moniker, unconfirmed=False, available=False):
         """Returns the balance for a particular asset."""
-        asset = self.getAssetDefinition(moniker)
+
+        # sanitize inputs
+        asset = sanitize.asset(self.model, moniker)
+        unconfirmed = sanitize.flag(unconfirmed)
+        available = sanitize.flag(available)
+
         balance = dict([self._getbalance(asset, unconfirmed, available)])
         return _print(balance)
 
     @apigen.command()
     def getbalances(self, unconfirmed=False, available=False):
         """Returns the balances for all assets/colors."""
+
+        # sanitize inputs
+        unconfirmed = sanitize.flag(unconfirmed)
+        available = sanitize.flag(available)
+
         assets = self.controller.get_all_assets()
         func = lambda asset: self._getbalance(asset, unconfirmed, available)
         balances = dict(map(func, assets))
@@ -180,7 +204,10 @@ class Ngccc(apigen.Definition):
     @apigen.command()
     def newaddress(self, moniker):
         """Creates a new coloraddress for a given asset."""
-        asset = self.getAssetDefinition(moniker)
+
+        # sanitize inputs
+        asset = sanitize.asset(self.model, moniker)
+
         addressrecord = self.controller.get_new_address(asset)
         coloraddress = addressrecord.get_color_address()
         return _print(coloraddress)
@@ -188,31 +215,44 @@ class Ngccc(apigen.Definition):
     @apigen.command()
     def listaddresses(self, moniker):
         """Lists all addresses for a given asset"""
-        asset = self.getAssetDefinition(moniker)
+
+        # sanitize inputs
+        asset = sanitize.asset(self.model, moniker)
+
         addressrecords = self.controller.get_all_addresses(asset)
         return _print([ao.get_color_address() for ao in addressrecords])
 
     @apigen.command()
     def send(self, moniker, coloraddress, amount):
         """Send <coloraddress> given <amount> of an asset."""
-        asset = self.getAssetDefinition(moniker)
-        amount = asset.parse_value(amount)
-        txid = self.controller.send_coins(asset, [coloraddress], [int(amount)])
+
+        # sanitize inputs
+        asset = sanitize.asset(self.model, moniker)
+        coloraddress = sanitize.coloraddress(self.model, asset, coloraddress)
+        amount = sanitize.amount(asset, amount)
+
+        txid = self.controller.send_coins(asset, [coloraddress], [amount])
         return _print(txid)
 
     @apigen.command()
     def sendmanyjson(self, data):
-        """Not implemented yet."""
-        return _print("Sorry this feature is not implemented yet.")
-        # TODO implement
+        """Send amounts given in json fromatted data. 
+        Format [{'moniker':"val",'quantity':"val",'coloraddress':"val"}]
+        """
+        # TODO test if it works correctly
+
+        # sanitize inputs
+        sendmany_entries = sanitize.sendmanyjson(self.model, data)
+
+        return _print(self.controller.sendmany_coins(sendmany_entries))
 
     @apigen.command()
     def sendmanycsv(self, path):
         """Send amounts in csv file with format 'moniker,coloraddress,value'."""
         # TODO test if it works correctly
         sendmany_entries = self.controller.parse_sendmany_csv(path)
-        txid = self.controller.sendmany_coins(sendmany_entries)
-        return _print(txid)
+
+        return _print(self.controller.sendmany_coins(sendmany_entries))
 
     @apigen.command()
     def scan(self):
@@ -228,7 +268,10 @@ class Ngccc(apigen.Definition):
     @apigen.command()
     def history(self, moniker):
         """Show the history of transactions for given asset."""
-        asset = self.getAssetDefinition(moniker)
+
+        # sanitize inputs
+        asset = sanitize.asset(self.model, moniker)
+
         return _print(self.controller.get_history(asset))
 
     @apigen.command()
@@ -236,7 +279,10 @@ class Ngccc(apigen.Definition):
         """Returns total received amount for each coloraddress
         of a given asset.
         """
-        asset = self.getAssetDefinition(moniker)
+
+        # sanitize inputs
+        asset = sanitize.asset(self.model, moniker)
+
         received = {}
         def reformat(data):
             coloraddress = data['color_address']
@@ -264,8 +310,13 @@ class Ngccc(apigen.Definition):
         return _print(log)
 
     @apigen.command()
-    def dumpprivkey(self, coloraddress):
+    def dumpprivkey(self, moniker, coloraddress):
         """Private key for a given coloraddress."""
+
+        # sanitize inputs
+        asset = sanitize.asset(self.model, moniker)
+        coloraddress = sanitize.coloraddress(self.model, asset, coloraddress)
+
         wam = self.model.get_address_manager()
         for addressrecord in wam.get_all_addresses():
             if coloraddress == addressrecord.get_color_address():
@@ -275,33 +326,40 @@ class Ngccc(apigen.Definition):
     @apigen.command()
     def dumpprivkeys(self, moniker):
         """Lists all private keys for a given asset."""
-        asset = self.getAssetDefinition(moniker)
+
+        # sanitize inputs
+        asset = sanitize.asset(self.model, moniker)
+
         addressrecords = self.controller.get_all_addresses(asset)
         return _print(map(lambda ar: ar.get_private_key(), addressrecords))
 
-    def init_p2ptrade(self):
+    def _init_p2ptrade(self):
         ewctrl = EWalletController(self.model, self.controller)
         config = {"offer_expiry_interval": 30, "ep_expiry_interval": 30}
         comm = HTTPComm(config, 'http://p2ptrade.btx.udoidio.info/messages')
         return EAgent(ewctrl, config, comm)
 
-    def p2ptrade_make_offer(self, we_sell, moniker, value, price, wait):
-        asset = self.getAssetDefinition(moniker)
-        value = asset.parse_value(value)
-        bitcoin = self.getAssetDefinition('bitcoin')
-        price = bitcoin.parse_value(price)
+    def _p2ptrade_make_offer(self, we_sell, moniker, value, price, wait):
+
+        # sanitize inputs
+        asset = sanitize.asset(self.model, moniker)
+        bitcoin = sanitize.asset(self.model, 'bitcoin')
+        value = sanitize.amount(asset, value)
+        price = sanitize.amount(bitcoin, price)
+        wait = sanitize.integer(wait)
+
         total = int(Decimal(value)/Decimal(asset.unit)*Decimal(price))
         color_desc = asset.get_color_set().color_desc_list[0]
         sell_side = {"color_spec": color_desc, "value": value}
         buy_side = {"color_spec": "", "value": total}
-        agent = self.init_p2ptrade()
+        agent = self._init_p2ptrade()
         if we_sell:
             agent.register_my_offer(MyEOffer(None, sell_side, buy_side))
         else:
             agent.register_my_offer(MyEOffer(None, buy_side, sell_side))
-        self.p2ptrade_wait(agent, int(wait))
+        self._p2ptrade_wait(agent, wait)
 
-    def p2ptrade_wait(self, agent, wait):
+    def _p2ptrade_wait(self, agent, wait):
         if wait and wait > 0:
             for _ in xrange(wait):
                 agent.update()
@@ -315,21 +373,27 @@ class Ngccc(apigen.Definition):
     def p2porders(self, moniker="", sellonly=False, buyonly=False):
         """Show peer to peer trade orders"""
 
+        # sanitize inputs
+        sellonly = sanitize.flag(sellonly)
+        buyonly = sanitize.flag(buyonly)
+        asset = None
+        if moniker and moniker != 'bitcoin':
+            asset = sanitize.asset(self.model, moniker)
+
         # get offers
-        agent = self.init_p2ptrade()
+        agent = self._init_p2ptrade()
         agent.update()
         offers = agent.their_offers.values()
         offers = map(lambda offer: offer.get_data(), offers)
 
         # filter asset if given
-        if moniker and moniker != 'bitcoin':
-            asset = self.getAssetDefinition(moniker)
+        if asset:
             descs = asset.get_color_set().color_desc_list
             def func(offer):
-                return (offer["A"]["color_spec"] in descs or 
+                return (offer["A"]["color_spec"] in descs or
                         offer["B"]["color_spec"] in descs)
             offers = filter(func, offers)
-        
+
         # filter sellonly if given
         if sellonly:
             offers = filter(lambda o: o["A"]["color_spec"] != "", offers)
@@ -343,11 +407,11 @@ class Ngccc(apigen.Definition):
     @apigen.command()
     def p2psell(self, moniker, assetamount, btcprice, wait=30):
         """Sell <assetamount> for <btcprice> via peer to peer trade."""
-        self.p2ptrade_make_offer(True, moniker, assetamount, btcprice, wait)
+        self._p2ptrade_make_offer(True, moniker, assetamount, btcprice, wait)
 
     @apigen.command()
     def p2pbuy(self, moniker, assetamount, btcprice, wait=30):
         """Buy <assetamount> for <btcprice> via peer to peer trade."""
-        self.p2ptrade_make_offer(False, moniker, assetamount, btcprice, wait)
+        self._p2ptrade_make_offer(False, moniker, assetamount, btcprice, wait)
 
 

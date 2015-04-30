@@ -83,7 +83,7 @@ class WalletController(object):
     def scan_utxos(self):
         self.model.utxo_fetcher.scan_all_addresses()
 
-    def sanitize_csv_input(self, csvvalues, row):
+    def sanitize_csv_input(self, csvvalues, row): # FIXME move to api sanitizer
         adm = self.model.get_asset_definition_manager()
 
         # must have three entries
@@ -139,6 +139,7 @@ class WalletController(object):
         return sums
 
     def validate_sendmany_entries(self, entries):
+        # TODO check for max entries
         sums = self.sendmany_sums(entries)
 
         # check if required asset amount available
@@ -174,20 +175,17 @@ class WalletController(object):
             ))
         reduce(reduce_function, sums.keys())
 
-        # TODO check for max entries
-
-
     def parse_sendmany_csv(self, csv_file_path):
         """Send amounts in csv file with format 'moniker,address,value'"""
         entries = []
         with open(csv_file_path, 'rb') as csvfile:
             for index, csvvalues in enumerate(csv.reader(csvfile)):
                 entries.append(self.sanitize_csv_input(csvvalues, index + 1))
-        self.validate_sendmany_entries(entries)
         return entries
 
     def sendmany_coins(self, entries):
         """Sendmany coins given in entries [(asset, address, value), ...] """
+        self.validate_sendmany_entries(entries)
         tx_spec = SimpleOperationalTxSpec(self.model, None)
         for asset, address, value in entries:
             color_id = asset.get_color_id()
