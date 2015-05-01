@@ -14,9 +14,6 @@ from ngcccbase.p2ptrade.comm import HTTPComm
 from ngcccbase.p2ptrade.protocol_objects import MyEOffer
 
 
-# TODO validation and tests for everything!
-
-
 class AddressNotFound(Exception):
     def __init__(self, coloraddress):
         msg = "Address '%s' not found!" % coloraddress

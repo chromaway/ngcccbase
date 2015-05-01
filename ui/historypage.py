@@ -27,10 +27,40 @@ class HistoryPage(QtGui.QWidget):
             self.tableView.horizontalHeader().setResizeMode(
                 i + 1, QtGui.QHeaderView.ResizeToContents)
 
+    def contextMenuEvent(self, event):
+        self.menu = QtGui.QMenu(self)
+
+        # add copy txid
+        copyTxIdAction = QtGui.QAction('copy txid', self)
+        copyTxIdAction.triggered.connect(self.copyTxIdSlot)
+        self.menu.addAction(copyTxIdAction)
+
+        # TODO add show tx details
+        #showTxDetailsAction = QtGui.QAction('show tx details', self)
+        #showTxDetailsAction.triggered.connect(self.showTxDetailsSlot)
+        #self.menu.addAction(showTxDetailsAction)
+
+        # open menu
+        self.menu.popup(QtGui.QCursor.pos())
+
+    def getSelected(self):
+        index = self.tableView.selectedIndexes()[0]
+        return self.current_entries[index.row()]
+
+    def copyTxIdSlot(self):
+        # TODO trigger copy txid on CTRL^C
+        clipboard = QtGui.QApplication.clipboard()
+        clipboard.setText(self.getSelected().txhash)
+
+    def showTxDetailsSlot(self):
+        # TODO trigger show tx details on doubleclick
+        print "TODO shows tx details"
+
+
     def update(self):
-        self.model.removeRows(0, self.model.rowCount())
-        tx_history = wallet.model.tx_history
-        for ent in tx_history.get_all_entries():
+        self.model.removeRows(0, self.model.rowCount()) # clear list
+        self.current_entries = wallet.model.tx_history.get_all_entries()
+        for ent in self.current_entries:
             if ent.txtime:
                 datetime = QtCore.QDateTime.fromTime_t(ent.txtime)
                 datetime_str = datetime.toString(QtCore.Qt.DefaultLocaleShortDate)
@@ -78,5 +108,4 @@ class HistoryPage(QtGui.QWidget):
                                        "-" + val.get_formatted_value(),
                                        moniker, ''])
             else:
-                self.model.addRow([datetime_str, ent.txtype,
-                                   '', '', ''])
+                self.model.addRow([datetime_str, ent.txtype, '', '', ''])
