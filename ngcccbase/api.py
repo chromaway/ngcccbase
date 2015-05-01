@@ -17,11 +17,6 @@ from ngcccbase.p2ptrade.protocol_objects import MyEOffer
 # TODO validation and tests for everything!
 
 
-class AssetNotFound(Exception):
-    def __init__(self, moniker):
-        super(AssetNotFound, self).__init__("Asset '%s' not found!" % moniker)
-
-
 class AddressNotFound(Exception):
     def __init__(self, coloraddress):
         msg = "Address '%s' not found!" % coloraddress
@@ -238,8 +233,8 @@ class Ngccc(apigen.Definition):
     def sendmanyjson(self, data):
         """Send amounts given in json fromatted data. 
         Format [{'moniker':"val",'amount':"val",'coloraddress':"val"}]
+        All entries must use the same color scheme.
         """
-        # TODO test if it works correctly
 
         # sanitize inputs
         sendmany_entries = sanitize.sendmanyjson(self.model, data)
@@ -248,8 +243,9 @@ class Ngccc(apigen.Definition):
 
     @apigen.command()
     def sendmanycsv(self, path):
-        """Send amounts in csv file with format 'moniker,coloraddress,amount'."""
-        # TODO test if it works correctly
+        """Send amounts in csv file with format 'moniker,coloraddress,amount'.
+        All entries must use the same color scheme.
+        """
 
         # sanitize inputs
         sendmany_entries = sanitize.sendmanycsv(self.model, path)

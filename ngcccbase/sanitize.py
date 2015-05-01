@@ -4,9 +4,15 @@ import re
 import json
 import csv
 from decimal import Decimal
+from ngcccbase.address import coloraddress_to_bitcoinaddress
 
 
 class InvalidInput(Exception): pass
+
+
+class AssetNotFound(InvalidInput):
+    def __init__(self, moniker):
+        super(AssetNotFound, self).__init__("Asset '%s' not found!" % moniker)
 
 
 class SchemeNotFound(InvalidInput):
@@ -116,9 +122,9 @@ def sendmanyjson(model, data):
     sendmany_entries = []
     for entry in json.loads(data):
         _asset = asset(model, entry['moniker'])
-        _amount = assetamount(model, entry['amount'])
+        _amount = assetamount(_asset, entry['amount'])
         _coloraddress = coloraddress(model, _asset, entry['coloraddress'])
-        _address = _coloraddress.split('@')[1]
+        _address = coloraddress_to_bitcoinaddress(_coloraddress)
         sendmany_entries.append((_asset, _address, _amount))
     return sendmany_entries
 
@@ -138,8 +144,8 @@ def _sanitize_csv_input(model, csvvalues, row):
         raise InvalidInput(msg % (row, len(csvvalues)))
     _moniker, _coloraddress, _amount = csvvalues
     _asset = asset(model, _moniker)
-    _coloraddress = coloraddress(model. _coloraddress)
-    _amount = assetamount(model, _amount)
-    _address = _coloraddress.split('@')[1]
+    _coloraddress = coloraddress(model, _asset, _coloraddress)
+    _amount = assetamount(_asset, _amount)
+    _address = coloraddress_to_bitcoinaddress(_coloraddress)
     return _asset, _address, _amount
 
