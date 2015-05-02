@@ -67,8 +67,10 @@ class Wallet(object):
             self.is_connected = False
 
     def get_asset_definition(self, moniker):
-        if isinstance(moniker, AssetDefinition):
+        if type(moniker) not in [type(u"unicode"), type("str")]: # XXX
             return moniker
+        #if isinstance(moniker, AssetDefinition): # FIXME why doesn't it work?
+        #    return moniker
         adm = self.wallet.get_model().get_asset_definition_manager()
         asset = adm.get_asset_by_moniker(moniker)
         if asset:

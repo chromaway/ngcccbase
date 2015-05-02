@@ -9,6 +9,7 @@ CoinManager.
 from ngcccbase.services.blockchain import BlockchainInfoInterface, AbeInterface
 from ngcccbase.services.electrum import ElectrumInterface
 from ngcccbase.services.helloblock import HelloBlockInterface
+from ngcccbase.services.chroma import ChromanodeInterface
 
 import time
 import Queue
@@ -24,11 +25,13 @@ class BaseUTXOFetcher(object):
 
     @classmethod
     def make_interface(cls, model, params):
-        use = params.get('interface', 'helloblock')
+        use = params.get('interface', 'chromanode')
         if model.testnet:
-            if use != 'helloblock':
-                use = 'abe_testnet'
-        if use == 'helloblock':
+            if use not in ['chromanode', 'helloblock', 'abe_testnet']:
+                use = 'chromanode'
+        if use == 'chromanode':
+            return ChromanodeInterface(None, model.testnet)
+        elif use == 'helloblock':
             return HelloBlockInterface(model.testnet)
         elif use == 'blockchain.info':
             return BlockchainInfoInterface()

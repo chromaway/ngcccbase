@@ -19,8 +19,7 @@ from txcons import TransactionSpecTransformer
 from coindb import CoinQuery, CoinManager
 from utxo_fetcher import SimpleUTXOFetcher
 from coloredcoinlib import BlockchainState
-from ngcccbase.services.chroma import ChromaBlockchainState
-from ngcccbase.services.helloblock import HelloBlockInterface
+from ngcccbase.services.chroma import ChromanodeInterface
 from txhistory import TxHistory
 
 
@@ -84,9 +83,6 @@ class WalletModel(object):
         if self.testnet:
             self.txdb = NaiveTxDb(self, config)
         else:
-            #hb_interface = HelloBlockInterface(self.testnet)
-            #self.txdb = TrustingTxDb(self, config,
-            #                         hb_interface.get_tx_confirmations)
             self.txdb = VerifiedTxDb(self, config)
 
     def init_utxo_fetcher(self, config):
@@ -95,31 +91,11 @@ class WalletModel(object):
 
     def init_blockchain_state(self, config):
         thin = config.get('thin', True)
-        if thin and not config.get('use_bitcoind', False):
-            chromanode_url = config.get('chromanode_url', None)
-            if not chromanode_url:
-                if self.testnet:
-                    chromanode_url = "http://chromanode-tn.bitcontracts.org"
-                else:
-                    chromanode_url = "http://chromanode.bitcontracts.org"
-            self.blockchain_state = ChromaBlockchainState(
-                chromanode_url,
-                self.testnet)
-        else:
-            self.blockchain_state = BlockchainState.from_url(
-                None, self.testnet)
-
-        if not thin and not self.testnet:
-            try:
-                # try fetching transaction from the second block of
-                # the bitcoin blockchain to see whether txindex works
-                self.blockchain_state.bitcoind.getrawtransaction(
-                    "9b0fc92260312ce44e74ef369f5c66bbb85848f2eddd5"
-                    "a7a1cde251e54ccfdd5")
-            except Exception as e:
-                # use Electrum to request transactions
-                self.blockchain_state = EnhancedBlockchainState(
-                    "electrum.cafebitcoin.com", 50001)
+        use_bitcoind = config.get('use_bitcoind', False)
+        if thin and not use_bitcoind: # use chromanode api (headers only)
+            self.blockchain_state = ChromanodeInterface(None, self.testnet)
+        else: # use bitcoind api (full node)
+            self.blockchain_state = BlockchainState.from_url(None, self.testnet)
 
     def get_blockchain_state(self):
         return self.blockchain_state
