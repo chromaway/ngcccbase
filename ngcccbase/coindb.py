@@ -181,11 +181,9 @@ class CoinQuery(object):
         for coin in all_coins:
             coin.address_rec = address_rec
             coin.colorvalues = None
-            try:
-                coin.colorvalues = cdata.get_colorvalues(
-                    addr_color_set.color_id_set, coin.txhash, coin.outindex)
-            except Exception as e:
-                raise
+            coin.colorvalues = cdata.get_colorvalues(
+                addr_color_set.color_id_set, coin.txhash, coin.outindex)
+
         def relevant(coin):
             cvl = coin.colorvalues
             if coin.colorvalues is None:

@@ -219,7 +219,7 @@ class TxHistory(object):
             "txhash": txhash,
             "txtype": 'complex',
             "txtime": txtime,
-            "addresses" : send_addrs,
+            "addresses" : ["%s addresses" % len(send_addrs)],
             "deltas" : deltas,
         }
 

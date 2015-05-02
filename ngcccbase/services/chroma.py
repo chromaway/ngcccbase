@@ -14,11 +14,9 @@ from ngcccbase.blockchain import BaseStore
 from coloredcoinlib import CTransaction, BlockchainStateBase
 
 
-
-
 class AbstractChromanodeBlockchainState(BlockchainStateBase):
 
-    def connected(self):
+    def connected(self): # FIXME have ChromanodeInterface manage this smartly
         try:
           return bool(self.get_block_count())
         except:
@@ -87,6 +85,12 @@ class ChromanodeInterface(AbstractChromanodeBlockchainState, BaseStore):
         url = "%s/v1/transactions/send" % self.baseurl
         self._chromanode(url, { "rawtx" : rawtx })
         return Tx.tx_from_hex(rawtx).id()
+
+    def get_utxo(self, address):
+        urlargs = (self.baseurl, address)
+        url = "%s/v1/addresses/query?addresses=%s&status=unspent" % urlargs
+        history = self._chromanode(url)["transactions"]
+        return [[entry["txid"], None, None, None] for entry in history]
 
 
 class ChromaBlockchainState(AbstractChromanodeBlockchainState):

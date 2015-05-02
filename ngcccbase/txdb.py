@@ -5,8 +5,10 @@ import os
 
 from pycoin.encoding import double_sha256
 
-from coloredcoinlib.store import DataStore, DataStoreConnection, PersistentDictStore, unwrap1
-from ngcccbase.services.blockchain import BlockchainInfoInterface
+from coloredcoinlib.store import DataStore
+from coloredcoinlib.store import DataStoreConnection
+from coloredcoinlib.store import PersistentDictStore
+from coloredcoinlib.store import unwrap1
 from txcons import RawTxSpec
 from blockchain import VerifiedBlockchainState
 

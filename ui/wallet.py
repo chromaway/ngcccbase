@@ -63,8 +63,8 @@ class Wallet(object):
                 total_balance = self.get_total_balance(asset)
             self.is_connected = self.async_utxo_fetcher.interface.connected()
         except:
-            raise
             self.is_connected = False
+            raise
 
     def get_asset_definition(self, moniker):
         if type(moniker) not in [type(u"unicode"), type("str")]: # XXX

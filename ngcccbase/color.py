@@ -5,7 +5,6 @@ from coloredcoinlib import (ColorDataBuilderManager,
                             FullScanColorDataBuilder, DataStoreConnection,
                             ColorDataStore, ColorMetaStore, ColorMap,
                             ThickColorData, ThinColorData)
-from services.electrum import EnhancedBlockchainState
 
 
 class ColoredCoinContext(object):

@@ -47,12 +47,8 @@ class BaseUTXOFetcher(object):
             raise Exception('Unknown service for UTXOFetcher!')        
 
     def scan_address(self, address):
-        try:
-            for data in self.interface.get_utxo(address):
-                self.add_utxo(address, data)
-        except Exception as e:
-            if "%s" % e != "No JSON object could be decoded":
-                raise
+        for data in self.interface.get_utxo(address):
+            self.add_utxo(address, data)
 
 class SimpleUTXOFetcher(BaseUTXOFetcher):
     def __init__(self, model, params):
@@ -72,10 +68,11 @@ class SimpleUTXOFetcher(BaseUTXOFetcher):
             self.scan_address(address_rec.get_address())
 
 class AsyncUTXOFetcher(BaseUTXOFetcher):
+
     def __init__(self, model, params):
-        super(AsyncUTXOFetcher, self).__init__(
-            self.make_interface(model, params))
-        self.logger = logging.getLogger('ngcccbase.utxo_fetcher.async')
+        interface = self.make_interface(model, params)
+        super(AsyncUTXOFetcher, self).__init__(interface)
+        self.sleep_time = 1
         self.model = model
         self.hash_queue = Queue.Queue()
         self.address_list = []
@@ -113,22 +110,15 @@ class AsyncUTXOFetcher(BaseUTXOFetcher):
     def thread_loop(self):
         with self.lock:
             self.running = True
-
-        wakeup = 0
         while self.is_running():
             try:
                 with self.lock:
                     address_list = self.address_list[:]
-
                 for address in address_list:
-                    if not self.is_running():
-                        break
-                    #self.logger.debug('scanning address %s', address)
                     self.scan_address(address)
-                    wakeup = time.time() + 1
-                    while wakeup > time.time() and self.is_running():
-                        time.sleep(0.05)
             except Exception as e:
-                wakeup = time.time() + 20
-                while wakeup > time.time() and self.is_running():
-                    time.sleep(0.05)
+                print e
+            time.sleep(self.sleep_time)
+
+
+
