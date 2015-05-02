@@ -42,22 +42,10 @@ class WalletController(object):
         """
         txhex = signed_tx_spec.get_hex_tx_data()
         txhash = signed_tx_spec.get_hex_txhash()
-        r_txhash = None
         blockchain_state = self.model.ccc.blockchain_state
-        try:
-            r_txhash = blockchain_state.publish_tx(txhex)
-        except Exception as e:
-            pass
-
+        r_txhash = blockchain_state.publish_tx(txhex)
         if r_txhash and (r_txhash != txhash) and not self.testing:
             raise Exception('Bitcoind reports different txhash!')
-
-        """if r_txhash is None:                                      # pragma: no cover
-            # bitcoind did not eat our txn, check if it is mempool
-            mempool = bitcoind.getrawmempool()                    # pragma: no cover
-            if txhash not in mempool:                             # pragma: no cover
-                raise Exception(                                  # pragma: no cover
-                    "bitcoind didn't accept the transaction")     # pragma: no cover"""
 
         if signed_tx_spec.composed_tx_spec:
             self.model.txdb.add_raw_tx(signed_tx_spec)

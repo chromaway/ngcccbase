@@ -9,10 +9,12 @@ This is a connector to chromawallet's servers to grab transaction details
 import bitcoin
 import json
 import urllib2
-
-
+from pycoin.tx.Tx import Tx
 from ngcccbase.blockchain import BaseStore
 from coloredcoinlib import CTransaction, BlockchainStateBase
+
+
+
 
 class AbstractChromanodeBlockchainState(BlockchainStateBase):
 
@@ -40,44 +42,51 @@ class ChromanodeInterface(AbstractChromanodeBlockchainState, BaseStore):
         else:
            self.baseurl = testnet_baseurl if testnet else mainnet_baseurl
 
-    def _requestdata(self, url, data=None):
+    def _chromanode(self, url, data=None):
         header = {'Content-Type': 'application/json'}
         data = json.dumps(data) if data else None
         fp = urllib2.urlopen(urllib2.Request(url, data, header))
-        payload = fp.read()
+        payload = json.loads(fp.read())
         fp.close()
-        return json.loads(payload)
+        if payload["status"] == "fail":
+            raise Exception("Chromanode error: %s!" % payload['data']['type'])
+        return payload.get("data")
 
     def get_raw(self, txid): # TODO add cache
         url = "%s/v1/transactions/raw?txid=%s" % (self.baseurl, txid)
-        return self._requestdata(url)["data"]["hex"]
+        return self._chromanode(url)["hex"]
 
     def get_tx_blockhash(self, txid): # TODO add cache (only confirmed >= 6)
         url = "%s/v1/transactions/merkle?txid=%s" % (self.baseurl, txid)
-        result = self._requestdata(url)
-        if result["data"]["source"] == "mempool": # unconfirmed
+        result = self._chromanode(url)
+        if result["source"] == "mempool": # unconfirmed
             return None, True
-        return result["data"]["block"]["hash"], True
+        return result["block"]["hash"], True
 
     def get_block_height(self, blockid): # TODO add cache (only confirmed >= 6)
         url = "%s/v1/headers/query?from=%s&count=1" % (self.baseurl, blockid)
-        return self._requestdata(url)["data"]["from"]
+        return self._chromanode(url)["from"]
 
     def get_header(self, height): # TODO add cache (only confirmed >= 6)
         return self.read_header(height)
 
     def read_raw_header(self, height):
         url = "%s/v1/headers/query?from=%s&count=1" % (self.baseurl, height)
-        return self._requestdata(url)["data"]["headers"]
+        return self._chromanode(url)["headers"]
 
     def get_address_history(self, address):
         url = "%s/v1/addresses/query?addresses=%s" % (self.baseurl, address)
-        history = self._requestdata(url)["data"]["transactions"]
+        history = self._chromanode(url)["transactions"]
         return [entry["txid"] for entry in history]
 
     def get_block_count(self):
         url = "%s/v1/headers/latest" % self.baseurl
-        return self._requestdata(url)["data"]["height"]
+        return self._chromanode(url)["height"]
+
+    def publish_tx(self, rawtx):
+        url = "%s/v1/transactions/send" % self.baseurl
+        self._chromanode(url, { "rawtx" : rawtx })
+        return Tx.tx_from_hex(rawtx).id()
 
 
 class ChromaBlockchainState(AbstractChromanodeBlockchainState):
