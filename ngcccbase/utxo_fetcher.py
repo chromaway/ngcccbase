@@ -82,12 +82,13 @@ class AsyncUTXOFetcher(BaseUTXOFetcher):
     def update(self):
         wam = self.model.get_address_manager()
         with self.lock:
-            self.address_list = [ar.get_address()
-                                 for ar in wam.get_all_addresses()]
+            addressrecords = wam.get_all_addresses()
+            self.address_list = [ar.get_address() for ar in addressrecords]
 
         any_got_updates = False
         while not self.hash_queue.empty():
-            got_updates = self.model.get_tx_db().add_tx_by_hash(self.hash_queue.get())
+            txhash = self.hash_queue.get()
+            got_updates = self.model.get_tx_db().add_tx_by_hash(txhash)
             any_got_updates = any_got_updates or got_updates
         return any_got_updates
             
@@ -114,7 +115,7 @@ class AsyncUTXOFetcher(BaseUTXOFetcher):
             try:
                 with self.lock:
                     address_list = self.address_list[:]
-                for address in address_list:
+                for address in address_list: # FIXME do in parallel!
                     self.scan_address(address)
             except Exception as e:
                 print e

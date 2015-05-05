@@ -31,7 +31,7 @@ class AbstractChromanodeBlockchainState(BlockchainStateBase):
 
 class ChromanodeInterface(AbstractChromanodeBlockchainState, BaseStore):
 
-    def __init__(self, baseurl=None, testnet=False):
+    def __init__(self, baseurl=None, testnet=False, cache_minconfirms=6):
         testnet_baseurl = "http://v1.testnet.bitcoin.chromanode.net"
         mainnet_baseurl = "http://v1.livenet.bitcoin.chromanode.net"
         self.testnet = testnet
@@ -40,7 +40,18 @@ class ChromanodeInterface(AbstractChromanodeBlockchainState, BaseStore):
         else:
            self.baseurl = testnet_baseurl if testnet else mainnet_baseurl
 
-    def _chromanode(self, url, data=None):
+        # init caches
+        self.cache_minconfirms = cache_minconfirms
+        self.cache_rawtx = {} # txid -> rawtx
+        self.cache_txblockhash = {} # txid -> blockhash
+        self.cache_rawheaders = {} # blockheight -> rawheader
+        self.cache_blockheight = {} # blockhash -> blockheight
+
+    def _cancache(self, blockheight):
+        currentheight = self.get_block_count()
+        return (currentheight - blockheight) >= self.cache_minconfirms
+
+    def _query(self, url, data=None):
         header = {'Content-Type': 'application/json'}
         data = json.dumps(data) if data else None
         fp = urllib2.urlopen(urllib2.Request(url, data, header))
@@ -50,46 +61,119 @@ class ChromanodeInterface(AbstractChromanodeBlockchainState, BaseStore):
             raise Exception("Chromanode error: %s!" % payload['data']['type'])
         return payload.get("data")
 
-    def get_raw(self, txid): # TODO add cache
-        url = "%s/v1/transactions/raw?txid=%s" % (self.baseurl, txid)
-        return self._chromanode(url)["hex"]
+    def get_raw(self, txid):
+        """ Return rawtx for given txid. """
 
-    def get_tx_blockhash(self, txid): # TODO add cache (only confirmed >= 6)
+        # get from cache
+        cachedrawtx = self.cache_rawtx.get(txid)
+        if cachedrawtx:
+            return cachedrawtx
+
+        # get from chromanode
+        url = "%s/v1/transactions/raw?txid=%s" % (self.baseurl, txid)
+        rawtx = self._query(url)["hex"]
+
+        # add to cache
+        self.cache_rawtx[txid] = rawtx
+        return rawtx
+
+    def get_tx_blockhash(self, txid):
+        """ Return blockhash for given txid. """
+
+        # get from cache
+        blockhash = self.cache_txblockhash.get(txid)
+        if blockhash:
+          return blockhash
+
+        # get from chromanode
         url = "%s/v1/transactions/merkle?txid=%s" % (self.baseurl, txid)
-        result = self._chromanode(url)
+        result = self._query(url)
         if result["source"] == "mempool": # unconfirmed
             return None, True
-        return result["block"]["hash"], True
 
-    def get_block_height(self, blockid): # TODO add cache (only confirmed >= 6)
-        url = "%s/v1/headers/query?from=%s&count=1" % (self.baseurl, blockid)
-        return self._chromanode(url)["from"]
+        # add to cache
+        blockhash = result["block"]["hash"]
+        blockheight = result["block"]["height"]
+        if self._cancache(blockheight):
+            self.cache_txblockhash[txid] = blockhash
+            self.cache_blockheight[blockhash] = blockheight
+        return blockhash, True
 
-    def get_header(self, height): # TODO add cache (only confirmed >= 6)
-        return self.read_header(height)
+    def get_block_height(self, blockhash):
+        """ Return blockheight for given blockhash. """
+        
+        # get from cache
+        blockheight = self.cache_blockheight.get(blockhash)
+        if blockheight:
+          return blockheight
 
-    def read_raw_header(self, height):
-        url = "%s/v1/headers/query?from=%s&count=1" % (self.baseurl, height)
-        return self._chromanode(url)["headers"]
+        # get from chromanode
+        url = "%s/v1/headers/query?from=%s&count=1" % (self.baseurl, blockhash)
+        result = self._query(url)
+        blockheight = result["from"]
 
-    def get_address_history(self, address):
+        # add to cache
+        if self._cancache(blockheight):
+            self.cache_blockheight[blockhash] = blockheight
+            self.cache_rawheaders[blockheight] = result["headers"]
+        return blockheight
+
+    def get_header(self, blockheight):
+        """ Return header for given blockheight. 
+        Header format: {
+            'version':         int,
+            'prev_block_hash': hash,
+            'merkle_root':     hast,
+            'timestamp':       int,
+            'bits':            int,
+            'nonce':           int,
+        }
+        """
+        return self.read_header(blockheight)
+
+    def read_raw_header(self, blockheight):
+        """ Return rawheader for given blockheight. """
+        
+        # get from cache
+        rawheader = self.cache_rawheaders.get(blockheight)
+        if rawheader:
+            return rawheader
+
+        # get from chromanode
+        url = "%s/v1/headers/query?from=%s&count=1" % (self.baseurl, blockheight)
+        result = self._query(url)
+        rawheader = result["headers"]
+
+        # add to cache
+        if self._cancache(blockheight):
+            self.cache_rawheaders[blockheight] = rawheader
+        return rawheader
+
+    def get_address_history(self, address): 
+        """ TODO docstring """
+        # TODO only query if blocks added since last query
         url = "%s/v1/addresses/query?addresses=%s" % (self.baseurl, address)
-        history = self._chromanode(url)["transactions"]
+        history = self._query(url)["transactions"]
         return [entry["txid"] for entry in history]
 
-    def get_block_count(self):
+    def get_block_count(self): 
+        """ TODO docstring """
+        # TODO only get on startup and update on newBlock notification
         url = "%s/v1/headers/latest" % self.baseurl
-        return self._chromanode(url)["height"]
+        return self._query(url)["height"]
 
     def publish_tx(self, rawtx):
+        """ TODO docstring """
         url = "%s/v1/transactions/send" % self.baseurl
-        self._chromanode(url, { "rawtx" : rawtx })
+        self._query(url, { "rawtx" : rawtx })
         return Tx.tx_from_hex(rawtx).id()
 
     def get_utxo(self, address):
+        """ TODO docstring """
+        # TODO only query if blocks added since last query
         urlargs = (self.baseurl, address)
         url = "%s/v1/addresses/query?addresses=%s&status=unspent" % urlargs
-        history = self._chromanode(url)["transactions"]
+        history = self._query(url)["transactions"]
         return [[entry["txid"], None, None, None] for entry in history]
 
 
