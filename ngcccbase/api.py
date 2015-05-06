@@ -327,3 +327,42 @@ class Ngccc(apigen.Definition):
 
         self.controller.p2ptrade_make_offer(we_sell, asset, value, price, wait)
 
+    @apigen.command()
+    def getcolorvalue(self, txid, outindex, moniker=None):
+        """ Get the transaction output color values."""
+        # TODO implement
+        # use coloredcoinlib.colordata.ThinColorData.get_colorvalues
+        # and put logic in controller
+        pass
+
+    @apigen.command()
+    def getcolorutxos(self, moniker, amount):
+        """ Get unspent transaction outputs for given asset amount."""
+        # TODO implement
+        # and put logic in controller
+        pass
+
+    @apigen.command()
+    def makecolortx(self, inputs, targets):
+        """ Construct an unsigned color transaction 
+        for the given inputs and targets.
+        """
+        # TODO implement
+        # see ngcccbase.txcons and ewctrl
+        # and put logic in controller
+        pass
+
+    @apigen.command()
+    def signrawtx(self, rawtx):
+        """ Sign raw transaction. """
+        # TODO implement
+        # and put logic in controller
+        pass
+
+    @apigen.command()
+    def sendrawtx(self, rawtx):
+        """ Publish raw transaction to bitcoin network. """
+        # TODO implement
+        # and put logic in controller
+        pass
+
