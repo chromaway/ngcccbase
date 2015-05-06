@@ -170,7 +170,7 @@ class ElectrumInterface(object):
                 if vout.scriptPubKey == script_pubkey:
                     utxos += [(tx['tx_hash'], outindex, vout.nValue,
                                to_hex(vout.scriptPubKey))]
-        return [u for u in utxos if not u[0:2] in spent]
+        return [u[0] for u in utxos if not u[0:2] in spent]
 
     def get_chunk(self, index):
         return self.get_response('blockchain.block.get_chunk', [index])

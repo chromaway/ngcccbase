@@ -11,6 +11,12 @@ import sqlite3
 import os
 
 
+class ConfigKeyNotFound(Exception):
+    def __init__(self, key):
+        super(ConfigKeyNotFound, self).__init__("Key '%s' not found!" % key)
+
+
+
 class PersistentWallet(object):
     """Represents a wallet object that stays persistent.
     That is, it doesn't go away every time you run the program.
@@ -42,8 +48,7 @@ class PersistentWallet(object):
         """Associate the wallet model based on the persistent
         configuration.
         """
-        self.wallet_model = WalletModel(
-            self.wallet_config, self.store_conn)
+        self.wallet_model = WalletModel(self.wallet_config, self.store_conn)
 
     def initialize_new_wallet(self, testnet):
         """New wallets are born in testnet mode until we have a version 
@@ -56,3 +61,43 @@ class PersistentWallet(object):
         wallet.
         """
         return self.wallet_model
+
+    def setconfigval(self, key, value): # FIXME behaviour ok?
+        kpath = key.split('.')
+        value = json.loads(value)
+
+        # traverse the path until we get to the value we need to set
+        if len(kpath) > 1:
+            branch = self.wallet_config[kpath[0]]
+            cdict = branch
+            for k in kpath[1:-1]:
+                cdict = cdict[k]
+            cdict[kpath[-1]] = value
+            value = branch
+        if kpath[0] in self.wallet_config:
+            self.wallet_config[kpath[0]] = value
+        else:
+            raise ConfigKeyNotFound(key)
+
+    def getconfigval(self, key):
+        if not key:
+            raise ConfigKeyNotFound(key)
+        keys = key.split('.')
+        config = self.wallet_config
+        # traverse the path until we get the value
+        for key in keys:
+            config = config[key]
+        return config
+
+
+    def dumpconfig(self):
+        return dict(self.wallet_config.iteritems())
+
+    def importconfig(self, path):
+        # FIXME what about subkeys and removed keys?
+        with open(path, 'r') as fp:
+            config = json.loads(fp.read())
+            wallet_config = self.wallet_config
+            for k in config:
+                wallet_config[k] = config[k]
+

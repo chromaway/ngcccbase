@@ -33,14 +33,12 @@ class WebBlockchainInterface(object):
                 txhash = utxo_data['tx_hash']
                 if self.REVERSE_TXHASH:
                     txhash = txhash.decode('hex')[::-1].encode('hex')
-                utxo = [txhash, utxo_data['tx_output_n'],
-                        utxo_data['value'], utxo_data['script']]
-                utxos.append(utxo)
+                utxos.append(txhash)
             return utxos
         except urllib2.HTTPError as e:
             if e.code == 500:         
                 return []             
-            raise                       # pragma: no cover
+            raise
 
     def get_address_history(self, address):
         raise Exception('Not implemented!')

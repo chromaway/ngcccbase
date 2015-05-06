@@ -5,24 +5,14 @@ import apigen
 from time import sleep
 from ngcccbase import sanitize
 from collections import defaultdict
-from decimal import Decimal
 from ngcccbase.wallet_controller import WalletController
 from ngcccbase.pwallet import PersistentWallet
-from ngcccbase.p2ptrade.ewctrl import EWalletController
-from ngcccbase.p2ptrade.agent import EAgent
-from ngcccbase.p2ptrade.comm import HTTPComm
-from ngcccbase.p2ptrade.protocol_objects import MyEOffer
 
 
 class AddressNotFound(Exception):
     def __init__(self, coloraddress):
         msg = "Address '%s' not found!" % coloraddress
         super(AddressNotFound, self).__init__(msg)
-
-
-class KeyNotFound(Exception):
-    def __init__(self, key):
-        super(KeyNotFound, self).__init__("Key '%s' not found!" % key)
 
 
 def _print(data): # TODO move this to apigen
@@ -46,7 +36,7 @@ class Ngccc(apigen.Definition):
         self.controller = WalletController(self.model)
 
     @apigen.command()
-    def setconfigval(self, key, value): # FIXME behaviour ok?
+    def setconfigval(self, key, value):
         """Sets a value in the configuration.
         Key is expressed as: key.subkey.subsubkey
         """
@@ -55,21 +45,8 @@ class Ngccc(apigen.Definition):
         key = sanitize.cfgkey(key)
         value = sanitize.cfgvalue(value)
 
-        kpath = key.split('.')
-        value = json.loads(value)
+        self.wallet.setconfigval(key, value)
 
-        # traverse the path until we get to the value we need to set
-        if len(kpath) > 1:
-            branch = self.wallet.wallet_config[kpath[0]]
-            cdict = branch
-            for k in kpath[1:-1]:
-                cdict = cdict[k]
-            cdict[kpath[-1]] = value
-            value = branch
-        if kpath[0] in self.wallet.wallet_config:
-            self.wallet.wallet_config[kpath[0]] = value
-        else:
-            raise KeyNotFound(key)
 
     @apigen.command()
     def getconfigval(self, key):
@@ -80,29 +57,17 @@ class Ngccc(apigen.Definition):
         # sanitize inputs
         key = sanitize.cfgkey(key)
 
-        if not key:
-            raise KeyNotFound(key)
-        keys = key.split('.')
-        config = self.wallet.wallet_config
-        # traverse the path until we get the value
-        for key in keys:
-            config = config[key]
-        return _print(config)
+        return _print(self.wallet.getconfigval(key))
 
     @apigen.command()
     def dumpconfig(self):
         """Returns a dump of the current configuration."""
-        dict_config = dict(self.wallet.wallet_config.iteritems())
-        return _print(dict_config)
+        return _print(self.wallet.dumpconfig())
 
     @apigen.command()
-    def importconfig(self, path): # FIXME what about subkeys and removed keys?
+    def importconfig(self, path):
         """Import JSON config."""
-        with open(path, 'r') as fp:
-            config = json.loads(fp.read())
-            wallet_config = self.wallet.wallet_config
-            for k in config:
-                wallet_config[k] = config[k]
+        self.wallet.importconfig(path)
 
     @apigen.command()
     def issueasset(self, moniker, quantity, unit="100000000", scheme="epobc"):
@@ -252,7 +217,7 @@ class Ngccc(apigen.Definition):
     @apigen.command()
     def scan(self):
         """Update the database of transactions."""
-        sleep(5)
+        sleep(5) # TODO why sleep?
         self.controller.scan_utxos()
 
     @apigen.command()
@@ -328,42 +293,6 @@ class Ngccc(apigen.Definition):
         addressrecords = self.controller.get_all_addresses(asset)
         return _print(map(lambda ar: ar.get_private_key(), addressrecords))
 
-    def _init_p2ptrade(self):
-        ewctrl = EWalletController(self.model, self.controller)
-        config = {"offer_expiry_interval": 30, "ep_expiry_interval": 30}
-        comm = HTTPComm(config, 'http://p2ptrade.btx.udoidio.info/messages')
-        return EAgent(ewctrl, config, comm)
-
-    def _p2ptrade_make_offer(self, we_sell, moniker, value, price, wait):
-
-        # sanitize inputs
-        asset = sanitize.asset(self.model, moniker)
-        bitcoin = sanitize.asset(self.model, 'bitcoin')
-        value = sanitize.assetamount(asset, value)
-        price = sanitize.assetamount(bitcoin, price)
-        wait = sanitize.integer(wait)
-
-        total = int(Decimal(value)/Decimal(asset.unit)*Decimal(price))
-        color_desc = asset.get_color_set().color_desc_list[0]
-        sell_side = {"color_spec": color_desc, "value": value}
-        buy_side = {"color_spec": "", "value": total}
-        agent = self._init_p2ptrade()
-        if we_sell:
-            agent.register_my_offer(MyEOffer(None, sell_side, buy_side))
-        else:
-            agent.register_my_offer(MyEOffer(None, buy_side, sell_side))
-        self._p2ptrade_wait(agent, wait)
-
-    def _p2ptrade_wait(self, agent, wait):
-        if wait and wait > 0:
-            for _ in xrange(wait):
-                agent.update()
-                sleep(1)
-        else:
-            for _ in xrange(4*6):
-                agent.update()
-                sleep(0.25)
-
     @apigen.command()
     def p2porders(self, moniker="", sellonly=False, buyonly=False):
         """Show peer to peer trade orders"""
@@ -375,29 +304,7 @@ class Ngccc(apigen.Definition):
         if moniker and moniker != 'bitcoin':
             asset = sanitize.asset(self.model, moniker)
 
-        # get offers
-        agent = self._init_p2ptrade()
-        agent.update()
-        offers = agent.their_offers.values()
-        offers = map(lambda offer: offer.get_data(), offers)
-
-        # filter asset if given
-        if asset:
-            descs = asset.get_color_set().color_desc_list
-            def func(offer):
-                return (offer["A"]["color_spec"] in descs or
-                        offer["B"]["color_spec"] in descs)
-            offers = filter(func, offers)
-
-        # filter sellonly if given
-        if sellonly:
-            offers = filter(lambda o: o["A"]["color_spec"] != "", offers)
-
-        # filter buyonly if given
-        if buyonly:
-            offers = filter(lambda o: o["A"]["color_spec"] == "", offers)
-
-        return _print(offers)
+        return _print(self.controller.p2porders(asset, sellonly, buyonly))
 
     @apigen.command()
     def p2psell(self, moniker, assetamount, btcprice, wait=30):
@@ -409,4 +316,14 @@ class Ngccc(apigen.Definition):
         """Buy <assetamount> for <btcprice> via peer to peer trade."""
         self._p2ptrade_make_offer(False, moniker, assetamount, btcprice, wait)
 
+    def _p2ptrade_make_offer(self, we_sell, moniker, value, price, wait):
+
+        # sanitize inputs
+        asset = sanitize.asset(self.model, moniker)
+        bitcoin = sanitize.asset(self.model, 'bitcoin')
+        value = sanitize.assetamount(asset, value)
+        price = sanitize.assetamount(bitcoin, price)
+        wait = sanitize.integer(wait)
+
+        self.controller.p2ptrade_make_offer(we_sell, asset, value, price, wait)
 

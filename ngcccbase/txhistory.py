@@ -151,7 +151,9 @@ class TxHistory(object):
     def get_tx_timestamp(self, txhash): # TODO move to suitable file
         txtime = 0
         bs = self.model.get_blockchain_state()
-        blockhash, x = bs.get_tx_blockhash(txhash)
+        result = bs.get_tx_blockhash(txhash)
+        import pudb; pu.db # set break point # FIXME why crash here?
+        blockhash, x = result
         if blockhash:
             height = bs.get_block_height(blockhash)
             if height:

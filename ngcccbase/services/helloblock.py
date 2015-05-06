@@ -33,10 +33,7 @@ class HelloBlockInterface(object):
                 unspents = resp['data']['unspents']
                 utxos = []
                 for utxo_data in unspents:
-                    utxos.append([utxo_data['txHash'],
-                                  utxo_data['index'],
-                                  utxo_data['value'],
-                                  utxo_data['scriptPubKey']])
+                    utxos.append(utxo_data['txHash'])
                 return utxos
         except:
             raise

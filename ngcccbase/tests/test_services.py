@@ -68,7 +68,7 @@ class TestBlockchain(unittest.TestCase):
         self.address2 = '1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj'
 
     def test_blockchain(self):
-        self.assertEqual(BlockchainInfoInterface.get_utxo(self.address)[0][0],
+        self.assertEqual(BlockchainInfoInterface.get_utxo(self.address)[0],
                          self.txhash)
         self.assertEqual(BlockchainInfoInterface.get_utxo(self.address2), [])
 

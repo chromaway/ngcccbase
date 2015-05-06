@@ -1,11 +1,5 @@
 #!/usr/bin/env python
 
-"""
-chroma.py
-
-This is a connector to chromawallet's servers to grab transaction details
-"""
-
 import bitcoin
 import json
 import urllib2
@@ -14,42 +8,57 @@ from ngcccbase.blockchain import BaseStore
 from coloredcoinlib import CTransaction, BlockchainStateBase
 
 
-class AbstractChromanodeBlockchainState(BlockchainStateBase):
-
-    def connected(self): # FIXME have ChromanodeInterface manage this smartly
-        try:
-          return bool(self.get_block_count())
-        except:
-          return False
-
-    def get_tx(self, txhash):
-        txhex = self.get_raw(txhash)
-        txbin = bitcoin.core.x(txhex)
-        tx = bitcoin.core.CTransaction.deserialize(txbin)
-        return CTransaction.from_bitcoincore(txhash, tx, self)
-
-
-class ChromanodeInterface(AbstractChromanodeBlockchainState, BaseStore):
+class ChromanodeInterface(BaseStore): # XXX BaseStore only to decode rawheader
+    # TODO docstring
+    # TODO ensure everything works correctly when blocks are orphaned
 
     def __init__(self, baseurl=None, testnet=False, cache_minconfirms=6):
+        # TODO docstring
+
+        # init baseurl
         testnet_baseurl = "http://v1.testnet.bitcoin.chromanode.net"
         mainnet_baseurl = "http://v1.livenet.bitcoin.chromanode.net"
-        self.testnet = testnet
         if baseurl:
            self.baseurl = baseurl
         else:
            self.baseurl = testnet_baseurl if testnet else mainnet_baseurl
 
         # init caches
-        self.cache_minconfirms = cache_minconfirms
-        self.cache_rawtx = {} # txid -> rawtx
-        self.cache_txblockhash = {} # txid -> blockhash
-        self.cache_rawheaders = {} # blockheight -> rawheader
-        self.cache_blockheight = {} # blockhash -> blockheight
+        self._cache_currentheight = 0
+        self._cache_minconfirms = cache_minconfirms
+        self._cache_rawtx = {}          # txid -> rawtx
+        self._cache_txblockid = {}      # txid -> blockid
+        self._cache_rawheaders = {}     # blockheight -> rawheader
+        self._cache_blockheight = {}    # blockid -> blockheight
+        self._cache_addresshistory = {} # address -> [txids]
+        self._cache_addressutxo = {}    # address -> [txids]
+
+        # init notifications
+        self._notification_init()
+        self._notification_subscribe('new-block', self._on_newblock)
+        # TODO subscribe addresses touched (to update history)
+
+        # init _cache_currentheight
+        queryurl = "%s/v1/headers/latest" % self.baseurl
+        self._update_cache_currentheight(self._query(queryurl)["height"])
+
+    def _notification_init(self):
+        pass # TODO implement
+
+    def _notification_subscribe(self, name, handler):
+        pass # TODO implement
+
+    def _update_cache_currentheight(self, currentheight):
+        if currentheight != self._cache_currentheight:
+            self._cache_addresshistory = {} # clear in case of orphaned blocks
+            self._cache_addressutxo = {} # clear in case of orphaned blocks
+            self._cache_currentheight = currentheight
+
+    def _on_newblock(self, data):
+        self._update_cache_currentheight(data["height"])
 
     def _cancache(self, blockheight):
-        currentheight = self.get_block_count()
-        return (currentheight - blockheight) >= self.cache_minconfirms
+        return (self.get_block_count() - blockheight) >= self._cache_minconfirms
 
     def _query(self, url, data=None):
         header = {'Content-Type': 'application/json'}
@@ -61,11 +70,25 @@ class ChromanodeInterface(AbstractChromanodeBlockchainState, BaseStore):
             raise Exception("Chromanode error: %s!" % payload['data']['type'])
         return payload.get("data")
 
+    def connected(self): # FIXME have ChromanodeInterface manage this smartly
+        # TODO docstring
+        try:
+          return bool(self.get_block_count())
+        except:
+          return False
+
+    def get_tx(self, txhash):
+        # TODO docstring
+        txhex = self.get_raw(txhash)
+        txbin = bitcoin.core.x(txhex)
+        tx = bitcoin.core.CTransaction.deserialize(txbin)
+        return CTransaction.from_bitcoincore(txhash, tx, self)
+
     def get_raw(self, txid):
         """ Return rawtx for given txid. """
 
         # get from cache
-        cachedrawtx = self.cache_rawtx.get(txid)
+        cachedrawtx = self._cache_rawtx.get(txid)
         if cachedrawtx:
             return cachedrawtx
 
@@ -74,16 +97,16 @@ class ChromanodeInterface(AbstractChromanodeBlockchainState, BaseStore):
         rawtx = self._query(url)["hex"]
 
         # add to cache
-        self.cache_rawtx[txid] = rawtx
+        self._cache_rawtx[txid] = rawtx
         return rawtx
 
     def get_tx_blockhash(self, txid):
-        """ Return blockhash for given txid. """
+        """ Return blockid for given txid. """
 
         # get from cache
-        blockhash = self.cache_txblockhash.get(txid)
-        if blockhash:
-          return blockhash
+        blockid = self._cache_txblockid.get(txid)
+        if blockid:
+          return blockid
 
         # get from chromanode
         url = "%s/v1/transactions/merkle?txid=%s" % (self.baseurl, txid)
@@ -92,30 +115,30 @@ class ChromanodeInterface(AbstractChromanodeBlockchainState, BaseStore):
             return None, True
 
         # add to cache
-        blockhash = result["block"]["hash"]
+        blockid = result["block"]["hash"]
         blockheight = result["block"]["height"]
         if self._cancache(blockheight):
-            self.cache_txblockhash[txid] = blockhash
-            self.cache_blockheight[blockhash] = blockheight
-        return blockhash, True
+            self._cache_txblockid[txid] = blockid
+            self._cache_blockheight[blockid] = blockheight
+        return blockid, True
 
-    def get_block_height(self, blockhash):
-        """ Return blockheight for given blockhash. """
+    def get_block_height(self, blockid):
+        """ Return blockheight for given blockid. """
         
         # get from cache
-        blockheight = self.cache_blockheight.get(blockhash)
+        blockheight = self._cache_blockheight.get(blockid)
         if blockheight:
           return blockheight
 
         # get from chromanode
-        url = "%s/v1/headers/query?from=%s&count=1" % (self.baseurl, blockhash)
+        url = "%s/v1/headers/query?from=%s&count=1" % (self.baseurl, blockid)
         result = self._query(url)
         blockheight = result["from"]
 
         # add to cache
         if self._cancache(blockheight):
-            self.cache_blockheight[blockhash] = blockheight
-            self.cache_rawheaders[blockheight] = result["headers"]
+            self._cache_blockheight[blockid] = blockheight
+            self._cache_rawheaders[blockheight] = result["headers"]
         return blockheight
 
     def get_header(self, blockheight):
@@ -135,155 +158,73 @@ class ChromanodeInterface(AbstractChromanodeBlockchainState, BaseStore):
         """ Return rawheader for given blockheight. """
         
         # get from cache
-        rawheader = self.cache_rawheaders.get(blockheight)
+        rawheader = self._cache_rawheaders.get(blockheight)
         if rawheader:
             return rawheader
 
         # get from chromanode
         url = "%s/v1/headers/query?from=%s&count=1" % (self.baseurl, blockheight)
-        result = self._query(url)
-        rawheader = result["headers"]
+        rawheader = self._query(url)["headers"]
 
         # add to cache
         if self._cancache(blockheight):
-            self.cache_rawheaders[blockheight] = rawheader
+            self._cache_rawheaders[blockheight] = rawheader
         return rawheader
 
     def get_address_history(self, address): 
-        """ TODO docstring """
-        # TODO only query if blocks added since last query
+        """ Return list of txids where address was used. """
+
+        # get from cache
+        txids = self._cache_addresshistory.get(address)
+        if txids:
+            return txids
+
+        # get from chromanode
         url = "%s/v1/addresses/query?addresses=%s" % (self.baseurl, address)
-        history = self._query(url)["transactions"]
-        return [entry["txid"] for entry in history]
+        result = self._query(url)
+        txids = [entry["txid"] for entry in result["transactions"]]
+
+        # add to cache
+        self._update_cache_currentheight(result['latest']['height'])
+        self._cache_addresshistory[address] = txids 
+        return txids
 
     def get_block_count(self): 
-        """ TODO docstring """
-        # TODO only get on startup and update on newBlock notification
-        url = "%s/v1/headers/latest" % self.baseurl
-        return self._query(url)["height"]
+        """ Return current blockchain height. """
+        return self._cache_currentheight
 
     def publish_tx(self, rawtx):
-        """ TODO docstring """
+        """ Publish rawtx on bitcoin network and return txid. """
+
+        # publish
         url = "%s/v1/transactions/send" % self.baseurl
         self._query(url, { "rawtx" : rawtx })
-        return Tx.tx_from_hex(rawtx).id()
+        txid = Tx.tx_from_hex(rawtx).id()
+
+        # clear caches possibly invalid caches
+        self._cache_addresshistory = {} # TODO only clear affected addresses
+        self._cache_addressutxo = {} # TODO only clear affected addresses
+        return txid
 
     def get_utxo(self, address):
-        """ TODO docstring """
-        # TODO only query if blocks added since last query
+        """ Return list of txids with utxos for the given address. """
+
+        # get from cache
+        txids = self._cache_addressutxo.get(address)
+        if txids:
+            return txids
+
+        # get from chromanode
         urlargs = (self.baseurl, address)
         url = "%s/v1/addresses/query?addresses=%s&status=unspent" % urlargs
-        history = self._query(url)["transactions"]
-        return [[entry["txid"], None, None, None] for entry in history]
+        result = self._query(url)
+        txids = [entry["txid"] for entry in result["transactions"]]
+
+        # add to cache
+        self._update_cache_currentheight(result['latest']['height'])
+        self._cache_addressutxo[address] = txids 
+        return txids
 
 
-class ChromaBlockchainState(AbstractChromanodeBlockchainState):
 
-
-    def __init__(self, baseurl="http://localhost:28832", testnet=False):
-        """Initialization takes the url and port of the chroma server.
-        We have to use the chroma server for everything that we would
-        use
-        We use the normal bitcoind interface, except for
-        get_raw_transaction, where we have to do separate lookups
-        to blockchain and electrum.
-        """
-        self.baseurl = baseurl
-
-    def publish_tx(self, txdata):
-        url = "%s/publish_tx" % self.baseurl
-        req = urllib2.Request(url, txdata,
-                              {'Content-Type': 'application/json'})
-        f = urllib2.urlopen(req)
-        reply = f.read()
-        f.close()
-        if reply[0] == 'E' or (len(reply) != 64):
-            raise Exception(reply)
-        else:
-            return reply
-
-    def prefetch(self, txhash, output_set, color_desc, limit):
-        url = "%s/prefetch" % self.baseurl
-        data = {'txhash': txhash, 'output_set': output_set,
-                'color_desc': color_desc, 'limit': limit}
-        req = urllib2.Request(url, json.dumps(data),
-                              {'Content-Type': 'application/json'})
-        f = urllib2.urlopen(req)
-        txs = json.loads(f.read())
-        for txhash, txraw in txs.items():
-            self.tx_lookup[txhash] = txraw
-        f.close()
-        return
-
-    def get_tx_blockhash(self, txhash):
-        url = "%s/tx_blockhash" % self.baseurl
-        data = {'txhash': txhash}
-        req = urllib2.Request(url, json.dumps(data),
-                              {'Content-Type': 'application/json'})
-        f = urllib2.urlopen(req)
-        payload = f.read()
-        f.close()
-        data = json.loads(payload)
-        return data[0], data[1]
-
-    def get_block_count(self):
-        url = "%s/blockcount" % self.baseurl
-        data = urllib2.urlopen(url).read()
-        return int(data)
-
-    def get_height(self):
-        return self.get_block_count()
-
-    def get_block_height(self, block_hash):
-        url = "%s/header" % self.baseurl
-        data = json.dumps({
-            'block_hash': block_hash,
-        })
-        req = urllib2.urlopen(urllib2.Request(url,
-            data, {'Content-Type': 'application/json'}))
-        return json.loads(req.read())['block_height']
-
-    def get_header(self, height):
-        url = "%s/header" % self.baseurl
-        data = json.dumps({
-            'height': height,
-        })
-        req = urllib2.urlopen(urllib2.Request(url,
-            data, {'Content-Type': 'application/json'}))
-        return json.loads(req.read())
-
-    def get_chunk(self, index):
-        url = "%s/chunk" % self.baseurl
-        data = json.dumps({
-            'index': index,
-        })
-        req = urllib2.urlopen(urllib2.Request(url,
-            data, {'Content-Type': 'application/json'}))
-        return req.read().encode('hex')
-
-    def get_merkle(self, txhash):
-        url = "%s/merkle" % self.baseurl
-        data = json.dumps({
-            'txhash': txhash,
-            'blockhash': self.get_tx_blockhash(txhash)[0],
-        })
-        req = urllib2.urlopen(urllib2.Request(url,
-            data, {'Content-Type': 'application/json'}))
-        return json.loads(req.read())
-
-    def get_raw(self, txhash):
-        if self.tx_lookup.get(txhash):
-            return self.tx_lookup[txhash]
-        url = "%s/tx" % self.baseurl
-        data = {'txhash': txhash}
-        req = urllib2.Request(url, json.dumps(data),
-                              {'Content-Type': 'application/json'})
-        f = urllib2.urlopen(req)
-        payload = f.read()
-        self.tx_lookup[txhash] = payload
-        f.close()
-        return payload
-
-    def get_mempool_txs(self):
-        return []
 

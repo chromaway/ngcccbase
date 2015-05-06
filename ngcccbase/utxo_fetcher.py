@@ -47,8 +47,8 @@ class BaseUTXOFetcher(object):
             raise Exception('Unknown service for UTXOFetcher!')        
 
     def scan_address(self, address):
-        for data in self.interface.get_utxo(address):
-            self.add_utxo(address, data)
+        for txid in self.interface.get_utxo(address):
+            self.add_utxo(address, txid)
 
 class SimpleUTXOFetcher(BaseUTXOFetcher):
     def __init__(self, model, params):
@@ -58,9 +58,8 @@ class SimpleUTXOFetcher(BaseUTXOFetcher):
             self.make_interface(model, params))
         self.model = model
 
-    def add_utxo(self, address, data):
-        txhash = data[0]
-        self.model.get_tx_db().add_tx_by_hash(txhash)
+    def add_utxo(self, address, txid):
+        self.model.get_tx_db().add_tx_by_hash(txid)
 
     def scan_all_addresses(self):
         wam = self.model.get_address_manager()
@@ -92,9 +91,8 @@ class AsyncUTXOFetcher(BaseUTXOFetcher):
             any_got_updates = any_got_updates or got_updates
         return any_got_updates
             
-    def add_utxo(self, address, data):
-        txhash = data[0]
-        self.hash_queue.put(txhash)
+    def add_utxo(self, address, txid):
+        self.hash_queue.put(txid)
 
     def start_thread(self):
         thread = threading.Thread(target=self.thread_loop)

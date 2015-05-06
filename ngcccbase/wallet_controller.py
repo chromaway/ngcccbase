@@ -11,6 +11,10 @@ from collections import defaultdict
 from decimal import Decimal
 from asset import AssetTarget, AdditiveAssetValue
 from coindb import CoinQuery
+from ngcccbase.p2ptrade.protocol_objects import MyEOffer
+from ngcccbase.p2ptrade.agent import EAgent
+from ngcccbase.p2ptrade.ewctrl import EWalletController
+from ngcccbase.p2ptrade.comm import HTTPComm
 from coloredcoinlib.colordef import OBColorDefinition
 from coloredcoinlib.colordef import EPOBCColorDefinition
 from coloredcoinlib.colordef import InvalidColorError
@@ -34,6 +38,60 @@ class WalletController(object):
         """
         self.model = model
         self.testing = False
+
+    def _p2ptrade_wait(self, agent, wait):
+        if wait and wait > 0:
+            for _ in xrange(wait):
+                agent.update()
+                sleep(1)
+        else:
+            for _ in xrange(4*6):
+                agent.update()
+                sleep(0.25)
+
+    def p2ptrade_make_offer(self, we_sell, asset, value, price, wait):
+        total = int(Decimal(value)/Decimal(asset.unit)*Decimal(price))
+        color_desc = asset.get_color_set().color_desc_list[0]
+        sell_side = {"color_spec": color_desc, "value": value}
+        buy_side = {"color_spec": "", "value": total}
+        agent = self._p2ptrade_init_agent()
+        if we_sell:
+            agent.register_my_offer(MyEOffer(None, sell_side, buy_side))
+        else:
+            agent.register_my_offer(MyEOffer(None, buy_side, sell_side))
+        self._p2ptrade_wait(agent, wait)
+
+    def _p2ptrade_init_agent(self):
+        ewctrl = EWalletController(self.model, self)
+        config = {"offer_expiry_interval": 30, "ep_expiry_interval": 30}
+        comm = HTTPComm(config, 'http://p2ptrade.btx.udoidio.info/messages')
+        return EAgent(ewctrl, config, comm)
+
+    def p2porders(self, asset, sellonly, buyonly):
+
+        # get offers
+        agent = self._p2ptrade_init_agent()
+        agent.update()
+        offers = agent.their_offers.values()
+        offers = map(lambda offer: offer.get_data(), offers)
+
+        # filter asset if given
+        if asset:
+            descs = asset.get_color_set().color_desc_list
+            def func(offer):
+                return (offer["A"]["color_spec"] in descs or
+                        offer["B"]["color_spec"] in descs)
+            offers = filter(func, offers)
+
+        # filter sellonly if given
+        if sellonly:
+            offers = filter(lambda o: o["A"]["color_spec"] != "", offers)
+
+        # filter buyonly if given
+        if buyonly:
+            offers = filter(lambda o: o["A"]["color_spec"] == "", offers)
+
+        return offers
 
     def publish_tx(self, signed_tx_spec):
         """Given a signed transaction <signed_tx_spec>, publish the transaction
