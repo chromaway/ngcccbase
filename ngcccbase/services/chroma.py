@@ -6,6 +6,8 @@ import urllib2
 from pycoin.tx.Tx import Tx
 from ngcccbase.blockchain import BaseStore
 from coloredcoinlib import CTransaction, BlockchainStateBase
+from socketIO_client import SocketIO, LoggingNamespace
+
 
 
 class ChromanodeInterface(BaseStore): # XXX BaseStore only to decode rawheader
@@ -35,18 +37,16 @@ class ChromanodeInterface(BaseStore): # XXX BaseStore only to decode rawheader
 
         # init notifications
         self._notification_init()
-        self._notification_subscribe('new-block', self._on_newblock)
-        # TODO subscribe addresses touched (to update history)
 
         # init _cache_currentheight
         queryurl = "%s/v1/headers/latest" % self.baseurl
         self._update_cache_currentheight(self._query(queryurl)["height"])
 
     def _notification_init(self):
-        pass # TODO implement
-
-    def _notification_subscribe(self, name, handler):
-        pass # TODO implement
+        # FIXME confirm this works!
+        self._socketIO = SocketIO(self.baseurl, 80, LoggingNamespace)
+        self._socketIO.emit('subscribe', 'new-block', self._on_newblock)
+        self._socketIO.wait(seconds=1)
 
     def _update_cache_currentheight(self, currentheight):
         if currentheight != self._cache_currentheight:
@@ -54,8 +54,9 @@ class ChromanodeInterface(BaseStore): # XXX BaseStore only to decode rawheader
             self._cache_addressutxo = {} # clear in case of orphaned blocks
             self._cache_currentheight = currentheight
 
-    def _on_newblock(self, data):
-        self._update_cache_currentheight(data["height"])
+    def _on_newblock(self, blockhash, blockheight):
+        print '_on_newblock', blockhash, blockheight
+        self._update_cache_currentheight(blockheight)
 
     def _cancache(self, blockheight):
         return (self.get_block_count() - blockheight) >= self._cache_minconfirms
@@ -70,15 +71,11 @@ class ChromanodeInterface(BaseStore): # XXX BaseStore only to decode rawheader
             raise Exception("Chromanode error: %s!" % payload['data']['type'])
         return payload.get("data")
 
-    def connected(self): # FIXME have ChromanodeInterface manage this smartly
-        # TODO docstring
-        try:
-          return bool(self.get_block_count())
-        except:
-          return False
+    def connected(self):
+        return self._socketIO.connected
 
     def get_tx(self, txhash):
-        # TODO docstring
+        """ Get transaction for given txhash. """
         txhex = self.get_raw(txhash)
         txbin = bitcoin.core.x(txhex)
         tx = bitcoin.core.CTransaction.deserialize(txbin)
@@ -100,13 +97,13 @@ class ChromanodeInterface(BaseStore): # XXX BaseStore only to decode rawheader
         self._cache_rawtx[txid] = rawtx
         return rawtx
 
-    def get_tx_blockhash(self, txid):
+    def get_tx_blockhash(self, txid): # FIXME remove unneeded bool return value
         """ Return blockid for given txid. """
 
         # get from cache
         blockid = self._cache_txblockid.get(txid)
         if blockid:
-          return blockid
+          return blockid, True
 
         # get from chromanode
         url = "%s/v1/transactions/merkle?txid=%s" % (self.baseurl, txid)
@@ -224,7 +221,5 @@ class ChromanodeInterface(BaseStore): # XXX BaseStore only to decode rawheader
         self._update_cache_currentheight(result['latest']['height'])
         self._cache_addressutxo[address] = txids 
         return txids
-
-
 
 

@@ -9,13 +9,12 @@ here = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(here, 'README.md')) as f:
     README = f.read()
 
-# FIXME: Also requires PyQt and SIP for the GUI, not available via pip
 requires = [
     'pycoin == 0.51',
     'bunch',
     'python-jsonrpc',
-    #'python-bitcoinaddress = 0.2.2',
     'python-bitcoinlib == 0.1.1',
+    'socketIO-client == 0.6.3',
     'apigen',
     'web.py',
 ]
