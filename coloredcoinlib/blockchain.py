@@ -94,6 +94,14 @@ class CTransaction(object):
 
 
 class BlockchainStateBase(object):
+
+    def get_tx(self, txhash):
+        """ Get transaction for given txhash. """
+        txhex = self.get_raw(txhash)
+        txbin = bitcoin.core.x(txhex)
+        tx = bitcoin.core.CTransaction.deserialize(txbin)
+        return CTransaction.from_bitcoincore(txhash, tx, self)
+
     def sort_txs(self, tx_list):
         block_txs = {h:self.get_tx(h) for h in tx_list}
 
@@ -159,12 +167,6 @@ class BlockchainState(BlockchainStateBase):
     def get_raw(self, txhash):
         return self.bitcoind.getrawtransaction(txhash, 0)
 
-    def get_tx(self, txhash):
-        txhex = self.bitcoind.getrawtransaction(txhash, 0)
-        txbin = bitcoin.core.x(txhex)
-        tx = bitcoin.core.CTransaction.deserialize(txbin)
-        return CTransaction.from_bitcoincore(txhash, tx, self)
-
     def get_best_blockhash(self):
         try:
             return self.bitcoin.getbestblockhash()
@@ -193,20 +195,6 @@ class BlockchainState(BlockchainStateBase):
             txhashes = self.bitcoind.getblock(blockhash)['tx']
             for txhash in txhashes:
                 yield self.get_tx(txhash)
-
-    def sort_txs(self, tx_list):
-        block_txs = {h:self.get_tx(h) for h in tx_list}
-
-        def get_dependent_txs(tx):
-            """all transactions from current block this transaction
-            directly depends on"""
-            dependent_txs = []
-            for inp in tx.inputs:
-                if inp.prevout.hash in block_txs:
-                    dependent_txs.append(block_txs[inp.prevout.hash])
-            return dependent_txs
-
-        return toposorted(block_txs.values(), get_dependent_txs)
 
     def get_mempool_txs(self):
         return self.sort_txs(self.bitcoind.getrawmempool())

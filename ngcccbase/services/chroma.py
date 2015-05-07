@@ -10,9 +10,8 @@ from socketIO_client import SocketIO, LoggingNamespace
 
 
 
-class ChromanodeInterface(BaseStore): # XXX BaseStore only to decode rawheader
+class ChromanodeInterface(BlockchainStateBase, BaseStore):
     # TODO docstring
-    # TODO ensure everything works correctly when blocks are orphaned
 
     def __init__(self, baseurl=None, testnet=False, cache_minconfirms=6):
         # TODO docstring
@@ -73,13 +72,6 @@ class ChromanodeInterface(BaseStore): # XXX BaseStore only to decode rawheader
 
     def connected(self):
         return self._socketIO.connected
-
-    def get_tx(self, txhash):
-        """ Get transaction for given txhash. """
-        txhex = self.get_raw(txhash)
-        txbin = bitcoin.core.x(txhex)
-        tx = bitcoin.core.CTransaction.deserialize(txbin)
-        return CTransaction.from_bitcoincore(txhash, tx, self)
 
     def get_raw(self, txid):
         """ Return rawtx for given txid. """

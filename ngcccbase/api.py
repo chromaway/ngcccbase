@@ -8,7 +8,6 @@ from collections import defaultdict
 from ngcccbase.wallet_controller import WalletController
 from ngcccbase.pwallet import PersistentWallet
 
-
 class AddressNotFound(Exception):
     def __init__(self, coloraddress):
         msg = "Address '%s' not found!" % coloraddress
@@ -193,7 +192,7 @@ class Ngccc(apigen.Definition):
 
     @apigen.command()
     def sendmanyjson(self, data):
-        """Send amounts given in json fromatted data. 
+        """Send amounts given in json fromatted data.
         Format [{'moniker':"val",'amount':"val",'coloraddress':"val"}]
         All entries must use the same color scheme.
         """
@@ -329,40 +328,51 @@ class Ngccc(apigen.Definition):
 
     @apigen.command()
     def getcolorvalue(self, txid, outindex, moniker=None):
-        """ Get the transaction output color values."""
-        # TODO implement
-        # use coloredcoinlib.colordata.ThinColorData.get_colorvalues
-        # and put logic in controller
-        pass
+        """ Get the transaction output color values, 
+        filter <moniker> if given.
+        """
+
+        # sanitize inputs
+        txid = sanitize.txid(txid)
+        outindex = sanitize.positiveinteger(outindex)
+        asset = sanitize.asset(self.model, moniker) if moniker else None
+
+        assetvalues = self.controller.getcolorvalue(txid, outindex, asset)
+        def reformat(assetvalue):
+            asset, value = assetvalue
+            amount = asset.format_value(value)
+            moniker = asset.get_monikers()[0]
+            return moniker, amount
+        return _print(dict(map(reformat, assetvalues.items())))
 
     @apigen.command()
     def getcolorutxos(self, moniker, amount):
         """ Get unspent transaction outputs for given asset amount."""
         # TODO implement
         # and put logic in controller
-        pass
+        return _print("Sorry this feature is not implement yet.")
 
     @apigen.command()
     def makecolortx(self, inputs, targets):
-        """ Construct an unsigned color transaction 
+        """ Construct an unsigned color transaction
         for the given inputs and targets.
         """
         # TODO implement
         # see ngcccbase.txcons and ewctrl
         # and put logic in controller
-        pass
+        return _print("Sorry this feature is not implement yet.")
 
     @apigen.command()
     def signrawtx(self, rawtx):
         """ Sign raw transaction. """
         # TODO implement
         # and put logic in controller
-        pass
+        return _print("Sorry this feature is not implement yet.")
 
     @apigen.command()
     def sendrawtx(self, rawtx):
         """ Publish raw transaction to bitcoin network. """
         # TODO implement
         # and put logic in controller
-        pass
+        return _print("Sorry this feature is not implement yet.")
 

@@ -44,6 +44,9 @@ class PersistentWallet(object):
             raise Exception("Not a testnet wallet!")
         self.wallet_model = None
 
+    def getconfig(self):
+        return self.wallet_config
+
     def init_model(self):
         """Associate the wallet model based on the persistent
         configuration.

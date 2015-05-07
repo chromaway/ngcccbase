@@ -63,6 +63,13 @@ def integer(number):
     return int(number)
 
 
+def positiveinteger(number):
+    number = int(number)
+    if number < 0:
+        raise InvalidInput("Integer may not be < 0!")
+    return number
+
+
 def flag(flag):
     return bool(flag)
 
@@ -87,6 +94,12 @@ def cfgvalue(value):
     if not re.match("^[a-zA-Z0-9_-]+$", value):
         raise InvalidInput("Invalid value!")
     return value
+
+
+def txid(txid):
+    if not re.match("^[0-9a-f]+$", txid): # TODO better validation
+        raise InvalidInput("Invalid txid!")
+    return txid
 
 
 def colordesc(colordesc):

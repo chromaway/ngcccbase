@@ -39,6 +39,15 @@ class WalletController(object):
         self.model = model
         self.testing = False
 
+    def getcolorvalue(txid, outindex, asset):
+        assets = [asset] if asset else self.get_all_assets()
+        def getassetvalue(asset):
+            color_id_set = asset.color_set.color_id_set
+            colordata = self.model.ccc.colordata
+            values = colordata.get_colorvalues(color_id_set, txid, outindex)
+            return (asset, sum(map(lambda v: v['value'], values)))
+        return dict(map(getassetvalue, assets))
+
     def _p2ptrade_wait(self, agent, wait):
         if wait and wait > 0:
             for _ in xrange(wait):
