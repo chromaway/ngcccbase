@@ -96,8 +96,7 @@ class BaseOperationalTxSpec(OperationalTxSpec):
         """
         base_fee = 10000.0
         fee_value = math.ceil((tx_size * base_fee) / 1000)
-        return SimpleColorValue(colordef=UNCOLORED_MARKER,
-                                value=fee_value)
+        return SimpleColorValue(colordef=UNCOLORED_MARKER, value=fee_value)
 
     def get_dust_threshold(self):
         return SimpleColorValue(colordef=UNCOLORED_MARKER, value=5500)
@@ -176,6 +175,10 @@ class SimpleOperationalTxSpec(BaseOperationalTxSpec):
         aw = wam.get_change_address(color_set)
         return aw.get_address()
 
+    def get_utxo_list(self, color_id_set):
+        cq = self.model.make_coin_query({"color_id_set": color_id_set})
+        return cq.get_result()
+
     def select_coins(self, colorvalue, use_fee_estimator=None):
         """Return a list of utxos and sum that corresponds to
         the colored coins identified by <color_def> of amount <colorvalue>
@@ -194,10 +197,22 @@ class SimpleOperationalTxSpec(BaseOperationalTxSpec):
             return [], required_sum_0
         colordef = colorvalue.get_colordef()
         color_id = colordef.get_color_id()
-        cq = self.model.make_coin_query({"color_id_set": set([color_id])})
-        utxo_list = cq.get_result()
+        utxo_list = self.get_utxo_list(set([color_id]))
         return self._select_enough_coins(colordef, utxo_list, required_sum_fn)
 
+
+class InputsProvidedOperationalTxSpec(SimpleOperationalTxSpec):
+
+    def __init__(*args, **kwargs):
+        super(InputsProvidedOperationalTxSpec, self).__init__(*args, **kwargs)
+        self._inputs_provided = []
+
+    def add_utxo(self, utxo):
+        self._inputs_provided.append(utxo)
+
+    def get_utxo_list(self, color_id_set):
+        overlap = lambda utxo: utxo.get_color_set().intersection(color_id_set)
+        return filter(overlap , self.inputs_provided)
 
 
 class RawTxSpec(object):

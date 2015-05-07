@@ -94,7 +94,9 @@ class CoinStore(DataStore):
         return self.execute("SELECT * FROM coin_data WHERE id = ?",
                             (coin_id,)).fetchone()
 
+
 class UTXO(ComposedTxSpec.TxIn):
+
     def __init__(self, utxo_data):
         super(UTXO, self).__init__(utxo_data['txhash'], utxo_data['outindex'])
         self.txhash = utxo_data['txhash']
@@ -103,6 +105,42 @@ class UTXO(ComposedTxSpec.TxIn):
         self.script = utxo_data['script']
         self.address_rec = None
         self.colorvalues = None
+
+
+class ProvidedUTXO(UTXO):
+
+    def __init__(self, controller, provided_utxo_data):
+        self.controller = controller
+        txid = provided_utxo_data['txid']
+        outindex = provided_utxo_data['outindex']
+        self.tx = self.controller.get_tx(txid)
+        value = self.tx.outputs[outindex].value
+        script = self.tx.outputs[outindex].script
+        self._cache_colorvalues = None
+        super(ProvidedUTXO, self).__init__({
+            'txhash' : txid,
+            'outindex' : outindex,
+            'value' : amount,
+            'script' : script
+        })
+
+    def get_color_id_set(self):
+        return set(map(lambda cv: cv.get_color_id(), self.get_colorvalues())
+
+    def get_colorvalues(self)
+        if self._cache_colorvalues != None:
+            return self._cache_colorvalues
+        txid = self.txhash
+        outindex = self.outindex
+        colorvalues = []
+        for entry in self.controller.get_txout_coloridvalues(txid, outindex):
+            color_id = entry["color_id"]
+            value = entry["value"]
+            colordef = self.model.get_color_def(color_id)
+            colorvalues.append(SimpleColorValue(colordef=colordef, value=value))
+        self._cache_colorvalues = colorvalues
+        return colorvalues
+
 
 class Coin(UTXO):
     def __init__(self, coin_manager, coin_data):

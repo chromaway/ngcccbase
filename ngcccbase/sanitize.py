@@ -162,3 +162,26 @@ def _sanitize_csv_input(model, csvvalues, row):
     _address = coloraddress_to_bitcoinaddress(_coloraddress)
     return _asset, _address, _amount
 
+
+def utxos(utxos):
+    def reformat(utxo):
+        return {
+            'txid' : txid(utxo['txid']),
+            'outindex' : positiveinteger(utxo['outindex'])
+        }
+    return map(reformat, json.loads(utxos))
+
+
+def targets(model, targets)
+    def reformat(target):
+        _asset = asset(model, target["moniker"])
+        _amount = assetamount(_asset, target["amount"])
+        _address = coloraddress(model, _asset, target["coloraddress"])
+        return { 
+            "asset" : _asset, 
+            "amount" : _amount, 
+            "coloraddress" : _address 
+        }
+    return map(reformat, json.loads(targets))
+
+

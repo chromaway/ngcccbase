@@ -22,8 +22,12 @@ from coloredcoinlib.colordef import UNCOLORED_MARKER
 from coloredcoinlib import (InvalidColorDefinitionError, ColorDefinition,
                             GENESIS_OUTPUT_MARKER,
                             ColorTarget, SimpleColorValue)
-from txcons import BasicTxSpec, SimpleOperationalTxSpec
+from ngcccbase.coindb import ProvidedUTXO
+from txcons import (BasicTxSpec, 
+                    SimpleOperationalTxSpec, 
+                    InputsProvidedOperationalTxSpec)
 from wallet_model import ColorSet
+from ngcccbase.address import coloraddress_to_bitcoinaddress
 
 
 class AssetMismatchError(Exception):
@@ -39,12 +43,26 @@ class WalletController(object):
         self.model = model
         self.testing = False
 
-    def get_txout_values(txid, outindex, asset=None):
+    def _all_colorids_set(self):
+        color_id_set = set()
+        for asset in self.get_all_assets()
+            color_id_set.update(asset.color_set.color_id_set)
+        return color_id_set
+
+    def get_tx(self, txid):
+        return self.model.ccc.blockchain_state.get_tx(txid)
+
+    def get_txout_coloridvalues(txid, outindex, color_id_set=None):
+        if not color_id_set:
+            color_id_set = self._all_colorids_set()
+        colordata = self.model.ccc.colordata
+        return colordata.get_colorvalues(color_id_set, txid, outindex)
+
+    def get_txout_assetvalues(txid, outindex, asset=None):
         assets = [asset] if asset else self.get_all_assets()
         def getassetvalue(asset):
             color_id_set = asset.color_set.color_id_set
-            colordata = self.model.ccc.colordata
-            values = colordata.get_colorvalues(color_id_set, txid, outindex)
+            values = self.get_txout_coloridvalues(color_id_set, txid, outindex)
             return (asset, sum(map(lambda v: v['value'], values)))
         return map(getassetvalue, assets)
 
@@ -116,6 +134,7 @@ class WalletController(object):
 
         if signed_tx_spec.composed_tx_spec:
             self.model.txdb.add_raw_tx(signed_tx_spec)
+        # TODO add to history
         return txhash
 
     def full_rescan(self):
@@ -181,10 +200,39 @@ class WalletController(object):
             ))
         reduce(reduce_function, sums.keys())
     
-    def get_utxos(self, asset, value):
+    def get_utxos(self, asset, amount):
         tx_spec = SimpleOperationalTxSpec(self.model, None)
-        colorvalue = SimpleColorValue(colordef=colordef, value=value)
+        color_id = asset.get_color_id()
+        colordef = self.model.get_color_def(color_id)
+        colorvalue = SimpleColorValue(colordef=colordef, value=amount)
         return tx_spec.select_coins(colorvalue)
+
+    def createtx(self, utxos, targets, sign, publish):
+        if not sign and publish:
+            raise Exception("Cannot publish unsigned transaction!")
+
+        tx_spec = InputsProvidedOperationalTxSpec(self.model, None)
+
+        # add inputs
+        for utxos in utxos:
+            tx_spec.add_utxo(ProvidedUTXO(self, utxo))
+
+        # add targets
+        for target in targets:
+            amount = target["amount"]
+            address = coloraddress_to_bitcoinaddress(target["coloraddress"])
+            color_id = target["asset"].get_color_id()
+            colordef = self.model.get_color_def(color_id)
+            colorvalue = SimpleColorValue(colordef=colordef, value=amount)
+            tx_spec.add_target(ColorTarget(address, colorvalue))
+
+        tx_spec = self.model.transform_tx_spec(tx_spec, 'composed')
+        rtxs = RawTxSpec.from_composed_tx_spec(self.model, tx_spec)
+        if sign:
+            rtxs.sign(tx_spec.get_txins())
+        if publish:
+            self.publish_tx(rtxs)
+        return rtxs.get_hex_tx_data()
 
     def sendmany_coins(self, entries):
         """Sendmany coins given in entries [(asset, address, value), ...] """
@@ -196,9 +244,7 @@ class WalletController(object):
             colorvalue = SimpleColorValue(colordef=colordef, value=value)
             tx_spec.add_target(ColorTarget(address, colorvalue))
         signed_tx_spec = self.model.transform_tx_spec(tx_spec, 'signed')
-        txhash = self.publish_tx(signed_tx_spec)
-        # TODO add to history
-        return txhash
+        return self.publish_tx(signed_tx_spec)
 
     def send_coins(self, asset, target_addrs, raw_colorvalues):
         """Sends coins to address <target_addr> of asset/color <asset>
@@ -217,12 +263,12 @@ class WalletController(object):
                                                          value=raw_colorvalue))
             tx_spec.add_target(assettarget)
         signed_tx_spec = self.model.transform_tx_spec(tx_spec, 'signed')
-        txhash = self.publish_tx(signed_tx_spec)
+        txid = self.publish_tx(signed_tx_spec)
 
         self.model.tx_history.add_send_entry(
-            txhash, asset, target_addrs, raw_colorvalues
+            txid, asset, target_addrs, raw_colorvalues
         )
-        return txhash
+        return txid
 
     def issue_coins(self, moniker, pck, units, atoms_in_unit):
         """Issues a new color of name <moniker> using coloring scheme
@@ -286,10 +332,9 @@ class WalletController(object):
         self.model.get_asset_definition_manager().add_asset_definition(params)
 
     def get_received_by_address(self, asset):
-        utxo_list = \
-            (self.model.make_coin_query({"asset": asset, "spent": False}).get_result()
-             +
-             self.model.make_coin_query({"asset": asset, "spent": True}).get_result())
+        unspent = self.model.make_coin_query({"asset": asset, "spent": False})
+        spent = self.model.make_coin_query({"asset": asset, "spent": True})
+        utxo_list = (unspent.get_result() + spent.get_result())
         ars = self.get_all_addresses(asset)
         addresses = [ar.get_address() for ar in ars]
         retval = [{'address': ar.get_address(),

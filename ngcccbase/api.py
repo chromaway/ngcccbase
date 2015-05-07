@@ -333,8 +333,8 @@ class Ngccc(apigen.Definition):
             amount = asset.format_value(value)
             moniker = asset.get_monikers()[0]
             return moniker, amount
-        assetvalues = self.controller.get_txout_values(txid, outindex, asset)
-        return _print(dict(map(reformat, assetvalues)))
+        result = self.controller.get_txout_assetvalues(txid, outindex, asset)
+        return _print(dict(map(reformat, result)))
 
     @apigen.command()
     def txoutvalue(self, txid, outindex, moniker):
@@ -361,6 +361,7 @@ class Ngccc(apigen.Definition):
     def getutxos(self, moniker, amount):
         """ Get unspent transaction outputs for given asset amount."""
 
+        # sanitize inputs
         asset = sanitize.asset(self.model, moniker)
         amount = sanitize.assetamount(asset, amount)
 
@@ -368,14 +369,18 @@ class Ngccc(apigen.Definition):
         return _print(self.controller.get_utxos(asset, amount))
 
     @apigen.command()
-    def makecolortx(self, inputs, targets):
-        """ Construct an unsigned color transaction
-        for the given inputs and targets.
+    def createtx(self, inputs, targets, sign=False, send=False):
+        """ Construct an unsigned transaction
+        with the given utxo inputs and targets.
         """
-        # TODO implement
-        # see ngcccbase.txcons and ewctrl
-        # and put logic in controller
-        return _print("Sorry this feature is not implement yet.")
+
+        # sanitize inputs
+        utxos = sanitize.utxos(inputs)
+        targets = sanitize.targets(self.model, targets)
+        sign = sanitize.flag(sign)
+        send = sanitize.flag(send)
+
+        return _print(self.controller.createtx(utxos, targets, sign, send))
 
     @apigen.command()
     def signrawtx(self, rawtx):
