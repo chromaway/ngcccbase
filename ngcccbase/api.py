@@ -8,6 +8,7 @@ from collections import defaultdict
 from ngcccbase.wallet_controller import WalletController
 from ngcccbase.pwallet import PersistentWallet
 
+
 class AddressNotFound(Exception):
     def __init__(self, coloraddress):
         msg = "Address '%s' not found!" % coloraddress
@@ -326,31 +327,45 @@ class Ngccc(apigen.Definition):
 
         self.controller.p2ptrade_make_offer(we_sell, asset, value, price, wait)
 
-    @apigen.command()
-    def getcolorvalue(self, txid, outindex, moniker=None):
-        """ Get the transaction output color values, 
-        filter <moniker> if given.
-        """
-
-        # sanitize inputs
-        txid = sanitize.txid(txid)
-        outindex = sanitize.positiveinteger(outindex)
-        asset = sanitize.asset(self.model, moniker) if moniker else None
-
-        assetvalues = self.controller.getcolorvalue(txid, outindex, asset)
+    def _get_txout_values(self, txid, outindex, asset):
         def reformat(assetvalue):
             asset, value = assetvalue
             amount = asset.format_value(value)
             moniker = asset.get_monikers()[0]
             return moniker, amount
-        return _print(dict(map(reformat, assetvalues.items())))
+        assetvalues = self.controller.get_txout_values(txid, outindex, asset)
+        return _print(dict(map(reformat, assetvalues)))
 
     @apigen.command()
-    def getcolorutxos(self, moniker, amount):
+    def txoutvalue(self, txid, outindex, moniker):
+        """Get the transaction output color value for <moniker>."""
+
+        # sanitize inputs
+        txid = sanitize.txid(txid)
+        outindex = sanitize.positiveinteger(outindex)
+        asset = sanitize.asset(self.model, moniker)
+
+        return self._get_txout_values(txid, outindex, asset)
+
+    @apigen.command()
+    def txoutvalues(self, txid, outindex):
+        """Get the transaction output color values for known assets."""
+
+        # sanitize inputs
+        txid = sanitize.txid(txid)
+        outindex = sanitize.positiveinteger(outindex)
+
+        return self._get_txout_values(txid, outindex, None)
+
+    @apigen.command()
+    def getutxos(self, moniker, amount):
         """ Get unspent transaction outputs for given asset amount."""
-        # TODO implement
-        # and put logic in controller
-        return _print("Sorry this feature is not implement yet.")
+
+        asset = sanitize.asset(self.model, moniker)
+        amount = sanitize.assetamount(asset, amount)
+
+        # TODO reformat
+        return _print(self.controller.get_utxos(asset, amount))
 
     @apigen.command()
     def makecolortx(self, inputs, targets):

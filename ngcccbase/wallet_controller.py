@@ -39,14 +39,14 @@ class WalletController(object):
         self.model = model
         self.testing = False
 
-    def getcolorvalue(txid, outindex, asset):
+    def get_txout_values(txid, outindex, asset=None):
         assets = [asset] if asset else self.get_all_assets()
         def getassetvalue(asset):
             color_id_set = asset.color_set.color_id_set
             colordata = self.model.ccc.colordata
             values = colordata.get_colorvalues(color_id_set, txid, outindex)
             return (asset, sum(map(lambda v: v['value'], values)))
-        return dict(map(getassetvalue, assets))
+        return map(getassetvalue, assets)
 
     def _p2ptrade_wait(self, agent, wait):
         if wait and wait > 0:
@@ -180,6 +180,11 @@ class WalletController(object):
                 a.get_monikers()[0], b.get_monikers()[0]
             ))
         reduce(reduce_function, sums.keys())
+    
+    def get_utxos(self, asset, value):
+        tx_spec = SimpleOperationalTxSpec(self.model, None)
+        colorvalue = SimpleColorValue(colordef=colordef, value=value)
+        return tx_spec.select_coins(colorvalue)
 
     def sendmany_coins(self, entries):
         """Sendmany coins given in entries [(asset, address, value), ...] """
