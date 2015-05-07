@@ -125,9 +125,9 @@ class ProvidedUTXO(UTXO):
         })
 
     def get_color_id_set(self):
-        return set(map(lambda cv: cv.get_color_id(), self.get_colorvalues())
+        return set(map(lambda cv: cv.get_color_id(), self.get_colorvalues()))
 
-    def get_colorvalues(self)
+    def get_colorvalues(self):
         if self._cache_colorvalues != None:
             return self._cache_colorvalues
         txid = self.txhash

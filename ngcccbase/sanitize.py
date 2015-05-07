@@ -172,7 +172,7 @@ def utxos(utxos):
     return map(reformat, json.loads(utxos))
 
 
-def targets(model, targets)
+def targets(model, targets):
     def reformat(target):
         _asset = asset(model, target["moniker"])
         _amount = assetamount(_asset, target["amount"])

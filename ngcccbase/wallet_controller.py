@@ -45,7 +45,7 @@ class WalletController(object):
 
     def _all_colorids_set(self):
         color_id_set = set()
-        for asset in self.get_all_assets()
+        for asset in self.get_all_assets():
             color_id_set.update(asset.color_set.color_id_set)
         return color_id_set
 

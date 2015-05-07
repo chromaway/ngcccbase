@@ -365,8 +365,13 @@ class Ngccc(apigen.Definition):
         asset = sanitize.asset(self.model, moniker)
         amount = sanitize.assetamount(asset, amount)
 
-        # TODO reformat
-        return _print(self.controller.get_utxos(asset, amount))
+        def reformat(utxo):
+            return { 'txid' : utxo.txhash, 'outindex' : utxo.outindex }
+        utxos, total = self.controller.get_utxos(asset, amount)
+        return _print({ 
+          'utxos' : map(reformat, utxos), 
+          'total' : asset.format_value(total)
+        })
 
     @apigen.command()
     def createtx(self, inputs, targets, sign=False, send=False):
