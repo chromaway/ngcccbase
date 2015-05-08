@@ -30,6 +30,7 @@ class Ngccc(apigen.Definition):
 
         if not wallet:
             wallet = "%s.wallet" % ("testnet" if testnet else "mainnet")
+
         self.wallet = PersistentWallet(wallet, testnet)
         self.wallet.init_model()
         self.model = self.wallet.get_model()
@@ -328,6 +329,7 @@ class Ngccc(apigen.Definition):
         self.controller.p2ptrade_make_offer(we_sell, asset, value, price, wait)
 
     def _get_txout_values(self, txid, outindex, asset):
+        # FIXME fails ...
         def reformat(assetvalue):
             asset, value = assetvalue
             amount = asset.format_value(value)
@@ -374,7 +376,7 @@ class Ngccc(apigen.Definition):
         })
 
     @apigen.command()
-    def createtx(self, inputs, targets, sign=False, send=False):
+    def createtx(self, inputs, targets, sign=False, send=False): # TODO test it
         """ Construct an unsigned transaction
         with the given utxo inputs and targets.
         """
@@ -388,16 +390,20 @@ class Ngccc(apigen.Definition):
         return _print(self.controller.createtx(utxos, targets, sign, send))
 
     @apigen.command()
-    def signrawtx(self, rawtx):
+    def signrawtx(self, rawtx): # TODO test it
         """ Sign raw transaction. """
-        # TODO implement
-        # and put logic in controller
-        return _print("Sorry this feature is not implement yet.")
+
+        # sanitize inputs
+        rawtx = sanitize.rawtx(rawtx)
+
+        return _print(controller.sign_rawtx(txhex))
 
     @apigen.command()
-    def sendrawtx(self, rawtx):
+    def sendrawtx(self, rawtx): # TODO test it
         """ Publish raw transaction to bitcoin network. """
-        # TODO implement
-        # and put logic in controller
-        return _print("Sorry this feature is not implement yet.")
+
+        # sanitize inputs
+        rawtx = sanitize.rawtx(rawtx)
+
+        return _print(controller.publish_rawtx(txhex))
 

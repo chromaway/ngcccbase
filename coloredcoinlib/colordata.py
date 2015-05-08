@@ -2,7 +2,7 @@
 import time
 
 
-from colordef import ColorDefinition
+from colordef import ColorDefinition, UNCOLORED_MARKER
 from colorvalue import SimpleColorValue
 
 
@@ -26,6 +26,12 @@ class StoredColorData(ColorData):
     def _fetch_colorvalues(self, color_id_set, txhash, outindex,
                            cvclass=SimpleColorValue):
         """returns colorvalues currently present in cdstore"""
+
+        adduncolored = False
+        if 0 in color_id_set:
+            color_id_set.remove(0)
+            adduncolored = True
+
         ret = []
         for entry in self.cdstore.get_any(txhash, outindex):
             color_id, value, label = entry
@@ -33,6 +39,13 @@ class StoredColorData(ColorData):
                 color_def = self.colormap.get_color_def(color_id)
                 ret.append(cvclass(colordef=color_def, value=value,
                                    label=label))
+
+        if adduncolored:
+            tx = self.blockchain_state.get_tx(txhash)
+            value = tx.outputs[outindex].value
+            ret.append(cvclass(colordef=UNCOLORED_MARKER, value=value))
+            color_id_set.add(0)
+
         return ret
 
     def get_colorvalues_raw(self, color_id, ctx):
@@ -115,18 +128,20 @@ class ThinColorData(StoredColorData):
                 return
 
             current_tx = self.blockchain_state.get_tx(current_txhash)
-            if not current_tx:
-                raise UnfoundTransactionError("Transaction %s not found!" % current_txhash)
 
             # note a genesis tx will simply have 0 affecting inputs
             inputs = set()
             for color_id, color_def in color_def_map.items():
-                inputs = inputs.union(
-                    color_def.get_affecting_inputs(current_tx,
-                                                   [current_outindex]))
+                if color_def == UNCOLORED_MARKER:
+                    continue
+                affecting_inputs = color_def.get_affecting_inputs(
+                    current_tx, [current_outindex]
+                )
+                inputs = inputs.union(affecting_inputs)
             for i in inputs:
                 process(i.prevout.hash, i.prevout.n)
             self.cdbuilder_manager.scan_tx(color_id_set, current_tx, [current_outindex])
 
         process(txhash, outindex)
         return self._fetch_colorvalues(color_id_set, txhash, outindex)
+

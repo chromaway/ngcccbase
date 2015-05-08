@@ -25,7 +25,8 @@ from coloredcoinlib import (InvalidColorDefinitionError, ColorDefinition,
 from ngcccbase.coindb import ProvidedUTXO
 from txcons import (BasicTxSpec, 
                     SimpleOperationalTxSpec, 
-                    InputsProvidedOperationalTxSpec)
+                    InputsProvidedOperationalTxSpec,
+                    RawTxSpec)
 from wallet_model import ColorSet
 from ngcccbase.address import coloraddress_to_bitcoinaddress
 
@@ -52,18 +53,18 @@ class WalletController(object):
     def get_tx(self, txid):
         return self.model.ccc.blockchain_state.get_tx(txid)
 
-    def get_txout_coloridvalues(txid, outindex, color_id_set=None):
+    def get_txout_coloridvalues(self, txid, outindex, color_id_set=None):
         if not color_id_set:
             color_id_set = self._all_colorids_set()
         colordata = self.model.ccc.colordata
         return colordata.get_colorvalues(color_id_set, txid, outindex)
 
-    def get_txout_assetvalues(txid, outindex, asset=None):
+    def get_txout_assetvalues(self, txid, outindex, asset=None):
         assets = [asset] if asset else self.get_all_assets()
         def getassetvalue(asset):
             color_id_set = asset.color_set.color_id_set
-            values = self.get_txout_coloridvalues(color_id_set, txid, outindex)
-            return (asset, sum(map(lambda v: v['value'], values)))
+            values = self.get_txout_coloridvalues(txid, outindex, color_id_set)
+            return (asset, sum(map(lambda v: v.get_value(), values)))
         return map(getassetvalue, assets)
 
     def _p2ptrade_wait(self, agent, wait):
@@ -120,6 +121,9 @@ class WalletController(object):
 
         return offers
 
+    def publish_rawtx(self, rawtx):
+        return blockchain_state.publish_tx(rawtx)
+
     def publish_tx(self, signed_tx_spec):
         """Given a signed transaction <signed_tx_spec>, publish the transaction
         to the public bitcoin blockchain. Prints the transaction hash as a
@@ -128,7 +132,7 @@ class WalletController(object):
         txhex = signed_tx_spec.get_hex_tx_data()
         txhash = signed_tx_spec.get_hex_txhash()
         blockchain_state = self.model.ccc.blockchain_state
-        r_txhash = blockchain_state.publish_tx(txhex)
+        r_txhash = self.publish_rawtx(txhex)
         if r_txhash and (r_txhash != txhash) and not self.testing:
             raise Exception('Bitcoind reports different txhash!')
 
@@ -232,6 +236,11 @@ class WalletController(object):
             rtxs.sign(tx_spec.get_txins())
         if publish:
             self.publish_tx(rtxs)
+        return rtxs.get_hex_tx_data()
+
+    def sign_rawtx(self, rawtx):
+        rtxs = RawTxSpec.from_tx_data(self.model, rawtx)
+        rtxs.sign(tx_spec.get_txins())
         return rtxs.get_hex_tx_data()
 
     def sendmany_coins(self, entries):

@@ -102,6 +102,12 @@ def txid(txid):
     return txid
 
 
+def rawtx(rawtx):
+    if not re.match("^[0-9a-f]+$", rawtx): # TODO better validation
+        raise InvalidInput("Invalid rawtx!")
+    return rawtx
+
+
 def colordesc(colordesc):
     if not re.match("^(epobc|obc):[0-9a-f]+:[0-9]+:[0-9]+$", colordesc):
         raise InvalidInput("Invalid color description!")
