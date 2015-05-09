@@ -6,6 +6,9 @@ virtualenv -p /usr/bin/python2 /tmp/test_env # create virtualenv
 source /tmp/test_env/bin/activate # activate virtualenv
 python setup.py develop # install packages
 
+# api tests
+python -m ngcccbase.tests.test_api
+
 # coloredcoinlib tests
 python -m coloredcoinlib.tests.test_colormap
 python -m coloredcoinlib.tests.test_colorset

@@ -115,6 +115,15 @@ class ThinColorData(StoredColorData):
         color_def_map = self.cdbuilder_manager.get_color_def_map(color_id_set)
 
         scanned_outputs = set()
+        
+        def maxdepthreached(txid):
+            current_height = self.blockchain_state.get_tx_height(txid)
+            for color_id, color_def in color_def_map.items():
+                genesistxid = color_def.genesis["txhash"]
+                genesisheight = self.blockchain_state.get_tx_height(genesistxid)
+                if current_height > genesisheight:
+                    return False
+            return True
 
         def process(current_txhash, current_outindex):
             """For any tx out, process the colorvalues of the affecting
@@ -139,7 +148,9 @@ class ThinColorData(StoredColorData):
                 )
                 inputs = inputs.union(affecting_inputs)
             for i in inputs:
-                process(i.prevout.hash, i.prevout.n)
+                # fixme stop recursion
+                if not maxdepthreached(current_txhash):
+                    process(i.prevout.hash, i.prevout.n)
             self.cdbuilder_manager.scan_tx(color_id_set, current_tx, [current_outindex])
 
         process(txhash, outindex)

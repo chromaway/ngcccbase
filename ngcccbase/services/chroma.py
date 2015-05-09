@@ -130,6 +130,10 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
             self._cache_rawheaders[blockheight] = result["headers"]
         return blockheight
 
+    def get_tx_height(self, txid):
+        blockid = self.get_tx_blockhash(txid)[0]
+        return self.get_block_height(blockid)
+
     def get_header(self, blockheight):
         """ Return header for given blockheight. 
         Header format: {

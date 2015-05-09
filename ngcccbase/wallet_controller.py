@@ -218,7 +218,7 @@ class WalletController(object):
         tx_spec = InputsProvidedOperationalTxSpec(self.model, None)
 
         # add inputs
-        for utxos in utxos:
+        for utxo in utxos:
             tx_spec.add_utxo(ProvidedUTXO(self, utxo))
 
         # add targets

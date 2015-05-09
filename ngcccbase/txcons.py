@@ -106,7 +106,9 @@ class BaseOperationalTxSpec(OperationalTxSpec):
         selection = []
         required_sum = None
         for utxo in utxo_list:
-            ssum += SimpleColorValue.sum(utxo.colorvalues)
+            colorvalues = utxo.get_colorvalues()
+            colorvalues = filter(lambda cv: cv.get_colordef() == colordef, colorvalues)
+            ssum += SimpleColorValue.sum(colorvalues)
             selection.append(utxo)
             required_sum = required_sum_fn(utxo_list)
             if ssum >= required_sum:
@@ -203,7 +205,7 @@ class SimpleOperationalTxSpec(BaseOperationalTxSpec):
 
 class InputsProvidedOperationalTxSpec(SimpleOperationalTxSpec):
 
-    def __init__(*args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super(InputsProvidedOperationalTxSpec, self).__init__(*args, **kwargs)
         self._inputs_provided = []
 
@@ -211,8 +213,8 @@ class InputsProvidedOperationalTxSpec(SimpleOperationalTxSpec):
         self._inputs_provided.append(utxo)
 
     def get_utxo_list(self, color_id_set):
-        overlap = lambda utxo: utxo.get_color_set().intersection(color_id_set)
-        return filter(overlap , self.inputs_provided)
+        overlap = lambda utxo: utxo.get_color_id_set().intersection(color_id_set)
+        return filter(overlap , self._inputs_provided)
 
 
 class RawTxSpec(object):

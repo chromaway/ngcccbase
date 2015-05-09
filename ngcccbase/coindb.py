@@ -120,7 +120,7 @@ class ProvidedUTXO(UTXO):
         super(ProvidedUTXO, self).__init__({
             'txhash' : txid,
             'outindex' : outindex,
-            'value' : amount,
+            'value' : value,
             'script' : script
         })
 
@@ -134,9 +134,9 @@ class ProvidedUTXO(UTXO):
         outindex = self.outindex
         colorvalues = []
         for entry in self.controller.get_txout_coloridvalues(txid, outindex):
-            color_id = entry["color_id"]
-            value = entry["value"]
-            colordef = self.model.get_color_def(color_id)
+            color_id = entry.get_color_id()
+            value = entry.get_value()
+            colordef = self.controller.model.get_color_def(color_id)
             colorvalues.append(SimpleColorValue(colordef=colordef, value=value))
         self._cache_colorvalues = colorvalues
         return colorvalues

@@ -329,7 +329,6 @@ class Ngccc(apigen.Definition):
         self.controller.p2ptrade_make_offer(we_sell, asset, value, price, wait)
 
     def _get_txout_values(self, txid, outindex, asset):
-        # FIXME fails ...
         def reformat(assetvalue):
             asset, value = assetvalue
             amount = asset.format_value(value)
@@ -380,6 +379,7 @@ class Ngccc(apigen.Definition):
         """ Construct an unsigned transaction
         with the given utxo inputs and targets.
         """
+        # TODO add flag to disable adding change address
 
         # sanitize inputs
         utxos = sanitize.utxos(inputs)
