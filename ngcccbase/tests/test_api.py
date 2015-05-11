@@ -8,8 +8,6 @@ from ngcccbase.api import Ngccc
 
 class TestCreatetx(unittest.TestCase):
 
-    # TODO test send flags
-
     def setUp(self):
         self.api = Ngccc(wallet="ngcccbase/tests/unittest.wallet", testnet=True)
 

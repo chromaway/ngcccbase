@@ -375,7 +375,7 @@ class Ngccc(apigen.Definition):
         })
 
     @apigen.command()
-    def createtx(self, inputs, targets, sign=False, publish=False): # TODO test it
+    def createtx(self, inputs, targets, sign=False, publish=False):
         """ Construct an unsigned transaction
         with the given utxo inputs and targets.
         """
