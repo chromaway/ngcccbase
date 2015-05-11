@@ -122,6 +122,7 @@ class WalletController(object):
         return offers
 
     def publish_rawtx(self, rawtx):
+        blockchain_state = self.model.ccc.blockchain_state
         return blockchain_state.publish_tx(rawtx)
 
     def publish_tx(self, signed_tx_spec):
@@ -131,7 +132,6 @@ class WalletController(object):
         """
         txhex = signed_tx_spec.get_hex_tx_data()
         txhash = signed_tx_spec.get_hex_txhash()
-        blockchain_state = self.model.ccc.blockchain_state
         r_txhash = self.publish_rawtx(txhex)
         if r_txhash and (r_txhash != txhash) and not self.testing:
             raise Exception('Bitcoind reports different txhash!')
@@ -215,11 +215,11 @@ class WalletController(object):
         if not sign and publish:
             raise Exception("Cannot publish unsigned transaction!")
 
-        tx_spec = InputsProvidedOperationalTxSpec(self.model, None)
+        otxs = InputsProvidedOperationalTxSpec(self.model, None)
 
         # add inputs
         for utxo in utxos:
-            tx_spec.add_utxo(ProvidedUTXO(self, utxo))
+            otxs.add_utxo(ProvidedUTXO(self, utxo))
 
         # add targets
         for target in targets:
@@ -228,18 +228,23 @@ class WalletController(object):
             color_id = target["asset"].get_color_id()
             colordef = self.model.get_color_def(color_id)
             colorvalue = SimpleColorValue(colordef=colordef, value=amount)
-            tx_spec.add_target(ColorTarget(address, colorvalue))
+            otxs.add_target(ColorTarget(address, colorvalue))
 
-        tx_spec = self.model.transform_tx_spec(tx_spec, 'composed')
-        rtxs = RawTxSpec.from_composed_tx_spec(self.model, tx_spec)
+        # transform tx
+        ctxs = self.model.transform_tx_spec(otxs, 'composed')
         if sign:
-            rtxs.sign(tx_spec.get_txins())
+            rtxs = self.model.transform_tx_spec(ctxs, 'signed')
+            # TODO confirm all signed if allow partial flag not set
+        else:
+            rtxs = RawTxSpec.from_composed_tx_spec(self.model, ctxs)
+
         if publish:
             self.publish_tx(rtxs)
         return rtxs.get_hex_tx_data()
 
-    def sign_rawtx(self, rawtx):
-        rtxs = RawTxSpec.from_tx_data(self.model, rawtx)
+    def sign_rawtx(self, rawtx): # FIXME
+        rtxs = RawTxSpec.from_tx_data(self.model, rawtx.decode('hex'))
+        tx_spec = self.model.transform_tx_spec(rtxs, 'signed')
         rtxs.sign(tx_spec.get_txins())
         return rtxs.get_hex_tx_data()
 
@@ -272,12 +277,21 @@ class WalletController(object):
                                                          value=raw_colorvalue))
             tx_spec.add_target(assettarget)
         signed_tx_spec = self.model.transform_tx_spec(tx_spec, 'signed')
+        return "foo"
         txid = self.publish_tx(signed_tx_spec)
 
         self.model.tx_history.add_send_entry(
             txid, asset, target_addrs, raw_colorvalues
         )
         return txid
+
+    def get_address_record(self, bitcoinaddress):
+        wam = self.model.get_address_manager()
+        for address_record in wam.get_all_addresses():
+            if bitcoinaddress == address_record.get_address():
+                return address_record
+        raise Exception("No address record for %s" % bitcoinaddress)
+        return None
 
     def issue_coins(self, moniker, pck, units, atoms_in_unit):
         """Issues a new color of name <moniker> using coloring scheme

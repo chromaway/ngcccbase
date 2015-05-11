@@ -375,19 +375,20 @@ class Ngccc(apigen.Definition):
         })
 
     @apigen.command()
-    def createtx(self, inputs, targets, sign=False, send=False): # TODO test it
+    def createtx(self, inputs, targets, sign=False, publish=False): # TODO test it
         """ Construct an unsigned transaction
         with the given utxo inputs and targets.
         """
         # TODO add flag to disable adding change address
+        # TODO add flag to allow partial siging
 
         # sanitize inputs
         utxos = sanitize.utxos(inputs)
         targets = sanitize.targets(self.model, targets)
         sign = sanitize.flag(sign)
-        send = sanitize.flag(send)
+        publish = sanitize.flag(publish)
 
-        return _print(self.controller.createtx(utxos, targets, sign, send))
+        return _print(self.controller.createtx(utxos, targets, sign, publish))
 
     @apigen.command()
     def signrawtx(self, rawtx): # TODO test it
@@ -396,7 +397,7 @@ class Ngccc(apigen.Definition):
         # sanitize inputs
         rawtx = sanitize.rawtx(rawtx)
 
-        return _print(controller.sign_rawtx(txhex))
+        return _print(self.controller.sign_rawtx(rawtx))
 
     @apigen.command()
     def sendrawtx(self, rawtx): # TODO test it
@@ -405,5 +406,5 @@ class Ngccc(apigen.Definition):
         # sanitize inputs
         rawtx = sanitize.rawtx(rawtx)
 
-        return _print(controller.publish_rawtx(txhex))
+        return _print(self.controller.publish_rawtx(rawtx))
 

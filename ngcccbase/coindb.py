@@ -16,6 +16,8 @@ from coloredcoinlib.store import DataStore, DataStoreConnection, unwrap1
 from coloredcoinlib.txspec import ComposedTxSpec
 from txcons import RawTxSpec
 from coloredcoinlib import UNCOLORED_MARKER, SimpleColorValue
+from coloredcoinlib.blockchain import script_to_raw_address
+
 
 def flatten1(lst):
     return [elt[0] for elt in lst]
@@ -121,8 +123,11 @@ class ProvidedUTXO(UTXO):
             'txhash' : txid,
             'outindex' : outindex,
             'value' : value,
-            'script' : script
+            'script' : str(script).encode("hex")
         })
+        raw_address = script_to_raw_address(script)
+        bitcoinaddress = controller.model.ccc.raw_to_address(raw_address)
+        self.address_rec = self.controller.get_address_record(bitcoinaddress)
 
     def get_color_id_set(self):
         return set(map(lambda cv: cv.get_color_id(), self.get_colorvalues()))

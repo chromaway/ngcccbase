@@ -179,7 +179,8 @@ class SimpleOperationalTxSpec(BaseOperationalTxSpec):
 
     def get_utxo_list(self, color_id_set):
         cq = self.model.make_coin_query({"color_id_set": color_id_set})
-        return cq.get_result()
+        utxos = cq.get_result()
+        return utxos
 
     def select_coins(self, colorvalue, use_fee_estimator=None):
         """Return a list of utxos and sum that corresponds to
