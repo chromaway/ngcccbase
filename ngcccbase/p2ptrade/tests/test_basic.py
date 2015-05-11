@@ -85,7 +85,7 @@ class MockComm(CommBase):
         return self.messages_sent
 
 class TestMockP2PTrade(unittest.TestCase):
-    @unittest.skip("broken")
+    @unittest.skip("broken") # FIXME test broken
     def test_basic(self):
         model = MockModel()
         ewctrl = EWalletController(model, None)

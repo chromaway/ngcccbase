@@ -11,6 +11,9 @@ from collections import defaultdict
 from decimal import Decimal
 from asset import AssetTarget, AdditiveAssetValue
 from coindb import CoinQuery
+from pycoin.tx.Tx import Tx
+from pycoin.serialize import b2h_rev
+from ngcccbase import pycoin_txcons
 from ngcccbase.p2ptrade.protocol_objects import MyEOffer
 from ngcccbase.p2ptrade.agent import EAgent
 from ngcccbase.p2ptrade.ewctrl import EWalletController
@@ -242,11 +245,17 @@ class WalletController(object):
             self.publish_tx(rtxs)
         return rtxs.get_hex_tx_data()
 
-    def sign_rawtx(self, rawtx): # FIXME
-        rtxs = RawTxSpec.from_tx_data(self.model, rawtx.decode('hex'))
-        tx_spec = self.model.transform_tx_spec(rtxs, 'signed')
-        rtxs.sign(tx_spec.get_txins())
-        return rtxs.get_hex_tx_data()
+    def sign_rawtx(self, rawtx):
+        tx = Tx.tx_from_hex(rawtx)
+        def reformat(tx_in):
+            return ProvidedUTXO(self, {
+                'txid' : b2h_rev(tx_in.previous_hash),
+                'outindex' : tx_in.previous_index
+            })
+        utxos = map(reformat, tx.txs_in)
+        self.model.is_testnet()
+        pycoin_txcons.sign_tx(tx, utxos, self.model.is_testnet())
+        return tx.as_hex()
 
     def sendmany_coins(self, entries):
         """Sendmany coins given in entries [(asset, address, value), ...] """
