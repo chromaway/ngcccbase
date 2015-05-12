@@ -147,13 +147,11 @@ INSERT INTO blockchain_headers (
 
     def save_chunk(self, index, chunk):
         import time
-        print time.time()
         chunk = chunk.encode('hex')
         for i in xrange(2016):
             header = self.header_from_raw(chunk[i*80:(i+1)*80])
             header['block_height'] = index*2016 + i
             self._save_header(header)
-        print time.time()
 
     def save_chain(self, chain):
         pass

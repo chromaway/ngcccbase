@@ -169,7 +169,6 @@ class EWalletController(object):
                 continue
             out_colorvalues = self.model.ccc.colordata.get_colorvalues_raw(
                 color_id, ctx)
-            print out_colorvalues
             for oi in range(len(ctx.outputs)):
                 if oi in used_outputs:
                     continue

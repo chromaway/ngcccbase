@@ -92,6 +92,7 @@ class AssetDefinition(object):
         """
         return {
             "monikers": self.monikers,
+            "assetid" : self.get_color_set().get_color_hash(),
             "color_set": self.color_set.get_data(),
             "unit": self.unit
             }

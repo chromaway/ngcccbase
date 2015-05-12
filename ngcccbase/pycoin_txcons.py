@@ -38,7 +38,6 @@ def construct_standard_tx(composed_tx_spec, is_test):
     for cts_txin in composed_tx_spec.get_txins():
         txin = TxIn(cts_txin.get_txhash(), cts_txin.prevout.n)
         if cts_txin.nSequence:
-            print cts_txin.nSequence
             txin.sequence = cts_txin.nSequence
         txins.append(txin)
     version = 1

@@ -9,18 +9,12 @@ bitcoind_testnet_start:
 bitcoind_testnet_stop:
 	@bitcoin-cli --testnet stop
 
-run_tests:
-	# p2ptrade
-	python -m ngcccbase.p2ptrade.tests.test_basic
-	python -m ngcccbase.p2ptrade.tests.test_protocol_objects
-	python -m ngcccbase.p2ptrade.tests.test_real
-	python -m ngcccbase.p2ptrade.tests.test_agent 	# test fails, legit bug?
-	python -m ngcccbase.p2ptrade.tests.test_comm
-	python -m ngcccbase.p2ptrade.tests.test_ewctrl
+chromanode_testnet:
+	python chromanode.py 127.0.0.1:8080 testnet
 
 rescan_all:
 	@$(foreach WALLET,$(TESTNET_WALLETS), \
-		python ngccc-cli.py --testnet --wallet=$(WALLET) full_rescan; \
+		python ngccc-cli.py --testnet --wallet=$(WALLET) fullrescan; \
 	)
 
 # DEBUGGING

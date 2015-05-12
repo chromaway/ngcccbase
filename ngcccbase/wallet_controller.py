@@ -6,7 +6,7 @@ Executes high level tasks such as get balance
 """
 
 import os
-import csv
+from ngcccbase import sanitize
 from collections import defaultdict
 from decimal import Decimal
 from asset import AssetTarget, AdditiveAssetValue
@@ -46,8 +46,8 @@ class WalletController(object):
         blockchain_state = self.model.ccc.blockchain_state
         try:
             r_txhash = blockchain_state.publish_tx(txhex)
-        except Exception as e:                      # pragma: no cover
-            print ("got error %s from bitcoind" % e)  # pragma: no cover
+        except Exception as e:
+            pass
 
         if r_txhash and (r_txhash != txhash) and not self.testing:
             raise Exception('Bitcoind reports different txhash!')
@@ -83,55 +83,6 @@ class WalletController(object):
     def scan_utxos(self):
         self.model.utxo_fetcher.scan_all_addresses()
 
-    def sanitize_csv_input(self, csvvalues, row):
-        adm = self.model.get_asset_definition_manager()
-
-        # must have three entries
-        if len(csvvalues) != 3:
-            msg = ("CSV entry must have three values 'moniker,address,value'. "
-                   "Row %s has %s values!")
-            raise Exception(msg % (row, len(csvvalues)))
-        moniker, target_addr, value = csvvalues
-
-        # asset must exist
-        asset = adm.get_asset_by_moniker(moniker)
-        if not asset:
-            msg = "Asset '%s' in row %s not found!"
-            raise Exception(msg % (moniker, row))
-
-        # asset must match address asset
-        address_asset, address = adm.get_asset_and_address(target_addr)
-        if asset != address_asset:
-            msg = "Address and asset don't match in row: %s!"
-            raise AssetMismatchError(msg % row)
-
-        # check if valid address
-        if not self.model.validate_address(address):
-            msg = "Address %s in row: %s is not valid!"
-            raise Exception(msg % (target_addr, row))
-
-        # make sure value is a number
-        try:
-            value = Decimal(value)
-        except:
-            msg = "Value '%s' in row %s is not a number.!"
-            raise Exception(msg % (value, row))
-
-        # value must be positive
-        if value < Decimal("0"):
-            msg = "Value '%s' in row %s not > 0.!"
-            raise Exception(msg % (value, row))
-
-        # check if valid amount for asset
-        if not asset.validate_value(value):
-            msg = "Value '%s' in row %s is not a multiple of %s.!"
-            raise Exception(msg % (value, row, asset.get_atom()))
-
-        # convert to amount to satoshis
-        value = asset.parse_value(value)
-
-        return asset, address, value
-
     def sendmany_sums(self, entries):
         sums = defaultdict(Decimal)
         for asset, address, value in entries:
@@ -139,6 +90,7 @@ class WalletController(object):
         return sums
 
     def validate_sendmany_entries(self, entries):
+        # TODO check for max entries
         sums = self.sendmany_sums(entries)
 
         # check if required asset amount available
@@ -174,20 +126,9 @@ class WalletController(object):
             ))
         reduce(reduce_function, sums.keys())
 
-        # TODO check for max entries
-
-
-    def parse_sendmany_csv(self, csv_file_path):
-        """Send amounts in csv file with format 'moniker,address,value'"""
-        entries = []
-        with open(csv_file_path, 'rb') as csvfile:
-            for index, csvvalues in enumerate(csv.reader(csvfile)):
-                entries.append(self.sanitize_csv_input(csvvalues, index + 1))
-        self.validate_sendmany_entries(entries)
-        return entries
-
     def sendmany_coins(self, entries):
         """Sendmany coins given in entries [(asset, address, value), ...] """
+        self.validate_sendmany_entries(entries)
         tx_spec = SimpleOperationalTxSpec(self.model, None)
         for asset, address, value in entries:
             color_id = asset.get_color_id()
@@ -197,6 +138,7 @@ class WalletController(object):
         signed_tx_spec = self.model.transform_tx_spec(tx_spec, 'signed')
         txhash = self.publish_tx(signed_tx_spec)
         # TODO add to history
+        return txhash
 
     def send_coins(self, asset, target_addrs, raw_colorvalues):
         """Sends coins to address <target_addr> of asset/color <asset>
@@ -220,6 +162,7 @@ class WalletController(object):
         self.model.tx_history.add_send_entry(
             txhash, asset, target_addrs, raw_colorvalues
         )
+        return txhash
 
     def issue_coins(self, moniker, pck, units, atoms_in_unit):
         """Issues a new color of name <moniker> using coloring scheme
@@ -231,7 +174,7 @@ class WalletController(object):
             msg = 'Color scheme "%s" not recognized'
             raise InvalidColorDefinitionError(msg % pck)
 
-        total = units * atoms_in_unit
+        total = int(units * atoms_in_unit)
         op_tx_spec = SimpleOperationalTxSpec(self.model, None)
         wam = self.model.get_address_manager()
         address = wam.get_new_genesis_address()

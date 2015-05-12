@@ -49,7 +49,6 @@ class BaseUTXOFetcher(object):
                 self.add_utxo(address, data)
         except Exception as e:
             if "%s" % e != "No JSON object could be decoded":
-                print e
                 raise
 
 class SimpleUTXOFetcher(BaseUTXOFetcher):
@@ -127,7 +126,6 @@ class AsyncUTXOFetcher(BaseUTXOFetcher):
                     while wakeup > time.time() and self.is_running():
                         time.sleep(0.05)
             except Exception as e:
-                print (e)
                 wakeup = time.time() + 20
                 while wakeup > time.time() and self.is_running():
                     time.sleep(0.05)

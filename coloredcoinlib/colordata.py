@@ -1,7 +1,6 @@
 """ Color data representation objects."""
 import time
 
-from logger import log
 
 from colordef import ColorDefinition
 from colorvalue import SimpleColorValue
@@ -48,9 +47,7 @@ class StoredColorData(ColorData):
                                        inp.prevout.hash,
                                        inp.prevout.n)
             cv = cvs[0] if cvs else None
-            print color_id_set, inp.prevout.hash, inp.prevout.n, cv
             in_colorvalues.append(cv)
-        log("GCR in_colorvalues: %s", in_colorvalues)
         return color_def.run_kernel(ctx, in_colorvalues)
 
 
@@ -129,7 +126,6 @@ class ThinColorData(StoredColorData):
                                                    [current_outindex]))
             for i in inputs:
                 process(i.prevout.hash, i.prevout.n)
-            log("scan %s: %s", current_txhash, current_outindex)
             self.cdbuilder_manager.scan_tx(color_id_set, current_tx, [current_outindex])
 
         process(txhash, outindex)

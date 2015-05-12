@@ -80,7 +80,6 @@ class ElectrumInterface(object):
                     if self.debug:
                         print (msg)  # pragma: no cover
                 except socket.timeout:         # pragma: no cover
-                    print ("socket timed out")   # pragma: no cover
                     self.is_connected = False  # pragma: no cover
                     continue                   # pragma: no cover
                 except socket.error:                      # pragma: no cover
@@ -108,9 +107,6 @@ class ElectrumInterface(object):
                             raise Exception("Received error '%s'!" % message)
                         else:
                             return result
-                    else:
-                        # just print it for now
-                        print (message)
         except:
             traceback.print_exc(file=sys.stdout)
         self.is_connected = False

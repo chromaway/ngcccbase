@@ -143,6 +143,7 @@ Contributors
  * Daniel "Ademan" Roberts
  * Adrian Porter
  * Manuel Araoz (coloredcoinlib)
+ * Fabian Barkhau
 
 License
 -------

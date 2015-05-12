@@ -79,7 +79,6 @@ class BlockchainInfoInterface(WebBlockchainInterface):
             else:
                 return 0
         except Exception as e:
-            print e
             return None
 
     def get_address_history(self, address):
