@@ -90,11 +90,7 @@ def cfgkey(key):
 
 
 def cfgvalue(value):
-    # limit basic string and ints for now
-    if not re.match("^[a-zA-Z0-9_-]+$", value):
-        raise InvalidInput("Invalid value!")
     return value
-
 
 def txid(txid):
     if not re.match("^[0-9a-f]+$", txid): # TODO better validation
