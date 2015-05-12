@@ -83,9 +83,6 @@ def cfgkey(key):
 
 
 def cfgvalue(value):
-    # limit basic string and ints for now
-    if not re.match("^[a-zA-Z0-9_-]+$", value):
-        raise InvalidInput("Invalid value!")
     return value
 
 
