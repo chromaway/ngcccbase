@@ -9,6 +9,7 @@ from wallet_model import WalletModel
 from coloredcoinlib import store
 import sqlite3
 import os
+import json
 
 
 class ConfigKeyNotFound(Exception):
