@@ -13,8 +13,6 @@ from socketIO_client import SocketIO, LoggingNamespace
 class ChromanodeInterface(BlockchainStateBase, BaseStore):
     # TODO docstring
 
-    # FIXME height != count?
-
     def __init__(self, baseurl=None, testnet=False, cache_minconfirms=6):
         # TODO docstring
 
@@ -60,7 +58,7 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         self._update_cache_currentheight(blockheight)
 
     def _cancache(self, blockheight):
-        return (self.get_block_count() - blockheight) >= self._cache_minconfirms
+        return (self.get_height() - blockheight) >= self._cache_minconfirms
 
     def _query(self, url, data=None, exceptiononfail=True):
         header = {'Content-Type': 'application/json'}
@@ -70,8 +68,6 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         fp.close()
         if payload["status"] == "fail" and exceptiononfail:
             raise Exception("Chromanode error: %s!" % payload['data']['type'])
-        if payload["status"] == "fail":
-            return None
         return payload.get("data")
 
     def connected(self):
@@ -189,11 +185,12 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         return txids
 
     def get_height(self):
-        return self.get_block_count()
-
-    def get_block_count(self): 
         """ Return current blockchain height. """
         return self._cache_currentheight
+
+    def get_block_count(self): 
+        """ Return current block count. """
+        return self.get_height()
 
     def publish_tx(self, rawtx):
         """ Publish rawtx on bitcoin network and return txid. """
