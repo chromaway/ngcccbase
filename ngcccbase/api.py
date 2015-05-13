@@ -27,9 +27,17 @@ class Ngccc(apigen.Definition):
             wallet = "%s.wallet" % ("testnet" if testnet else "mainnet")
 
         self.wallet = PersistentWallet(wallet, testnet)
-        self.wallet.init_model()
-        self.model = self.wallet.get_model()
-        self.controller = WalletController(self.model)
+        self.model_is_initialized = False
+
+    def __getattribute__(self, name):
+        if name in ['controller', 'model']:
+            if not self.model_is_initialized:
+                self.wallet.init_model()
+                self.model = self.wallet.get_model()
+                self.controller = WalletController(self.model)
+                slef.model_is_initialized = True
+        return object.__getattribute__(self, name)
+
 
     @apigen.command()
     def setconfigval(self, key, value):

@@ -390,7 +390,7 @@ class VerifiedBlockchainState(BlockchainStateBase, threading.Thread):
         sys.stderr.flush()
         if hasattr(self.txdb, 'drop_from_height'):
             self.txdb.drop_from_height(height)
-        self.txdb.store.drop_from_height(height)
+        self.txdb.store.reset_from_height(height)
 
     def _get_chunks(self, header):
         max_index = (header['block_height'] + 1)/2016
