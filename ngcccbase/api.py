@@ -33,9 +33,10 @@ class Ngccc(apigen.Definition):
         if name in ['controller', 'model']:
             if not self.model_is_initialized:
                 self.wallet.init_model()
-                self.model = self.wallet.get_model()
-                self.controller = WalletController(self.model)
-                slef.model_is_initialized = True
+                model = self.wallet.get_model()
+                self.controller = WalletController(model)
+                self.model = model
+                self.model_is_initialized = True
         return object.__getattribute__(self, name)
 
 

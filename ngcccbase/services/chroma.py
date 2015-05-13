@@ -13,6 +13,8 @@ from socketIO_client import SocketIO, LoggingNamespace
 class ChromanodeInterface(BlockchainStateBase, BaseStore):
     # TODO docstring
 
+    # FIXME height != count?
+
     def __init__(self, baseurl=None, testnet=False, cache_minconfirms=6):
         # TODO docstring
 
@@ -60,14 +62,16 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
     def _cancache(self, blockheight):
         return (self.get_block_count() - blockheight) >= self._cache_minconfirms
 
-    def _query(self, url, data=None):
+    def _query(self, url, data=None, exceptiononfail=True):
         header = {'Content-Type': 'application/json'}
         data = json.dumps(data) if data else None
         fp = urllib2.urlopen(urllib2.Request(url, data, header))
         payload = json.loads(fp.read())
         fp.close()
-        if payload["status"] == "fail":
+        if payload["status"] == "fail" and exceptiononfail:
             raise Exception("Chromanode error: %s!" % payload['data']['type'])
+        if payload["status"] == "fail":
+            return None
         return payload.get("data")
 
     def connected(self):
@@ -89,7 +93,7 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         self._cache_rawtx[txid] = rawtx
         return rawtx
 
-    def get_tx_blockhash(self, txid): # FIXME remove unneeded bool return value
+    def get_tx_blockhash(self, txid):
         """ Return blockid for given txid. """
 
         # get from cache
@@ -99,7 +103,9 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
 
         # get from chromanode
         url = "%s/v1/transactions/merkle?txid=%s" % (self.baseurl, txid)
-        result = self._query(url)
+        result = self._query(url, exceptiononfail=False)
+        if not result:
+            return None, False
         if result["source"] == "mempool": # unconfirmed
             return None, True
 
@@ -181,6 +187,9 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         self._update_cache_currentheight(result['latest']['height'])
         self._cache_addresshistory[address] = txids 
         return txids
+
+    def get_height(self):
+        return self.get_block_count()
 
     def get_block_count(self): 
         """ Return current blockchain height. """
