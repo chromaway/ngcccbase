@@ -15,11 +15,6 @@ class AddressNotFound(Exception):
         super(AddressNotFound, self).__init__(msg)
 
 
-def _print(data): # TODO move this to apigen
-    print json.dumps(data, indent=2)
-    return data
-
-
 class Ngccc(apigen.Definition):
     """Next-Generation Colored Coin Client interface."""
 
@@ -58,12 +53,12 @@ class Ngccc(apigen.Definition):
         # sanitize inputs
         key = sanitize.cfgkey(key)
 
-        return _print(self.wallet.getconfigval(key))
+        return self.wallet.getconfigval(key)
 
     @apigen.command()
     def dumpconfig(self):
         """Returns a dump of the current configuration."""
-        return _print(self.wallet.dumpconfig())
+        return self.wallet.dumpconfig()
 
     @apigen.command()
     def importconfig(self, path):
@@ -117,13 +112,13 @@ class Ngccc(apigen.Definition):
     @apigen.command()
     def getasset(self, moniker):
         """Get the asset associated with the moniker."""
-        return _print(sanitize.asset(self.model, moniker).get_data())
+        return sanitize.asset(self.model, moniker).get_data()
 
     @apigen.command()
     def listassets(self):
         """Lists all assets/colors registered."""
         assets = self.controller.get_all_assets()
-        return _print(map(lambda asset: asset.get_data(), assets))
+        return map(lambda asset: asset.get_data(), assets)
 
     def _getbalance(self, asset, unconfirmed, available):
         if unconfirmed:
@@ -144,7 +139,7 @@ class Ngccc(apigen.Definition):
         available = sanitize.flag(available)
 
         balance = dict([self._getbalance(asset, unconfirmed, available)])
-        return _print(balance)
+        return balance
 
     @apigen.command()
     def getbalances(self, unconfirmed=False, available=False):
@@ -157,7 +152,7 @@ class Ngccc(apigen.Definition):
         assets = self.controller.get_all_assets()
         func = lambda asset: self._getbalance(asset, unconfirmed, available)
         balances = dict(map(func, assets))
-        return _print(balances)
+        return balances
 
     @apigen.command()
     def newaddress(self, moniker):
@@ -168,7 +163,7 @@ class Ngccc(apigen.Definition):
 
         addressrecord = self.controller.get_new_address(asset)
         coloraddress = addressrecord.get_color_address()
-        return _print(coloraddress)
+        return coloraddress
 
     @apigen.command()
     def listaddresses(self, moniker):
@@ -178,7 +173,7 @@ class Ngccc(apigen.Definition):
         asset = sanitize.asset(self.model, moniker)
 
         addressrecords = self.controller.get_all_addresses(asset)
-        return _print([ao.get_color_address() for ao in addressrecords])
+        return [ao.get_color_address() for ao in addressrecords]
 
     @apigen.command()
     def send(self, moniker, coloraddress, amount):
@@ -190,7 +185,7 @@ class Ngccc(apigen.Definition):
         amount = sanitize.assetamount(asset, amount)
 
         txid = self.controller.send_coins(asset, [coloraddress], [amount])
-        return _print(txid)
+        return txid
 
     @apigen.command()
     def sendmanyjson(self, data):
@@ -202,7 +197,7 @@ class Ngccc(apigen.Definition):
         # sanitize inputs
         sendmany_entries = sanitize.sendmanyjson(self.model, data)
 
-        return _print(self.controller.sendmany_coins(sendmany_entries))
+        return self.controller.sendmany_coins(sendmany_entries)
 
     @apigen.command()
     def sendmanycsv(self, path):
@@ -213,7 +208,7 @@ class Ngccc(apigen.Definition):
         # sanitize inputs
         sendmany_entries = sanitize.sendmanycsv(self.model, path)
 
-        return _print(self.controller.sendmany_coins(sendmany_entries))
+        return self.controller.sendmany_coins(sendmany_entries)
 
     @apigen.command()
     def scan(self):
@@ -233,7 +228,7 @@ class Ngccc(apigen.Definition):
         # sanitize inputs
         asset = sanitize.asset(self.model, moniker)
 
-        return _print(self.controller.get_history(asset))
+        return self.controller.get_history(asset)
 
     @apigen.command()
     def received(self, moniker):
@@ -250,7 +245,7 @@ class Ngccc(apigen.Definition):
             colorvalue = data['value'].get_value()
             return (coloraddress, asset.format_value(colorvalue))
         data = self.controller.get_received_by_address(asset)
-        return _print(dict(map(reformat, data)))
+        return dict(map(reformat, data))
 
     @apigen.command()
     def coinlog(self):
@@ -268,7 +263,7 @@ class Ngccc(apigen.Definition):
               'confirmed' : coin.is_confirmed(),
               'spendingtxs' : coin.get_spending_txs(),
             })
-        return _print(log)
+        return log
 
     @apigen.command()
     def dumpprivkey(self, moniker, coloraddress):
@@ -281,7 +276,7 @@ class Ngccc(apigen.Definition):
         wam = self.model.get_address_manager()
         for addressrecord in wam.get_all_addresses():
             if coloraddress == addressrecord.get_color_address():
-                return _print(addressrecord.get_private_key())
+                return addressrecord.get_private_key()
         raise AddressNotFound(coloraddress)
 
     @apigen.command()
@@ -292,7 +287,7 @@ class Ngccc(apigen.Definition):
         asset = sanitize.asset(self.model, moniker)
 
         addressrecords = self.controller.get_all_addresses(asset)
-        return _print(map(lambda ar: ar.get_private_key(), addressrecords))
+        return map(lambda ar: ar.get_private_key(), addressrecords)
 
     @apigen.command()
     def p2porders(self, moniker="", sellonly=False, buyonly=False):
@@ -305,7 +300,7 @@ class Ngccc(apigen.Definition):
         if moniker and moniker != 'bitcoin':
             asset = sanitize.asset(self.model, moniker)
 
-        return _print(self.controller.p2porders(asset, sellonly, buyonly))
+        return self.controller.p2porders(asset, sellonly, buyonly)
 
     @apigen.command()
     def p2psell(self, moniker, assetamount, btcprice, wait=30):
@@ -335,7 +330,7 @@ class Ngccc(apigen.Definition):
             moniker = asset.get_monikers()[0]
             return moniker, amount
         result = self.controller.get_txout_assetvalues(txid, outindex, asset)
-        return _print(dict(map(reformat, result)))
+        return dict(map(reformat, result))
 
     @apigen.command()
     def txoutvalue(self, txid, outindex, moniker):
@@ -369,10 +364,10 @@ class Ngccc(apigen.Definition):
         def reformat(utxo):
             return { 'txid' : utxo.txhash, 'outindex' : utxo.outindex }
         utxos, total = self.controller.get_utxos(asset, amount)
-        return _print({ 
+        return {
           'utxos' : map(reformat, utxos), 
           'total' : asset.format_value(total)
-        })
+        }
 
     @apigen.command()
     def createtx(self, inputs, targets, sign=False, publish=False):
@@ -388,23 +383,23 @@ class Ngccc(apigen.Definition):
         sign = sanitize.flag(sign)
         publish = sanitize.flag(publish)
 
-        return _print(self.controller.createtx(utxos, targets, sign, publish))
+        return self.controller.createtx(utxos, targets, sign, publish)
 
     @apigen.command()
-    def signrawtx(self, rawtx): # TODO test it
+    def signrawtx(self, rawtx):
         """ Sign raw transaction. """
 
         # sanitize inputs
         rawtx = sanitize.rawtx(rawtx)
 
-        return _print(self.controller.sign_rawtx(rawtx))
+        return self.controller.sign_rawtx(rawtx)
 
     @apigen.command()
-    def sendrawtx(self, rawtx): # TODO test it
+    def sendrawtx(self, rawtx):
         """ Publish raw transaction to bitcoin network. """
 
         # sanitize inputs
         rawtx = sanitize.rawtx(rawtx)
 
-        return _print(self.controller.publish_rawtx(rawtx))
+        return self.controller.publish_rawtx(rawtx)
 
