@@ -13,10 +13,10 @@ with open(os.path.join(here, 'README.md')) as f:
 requires = [
     'pycoin == 0.51',
     'bunch',
-    'python-jsonrpc',
+    'python-jsonrpc == 0.7.3',
     #'python-bitcoinaddress = 0.2.2',
     'python-bitcoinlib == 0.1.1',
-    'apigen',
+    'apigen == 0.1.6',
     'web.py',
 ]
 
