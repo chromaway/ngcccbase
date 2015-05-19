@@ -8,7 +8,7 @@ Starting and stopping chromawallet from the command line
 
 Path to the python you use (the python in the virtual environmnent if you use virtualenv, otherwise the system python)
 
-    </path/to/python> ngccc.py
+    </path/to/python> ngccc.py startserver
 
 Ctrl-c will stop the wallet. If that doesn't work, use the process manager on Windows to kill it. On linux you can do ps aux|grep 'ngccc.py' to find out the process number and then do:
 
