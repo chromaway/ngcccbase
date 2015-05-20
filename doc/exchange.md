@@ -32,9 +32,9 @@ Below is an example entry in the /etc/supervisorsuper/supervisord.conf file on a
 
     /home/a_user_name/chromawallet_virtual_env
 
-with the python intepreter in
+with the python interpreter in
 
-                                         ./bin/python
+                                         ./bin
 
 and the chromawallet script in
 
