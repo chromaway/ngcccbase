@@ -1,4 +1,6 @@
 #!/bin/bash
+# Make sure subshells also terminate
+trap "kill 0" SIGINT
 
 # setup virtualenv
 rm -rf /tmp/test_env # remove previous virtualenv
@@ -8,6 +10,10 @@ python setup.py develop # install packages
 
 # api tests
 python -m ngcccbase.tests.test_api
+# subshell, will terminate when parent gets SIGINT
+( python ngccc.py startserver)&
+sleep 5 # wait for server to be ready
+python -m ngcccbase.tests.test_json_api_server
 
 # coloredcoinlib tests
 python -m coloredcoinlib.tests.test_colormap
@@ -44,3 +50,4 @@ python -m ngcccbase.p2ptrade.tests.test_basic
 # FIXME python -m ngcccbase.tests.test_txcons
 # FIXME python -m ngcccbase.tests.test_blockchain
 
+kill -INT $BASHPID
