@@ -3,6 +3,7 @@
 import bitcoin
 import json
 import urllib2
+import threading
 from pycoin.tx.Tx import Tx
 from ngcccbase.blockchain import BaseStore
 from coloredcoinlib import CTransaction, BlockchainStateBase
@@ -19,10 +20,8 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         # init baseurl
         testnet_baseurl = "http://v1.testnet.bitcoin.chromanode.net"
         mainnet_baseurl = "http://v1.livenet.bitcoin.chromanode.net"
-        if baseurl:
-           self.baseurl = baseurl
-        else:
-           self.baseurl = testnet_baseurl if testnet else mainnet_baseurl
+        default_baseurl = testnet_baseurl if testnet else mainnet_baseurl
+        self.baseurl = baseurl if baseurl else default_baseurl
 
         # init caches
         self._cache_currentheight = 0
@@ -34,18 +33,19 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         self._cache_addresshistory = {} # address -> [txids]
         self._cache_addressutxo = {}    # address -> [txids]
 
-        # init notifications
-        self._notification_init()
-
         # init _cache_currentheight
         queryurl = "%s/v1/headers/latest" % self.baseurl
         self._update_cache_currentheight(self._query(queryurl)["height"])
 
-    def _notification_init(self):
-        # FIXME confirm this works!
-        self._socketIO = SocketIO(self.baseurl, 80, LoggingNamespace)
-        self._socketIO.emit('subscribe', 'new-block', self._on_newblock)
-        self._socketIO.wait(seconds=1)
+        # init notifications
+        self._socketIO = SocketIO(self.baseurl, 80)
+        self._socketIO.on('new-block', self._on_newblock)
+        self._socketIO.emit('subscribe', 'new-block')
+        self._socketIO_thread = threading.Thread(target=self._socketIO.wait)
+        self._socketIO_thread.start()
+
+    def connected(self):
+        return self._socketIO.connected
 
     def _update_cache_currentheight(self, currentheight):
         if currentheight != self._cache_currentheight:
@@ -53,8 +53,7 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
             self._cache_addressutxo = {} # clear in case of orphaned blocks
             self._cache_currentheight = currentheight
 
-    def _on_newblock(self, blockhash, blockheight):
-        print '_on_newblock', blockhash, blockheight
+    def _on_newblock(self, blockid, blockheight):
         self._update_cache_currentheight(blockheight)
 
     def _cancache(self, blockheight):
@@ -69,9 +68,6 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         if payload["status"] == "fail" and exceptiononfail:
             raise Exception("Chromanode error: %s!" % payload['data']['type'])
         return payload.get("data")
-
-    def connected(self):
-        return self._socketIO.connected
 
     def get_raw(self, txid):
         """ Return rawtx for given txid. """
