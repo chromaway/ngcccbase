@@ -16,8 +16,6 @@ Ctrl-c will stop the wallet. If that doesn't work, use the process manager on Wi
 
 Running chromawallet as a service/daemon
 ---------------
-[I have to check if this works, it usually works for python, but the GUI in chromawallet may give some trouble here. I put it in as a starting point]
-
 You can use supervisord for this.
 
 Supervisord is a framework for running processes and keeping them alive. Read more about it here: http://supervisord.org . Supervisord runs processes that think they are running in the foreground, such as ngccc.py but are in fact connected to supervisord. Supervisord can restart and otherwise manage ngccc.py, without the need for pid files or other such things.
