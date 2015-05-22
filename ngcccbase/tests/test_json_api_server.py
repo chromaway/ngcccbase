@@ -16,40 +16,47 @@ class TestJSONAPIServer(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def test_default_config(self):
+        """See to that server starts and pulls in config.json file"""
+
+        server = subprocess.Popen('python ngccc-server.py startserver', preexec_fn=os.setsid, shell=True)
+        time.sleep(4)
+        self.assertTrue(self.client.dumpconfig().has_key('testnet') )
+        # killing server, and its child process (that would be BaseHTTPServer)
+        os.killpg(os.getpgid(server.pid), signal.SIGTERM)
+
     def test_load_config_realnet(self):
+        """Start server with custom config on realnet"""
+
         config = {
                 "testnet": False,
                 "port": 8080,
                 "hostname": "localhost",
                 "wallet_path": "/tmp/realnet.wallet"
                   }
-
         with open('/tmp/config.json', 'w') as fi:
             json.dump(config, fi)
 
         server = subprocess.Popen('python ngccc-server.py startserver --config_path=/tmp/config.json', preexec_fn=os.setsid, shell=True)
         time.sleep(4)
-        dumped_config = self.client.dumpconfig()
-        self.assertTrue(dumped_config.has_key('testnet') )
-        self.assertFalse(dumped_config['testnet'])
-        # killing server, and its child process (that would be HTTPServer)
+        self.assertFalse(self.client.dumpconfig()['testnet'])
+        # killing server, and its child process (that would be BaseHTTPServer)
         os.killpg(os.getpgid(server.pid), signal.SIGTERM)
 
     def test_load_config_testnet(self):
+        """Start server with custom config on testnet"""
         config = {
                 "testnet": True,
                 "port": 8080,
                 "hostname": "localhost",
                 "wallet_path": "/tmp/testnet.wallet"
                   }
+        with open('/tmp/config.json', 'w') as fi:
+            json.dump(config, fi)
 
         server = subprocess.Popen('python ngccc-server.py startserver --config_path=/tmp/config.json', preexec_fn=os.setsid, shell=True)
         time.sleep(4)
-        with open('/tmp/config.json', 'w') as fi:
-            json.dump(config, fi)
-        dumped_config = self.client.dumpconfig()
-        self.assertTrue(dumped_config.has_key('testnet') )
-        self.assertFalse(dumped_config['testnet'])
+        self.assertTrue(self.client.dumpconfig()['testnet'])
 
         # killing server, and its child process (that would be HTTPServer)
         os.killpg(os.getpgid(server.pid), signal.SIGTERM)
