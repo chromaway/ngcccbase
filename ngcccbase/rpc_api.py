@@ -12,7 +12,8 @@ def parse_config(config_path):
 
 
 class Ngccc(base_api):
-    """Next-Generation Colored Coin Client RPC interface."""
+    """Next-Generation Colored Coin Client RPC interface. This must start with 
+       the startserver command, or it will not initialize properly"""
 
     def __init__(self):
         pass

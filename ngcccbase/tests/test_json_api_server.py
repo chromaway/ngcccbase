@@ -18,16 +18,13 @@ class TestJSONAPIServer(unittest.TestCase):
 
     def test_default_config(self):
         """See to that server starts and pulls in config.json file"""
-
         server = subprocess.Popen('python ngccc-server.py startserver', preexec_fn=os.setsid, shell=True)
         time.sleep(4)
         self.assertTrue(self.client.dumpconfig().has_key('testnet') )
-        # killing server, and its child process (that would be BaseHTTPServer)
         os.killpg(os.getpgid(server.pid), signal.SIGTERM)
 
     def test_load_config_realnet(self):
         """Start server with custom config on realnet"""
-
         config = {
                 "testnet": False,
                 "port": 8080,
@@ -40,7 +37,6 @@ class TestJSONAPIServer(unittest.TestCase):
         server = subprocess.Popen('python ngccc-server.py startserver --config_path=/tmp/config.json', preexec_fn=os.setsid, shell=True)
         time.sleep(4)
         self.assertFalse(self.client.dumpconfig()['testnet'])
-        # killing server, and its child process (that would be BaseHTTPServer)
         os.killpg(os.getpgid(server.pid), signal.SIGTERM)
 
     def test_load_config_testnet(self):
@@ -57,8 +53,6 @@ class TestJSONAPIServer(unittest.TestCase):
         server = subprocess.Popen('python ngccc-server.py startserver --config_path=/tmp/config.json', preexec_fn=os.setsid, shell=True)
         time.sleep(4)
         self.assertTrue(self.client.dumpconfig()['testnet'])
-
-        # killing server, and its child process (that would be HTTPServer)
         os.killpg(os.getpgid(server.pid), signal.SIGTERM)
 #
 if __name__ == '__main__':

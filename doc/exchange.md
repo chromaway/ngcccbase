@@ -108,4 +108,54 @@ Here is a nothing asset definition you can import [maybe we should have a faucet
 Creating an asset
 -----------------
 
-You can just play around with issuing assets, however for commercial use an asset obviously needs to be backed
+You can just play around with issuing assets, however for commercial use an asset obviously needs to be backed by someone
+
+Creating an asset on testnet
+----------------------
+
+Let's create an asset on testnet. in this case we will make a startup config for the server that puts the server on testnet:
+
+    {
+        "port": 8080,
+        "hostname": "localhost",
+        "wallet_path": "asset_test.wallet",
+        "testnet": true
+
+    }
+
+Save the config as "test_asset_config.json" The wallet will be created automatically on startup.
+
+Start the server with:
+
+    </path/to/python> ngccc-server.py startserver --config_path=test_asset_config.json
+
+Now it is time to create an asset. When creating an asset one decides decide it's moniker, the quantity and the unit of the asset, and you will get back an address that show where the definition of your asset got stored in the block chain.
+
+In this example we will create an asset for a fictional company, that has 1000 shares.
+
+issueasset - the procedure that creates the asset
+
+It will get the following parameters:
+
+moniker - a name the asset should be recognized under by the wallet. An asset can have several monikers. The first moniker given in a list is the primary moniker. If you only give one, that's the primary. The moniker is not stored in the blockchain but is saved in the wallet. It is your handle to manipulatimg the asset. Different assets in the world can have the same moniker but a wallet cannot have two assets by the same primary moniker. In this example we just give one moniker which will the be the primary, "fictive_co".
+
+quantity - the number of indiviiable quantities the asset can be traded in. As an example 1000 would mean the smallest unit you can trade is 1/1000 of the total asset. We choose 1000 here for 1000 shares in our fictive company, which shares you should be able to trade individually.
+
+unit - how much each smallest quantity represents. Can be 1 for example. In this case we have exactly 1000 shares, so the unit is set to 1, that is if you trade 1/1000 of the asset, that is exactly one share. If we wanted to issue ten million shares that can be traded in lots of 1000, then unit would be 1000 and quantity would be 10000.
+
+scheme - This has to do with how expressive we need the transactions to be. Set it to "epobc", the most expressive color scheme (the other possible value is "obc").
+
+The server is started, time to create the asset:
+
+
+    import pyjsonrpc
+
+    client = pyjsonrpc.HttpClient(url = "http://localhost:8080")
+
+    client.issueasset(moniker="fictive_co", quantity = 1000, unit = 1, scheme="epobc" )
+
+This will return some info on what happened
+
+
+
+
