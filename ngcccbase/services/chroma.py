@@ -99,9 +99,9 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         }
         """
         header = self.read_header(blockheight)
-        header["block_height"] = blockheight
+        header['block_height'] = blockheight
         return header
-
+        
     def read_raw_header(self, blockheight):
         """ Return rawheader for given blockheight. """
         urlargs = (self.baseurl, blockheight)
