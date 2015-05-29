@@ -1,14 +1,12 @@
 #!/usr/bin/env python
 
-import bitcoin
 import json
 import urllib2
 import threading
 from pycoin.tx.Tx import Tx
 from ngcccbase.blockchain import BaseStore
-from coloredcoinlib import CTransaction, BlockchainStateBase
-from socketIO_client import SocketIO, LoggingNamespace
-
+from coloredcoinlib import BlockchainStateBase
+from socketIO_client import SocketIO
 
 
 class ChromanodeInterface(BlockchainStateBase, BaseStore):
@@ -16,13 +14,15 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
     def __init__(self, baseurl=None, testnet=False):
 
         # init baseurl
+        # Chromanode api documentation.
+        # https://github.com/chromaway/chromanode/blob/master/docs/API_v1.md
         testnet_baseurl = "http://v1.testnet.bitcoin.chromanode.net"
         mainnet_baseurl = "http://v1.livenet.bitcoin.chromanode.net"
         default_baseurl = testnet_baseurl if testnet else mainnet_baseurl
         self.baseurl = baseurl if baseurl else default_baseurl
 
         # init caches
-        self._cache_rawtx = {} # txid -> rawtx
+        self._cache_rawtx = {}  # txid -> rawtx
         self._cache_currentheight = 0
         queryurl = "%s/v1/headers/latest" % self.baseurl
         self._update_cache_currentheight(self._query(queryurl)["height"])
@@ -34,6 +34,9 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         self._socketIO_thread = threading.Thread(target=self._socketIO.wait)
         self._socketIO_thread.start()
         # FIXME how is thread best stopped?
+
+    def __del__(self):
+        pass # FIXME stop _socketIO_thread and disconnect _socketIO
 
     def connected(self):
         return self._socketIO.connected
@@ -70,7 +73,7 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         result = self._query(url, exceptiononfail=False)
         if not result:
             return None, False
-        if result["source"] == "mempool": # unconfirmed
+        if result["source"] == "mempool":  # unconfirmed
             return None, True
         return result["block"]["hash"], True
 
@@ -85,7 +88,7 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         return self.get_block_height(blockid)
 
     def get_header(self, blockheight):
-        """ Return header for given blockheight. 
+        """ Return header for given blockheight.
         Header format: {
             'version':         int,
             'prev_block_hash': hash,
@@ -95,14 +98,17 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
             'nonce':           int,
         }
         """
-        return self.read_header(blockheight)
+        header = self.read_header(blockheight)
+        header["block_height"] = blockheight
+        return header
 
     def read_raw_header(self, blockheight):
         """ Return rawheader for given blockheight. """
-        url = "%s/v1/headers/query?from=%s&count=1" % (self.baseurl, blockheight)
+        urlargs = (self.baseurl, blockheight)
+        url = "%s/v1/headers/query?from=%s&count=1" % urlargs
         return self._query(url)["headers"]
 
-    def get_address_history(self, address): 
+    def get_address_history(self, address):
         """ Return list of txids where address was used. """
         url = "%s/v1/addresses/query?addresses=%s" % (self.baseurl, address)
         result = self._query(url)
@@ -114,14 +120,14 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         """ Return current blockchain height. """
         return self._cache_currentheight
 
-    def get_block_count(self): 
+    def get_block_count(self):
         """ Return current block count. """
         return self.get_height()
 
     def publish_tx(self, rawtx):
         """ Publish rawtx on bitcoin network and return txid. """
         url = "%s/v1/transactions/send" % self.baseurl
-        self._query(url, { "rawtx" : rawtx })
+        self._query(url, {"rawtx": rawtx})
         return Tx.tx_from_hex(rawtx).id()
 
     def get_utxo(self, address):
@@ -133,4 +139,8 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         self._update_cache_currentheight(result['latest']['height'])
         return txids
 
-
+    def get_chunk(self, index, chunksize=2016):
+        urlargs = (self.baseurl, index * chunksize, chunksize)
+        url = "%s/v1/headers/query?from=%s&count=%s" % urlargs
+        result = self._query(url)
+        return result["headers"]

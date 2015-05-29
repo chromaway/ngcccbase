@@ -66,7 +66,7 @@ class SimpleUTXOFetcher(BaseUTXOFetcher):
         for address_rec in wam.get_all_addresses():
             self.scan_address(address_rec.get_address())
 
-class AsyncUTXOFetcher(BaseUTXOFetcher):
+class AsyncUTXOFetcher(BaseUTXOFetcher): # FIXME subscribe to addresses instead
 
     def __init__(self, model, params):
         interface = self.make_interface(model, params)
