@@ -33,10 +33,10 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         self._socketIO.emit('subscribe', 'new-block')
         self._socketIO_thread = threading.Thread(target=self._socketIO.wait)
         self._socketIO_thread.start()
-        # FIXME how is thread best stopped?
 
     def __del__(self):
-        pass # FIXME stop _socketIO_thread and disconnect _socketIO
+        self._socketIO.disconnect()
+        self._socketIO_thread.stop()
 
     def connected(self):
         return self._socketIO.connected
