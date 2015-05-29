@@ -171,8 +171,6 @@ class Wallet(object):
         return MyEOffer(None, data['B'], data['A'])
 
     def stop_all(self):
-        self.update_connected_thread.stop()
-        self.update_connected_thread.join()
         self.async_utxo_fetcher.stop()
         self.p2ptrade_stop()
         if hasattr(self.model.txdb, 'vbs'):
