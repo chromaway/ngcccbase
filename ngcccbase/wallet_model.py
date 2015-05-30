@@ -54,9 +54,10 @@ class CoinQueryFactory(object):
 class WalletModel(object):
     """Represents a colored-coin wallet
     """
-    def __init__(self, config, store_conn):
+    def __init__(self, config, store_conn, use_naivetxdb=False):
         """Creates a new wallet given a configuration <config>
         """
+        self.use_naivetxdb = use_naivetxdb
         self.store_conn = store_conn  # hackish!
         self.testnet = config.get('testnet', False)
         self.init_blockchain_state(config)
@@ -80,7 +81,7 @@ class WalletModel(object):
             self.address_man = DWalletAddressManager(self.ccc.colormap, config)
 
     def init_tx_db(self, config):
-        if config.get('use_naivetxdb'):
+        if config.get('use_naivetxdb') or self.use_naivetxdb or True:
             self.txdb = NaiveTxDb(self, config)
         else:
             self.txdb = VerifiedTxDb(self, config)

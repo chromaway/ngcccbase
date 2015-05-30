@@ -18,7 +18,7 @@ class AddressNotFound(Exception):
 class Ngccc(apigen.Definition):
     """Next-Generation Colored Coin Client interface."""
 
-    def __init__(self, wallet=None, testnet=False):
+    def __init__(self, wallet=None, testnet=False, use_naivetxdb=False):
 
         # sanitize inputs
         testnet = sanitize.flag(testnet)
@@ -26,7 +26,8 @@ class Ngccc(apigen.Definition):
         if not wallet:
             wallet = "%s.wallet" % ("testnet" if testnet else "mainnet")
 
-        self.wallet = PersistentWallet(wallet, testnet)
+        self.wallet = PersistentWallet(wallet, testnet, 
+                                       use_naivetxdb=use_naivetxdb)
         self.model_is_initialized = False
 
     def __getattribute__(self, name):

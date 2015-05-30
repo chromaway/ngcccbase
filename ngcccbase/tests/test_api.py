@@ -5,12 +5,12 @@ import unittest
 
 from ngcccbase.api import Ngccc
 
-#@unittest.skip("broken")
 
 class TestSignrawtx(unittest.TestCase):
 
     def setUp(self):
-        self.api = Ngccc(wallet="ngcccbase/tests/unittest.wallet", testnet=True)
+        self.api = Ngccc(wallet="ngcccbase/tests/unittest.wallet",
+                         testnet=True, use_naivetxdb=True)
 
     def test_sign_uncolored(self):
         unsigned = "0100000001ef5b2eb4b9b0c10449cbabedca45709135d457a04dabd33c1068aaf86562a72b0200000000ffffffff0240420f00000000001976a91491cc9812ca45e7209ff9364ce96527a7c49f1f3188ac3e770400000000001976a9142e330c36e1d0f199fd91446f2210209a0d35caef88ac00000000"
@@ -34,16 +34,17 @@ class TestSignrawtx(unittest.TestCase):
 class TestCreatetx(unittest.TestCase):
 
     def setUp(self):
-        self.api = Ngccc(wallet="ngcccbase/tests/unittest.wallet", testnet=True)
+        self.api = Ngccc(wallet="ngcccbase/tests/unittest.wallet",
+                         testnet=True, use_naivetxdb=True)
 
     def test_sign_uncolored(self):
         inputs = """[{
-          "outindex": "2", 
+          "outindex": "2",
           "txid": "2ba76265f8aa68103cd3ab4da057d435917045caedabcb4904c1b0b9b42e5bef"
         }]"""
         targets = """[{
           "moniker" : "bitcoin",
-          "amount" : "0.01",          
+          "amount" : "0.01",
           "coloraddress" : "mtosNK4tJzrePxM7tb2V2zTxYyJUW4xx83"
         }]"""
         output = self.api.createtx(inputs, targets, sign=True)
@@ -52,12 +53,12 @@ class TestCreatetx(unittest.TestCase):
 
     def test_uncolored(self):
         inputs = """[{
-          "outindex": "2", 
+          "outindex": "2",
           "txid": "2ba76265f8aa68103cd3ab4da057d435917045caedabcb4904c1b0b9b42e5bef"
         }]"""
         targets = """[{
           "moniker" : "bitcoin",
-          "amount" : "0.01",          
+          "amount" : "0.01",
           "coloraddress" : "mtosNK4tJzrePxM7tb2V2zTxYyJUW4xx83"
         }]"""
         output = self.api.createtx(inputs, targets)
@@ -66,7 +67,7 @@ class TestCreatetx(unittest.TestCase):
 
     def test_epobc(self):
         inputs = """[{
-          "outindex": "1", 
+          "outindex": "1",
           "txid": "00983ae91d3169a4e86754f277c57cf111593432820050d1430f06e6d9ef11f4"
         }]"""
         targets = """[{
@@ -80,7 +81,7 @@ class TestCreatetx(unittest.TestCase):
 
     def test_sign_epobc(self):
         inputs = """[{
-          "outindex": "1", 
+          "outindex": "1",
           "txid": "00983ae91d3169a4e86754f277c57cf111593432820050d1430f06e6d9ef11f4"
         }]"""
         targets = """[{
@@ -94,7 +95,7 @@ class TestCreatetx(unittest.TestCase):
 
     def test_obc(self):
         inputs = """[{
-          "outindex": "1", 
+          "outindex": "1",
           "txid": "646ec338b2920ba3e87c484122b0363c57cccccc9858ca8aa86b176279382d0f"
         }]"""
         targets = """[{
@@ -109,7 +110,7 @@ class TestCreatetx(unittest.TestCase):
 
     def test_sign_obc(self):
         inputs = """[{
-          "outindex": "1", 
+          "outindex": "1",
           "txid": "646ec338b2920ba3e87c484122b0363c57cccccc9858ca8aa86b176279382d0f"
         }]"""
         targets = """[{
@@ -126,8 +127,9 @@ class TestCreatetx(unittest.TestCase):
 class TestTxoutvalue(unittest.TestCase):
 
     def setUp(self):
-        self.api = Ngccc(wallet="ngcccbase/tests/unittest.wallet", testnet=True)
-    
+        self.api = Ngccc(wallet="ngcccbase/tests/unittest.wallet",
+                         testnet=True, use_naivetxdb=True)
+
     def test_uncolored(self):
         txid = "2ba76265f8aa68103cd3ab4da057d435917045caedabcb4904c1b0b9b42e5bef"
         outindex = 2
