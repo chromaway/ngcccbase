@@ -80,7 +80,7 @@ class WalletModel(object):
             self.address_man = DWalletAddressManager(self.ccc.colormap, config)
 
     def init_tx_db(self, config):
-        if self.testnet:
+        if config.get('use_naivetxdb'):
             self.txdb = NaiveTxDb(self, config)
         else:
             self.txdb = VerifiedTxDb(self, config)

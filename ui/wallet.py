@@ -48,23 +48,8 @@ class Wallet(object):
         self.async_utxo_fetcher = AsyncUTXOFetcher(
             self.model, self.wallet.wallet_config.get('utxo_fetcher', {}))
 
-        self.update_connected_thread = TimedAsyncTask(self.update_connected, 2.5)
-        self.update_connected_thread.start()
-        self.update_connected()
-
     def connected(self):
-        return self.is_connected
-
-    def update_connected(self):
-        try:
-            for moniker in self.get_all_monikers():
-                asset = self.get_asset_definition(moniker)
-                address = self.get_some_address(asset)
-                total_balance = self.get_total_balance(asset)
-            self.is_connected = self.async_utxo_fetcher.interface.connected()
-        except:
-            self.is_connected = False
-            raise
+        return self.async_utxo_fetcher.interface.connected()
 
     def get_asset_definition(self, moniker):
         if type(moniker) not in [type(u"unicode"), type("str")]: # XXX
@@ -186,8 +171,6 @@ class Wallet(object):
         return MyEOffer(None, data['B'], data['A'])
 
     def stop_all(self):
-        self.update_connected_thread.stop()
-        self.update_connected_thread.join()
         self.async_utxo_fetcher.stop()
         self.p2ptrade_stop()
         if hasattr(self.model.txdb, 'vbs'):
