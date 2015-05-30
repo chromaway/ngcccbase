@@ -7,8 +7,10 @@ import subprocess
 import time
 import json
 import pyjsonrpc
+from ngcccbase import sanitize
 
-class TestJSONAPIServer(unittest.TestCase):        
+
+class TestJSONAPIServer(unittest.TestCase):   
 
     def setUp(self):
         self.client = pyjsonrpc.HttpClient(url = "http://localhost:8080")
@@ -39,6 +41,9 @@ class TestJSONAPIServer(unittest.TestCase):
         self.assertFalse(self.client.dumpconfig()['testnet'])
         os.killpg(os.getpgid(server.pid), signal.SIGTERM)
 
+
+
+
     def test_load_config_testnet(self):
         """Start server with custom config on testnet"""
         config = {
@@ -54,7 +59,26 @@ class TestJSONAPIServer(unittest.TestCase):
         time.sleep(4)
         self.assertTrue(self.client.dumpconfig()['testnet'])
         os.killpg(os.getpgid(server.pid), signal.SIGTERM)
-#
+
+    def test_get_new_bitcoin_address(self):
+        """Start server with custom config on realnet"""
+        config = {
+                "testnet": False,
+                "port": 8080,
+                "hostname": "localhost",
+                "wallet_path": "/tmp/realnet.wallet"
+                  }
+        with open('/tmp/config.json', 'w') as fi:
+            json.dump(config, fi)
+
+        server = subprocess.Popen('python ngccc-server.py startserver --config_path=/tmp/config.json', preexec_fn=os.setsid, shell=True)
+        time.sleep(4)
+        res = self.client.newaddress('bitcoin')
+        self.assertEqual(len(res), 34) # may want a better test, with e.g. python-bitcoinaddress package
+        self. assertTrue(sanitize.bitcoin_address(res))
+        os.killpg(os.getpgid(server.pid), signal.SIGTERM)
+# #
+
 if __name__ == '__main__':
     unittest.main()
 

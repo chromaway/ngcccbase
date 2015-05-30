@@ -6,6 +6,7 @@ import csv
 from decimal import Decimal
 from ngcccbase.address import coloraddress_to_bitcoinaddress
 
+base58set = set('123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz')
 
 class InvalidInput(Exception): pass
 
@@ -187,3 +188,6 @@ def targets(model, targets):
     return map(reformat, json.loads(targets))
 
 
+def bitcoin_address(address):
+    address_set = set(address)
+    return address_set.issubset(base58set)
