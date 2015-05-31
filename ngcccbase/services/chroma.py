@@ -27,16 +27,20 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         queryurl = "%s/v1/headers/latest" % self.baseurl
         self._update_cache_currentheight(self._query(queryurl)["height"])
 
-        # init notifications
+        self.connect()
+
+    def connect(self):
         self._socketIO = SocketIO(self.baseurl, 80)
         self._socketIO.on('new-block', self._on_newblock)
         self._socketIO.emit('subscribe', 'new-block')
         self._socketIO_thread = threading.Thread(target=self._socketIO.wait)
         self._socketIO_thread.start()
 
-    def __del__(self):
+    def disconnect(self):
+        # XXX FIXME hackish!
         self._socketIO.disconnect()
-        self._socketIO_thread.stop()
+        self._socketIO_thread.join()
+        self._socketIO.disconnect()
 
     def connected(self):
         return self._socketIO.connected

@@ -33,6 +33,9 @@ class TestWalletModel(unittest.TestCase):
             ).get_asset_by_moniker('bitcoin')
         self.cqf = self.model.get_coin_query_factory()
 
+    def tearDown(self):
+        self.pwallet.disconnect()
+
     def test_get_tx_db(self):
         self.assertTrue(isinstance(self.model.get_tx_db(), TxDb))
 
@@ -99,6 +102,8 @@ class TestWalletModel(unittest.TestCase):
 
         history = self.model.get_history_for_asset(asset)
         self.assertTrue(len(history) > 30)
+        self.pwallet.disconnect() # FIXME bug?
+
 
 
 if __name__ == '__main__':

@@ -30,6 +30,9 @@ class Ngccc(apigen.Definition):
                                        use_naivetxdb=use_naivetxdb)
         self.model_is_initialized = False
 
+    def __del__(self): # FIXME howt to test?
+        self.wallet.disconnect()
+
     def __getattribute__(self, name):
         if name in ['controller', 'model']:
             if not self.model_is_initialized:

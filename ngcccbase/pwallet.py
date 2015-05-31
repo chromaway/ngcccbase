@@ -56,6 +56,9 @@ class PersistentWallet(object):
         self.wallet_model = WalletModel(self.wallet_config, self.store_conn,
                                         use_naivetxdb=self.use_naivetxdb)
 
+    def disconnect(self):
+        self.wallet_model.disconnect()
+
     def initialize_new_wallet(self, testnet):
         """New wallets are born in testnet mode until we have a version 
         which is safe to be used on mainnet.

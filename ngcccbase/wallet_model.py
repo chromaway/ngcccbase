@@ -98,6 +98,11 @@ class WalletModel(object):
         else: # use bitcoind api (full node)
             self.blockchain_state = BlockchainState.from_url(None, self.testnet)
 
+    def disconnect(self):
+        # FIXME check instance is ChromanodeInterface
+        self.blockchain_state.disconnect()
+        self.utxo_fetcher.disconnect()
+
     def get_blockchain_state(self):
         return self.blockchain_state
 
