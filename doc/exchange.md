@@ -79,6 +79,7 @@ The file is called chromawallet.conf in this example and the user it should run 
 
 
 You can then re-start supervisord to load the new settings: 
+
     sudo service supervisor restart
 
 Testing that the server is up
@@ -96,65 +97,82 @@ Example in python with pyjsonrpc:
 
 pyjsonrpc can be found at  ( https://pypi.python.org/pypi/python-jsonrpc )
 
+Creating an asset
+-------------------
+In order to create an asset with colored coins, you must let the software make a genesis transaction in bitcoins. The genesis transaction marks the transacted coins as colored coins, representing your asset. First we must therefore transfer bitcoin into the wallet, so that the wallet has some bitcoin it can use to create a genesis transaction.
+
+Real bitcoins or testnet bitcoins?
+You can use either for this example. If using real bitcoins, you will lose a bit in transaction fees. If using testnet bitcoins, transactions may be a bit slow, and slow down your work through this tutorial. Make sure the server you have started is configured for real or testnet bitcoins, as per your preferences.
+
+The value of bitcoins in the transaction are not proportional to the value of your asset, you just need to put in enough bitcoin to represent your asset and it's parts. Let's say that we are issuing shares in the Foo company ("Foo, Inc.). The Foo company has 1000 ordinary shares. So we need to issue an asset that can be divided, and bought and sold in 1000 individual parts. 
+
+First check if there is already a bitcoin address in the wallet:
+
+    client.listaddresses('bitcoin')
+
+If it returned a bitcoin address, you can use that. However if you are using a pristine wallet, you must create an address:
+
+    client.newaddress('bitcoin')
+
+
+Now transfer the needed amount, which should be above 0.001 btc, (also called 1mBTC or 1000 bits). Make sure to add a transfer fee on top of that so that the full 1mBTC actually does arrive in the wallet.
+
+You should now be able to issue an asset of 1000 shares in "Foo, Inc."
+
+    client.issueasset('foo_inc', 1000)
+
+You have just created your first asset. 
+This asset resides on a coloraddress. A coloraddress is simply a bitcoin address with some info added on what asset is issued there.
+
+'issueasset' has the following parameters:
+
+moniker - a name the asset should be recognized under by the wallet. An asset can have several monikers. The first moniker given in a list is the primary moniker. If you only give one, that's the primary. The moniker is not stored in the blockchain but is saved in the wallet. It is your handle to manipulatimg the asset. Different assets in the world can have the same moniker but a wallet cannot have two assets by the same primary moniker. In this example we just give one moniker which will the be the primary, "fictive_co".
+
+quantity - the number of indivisable quantities the asset can be traded in. As an example 1000 would mean the smallest unit you can trade is 1/1000 of the total asset. We choose 1000 here for 1000 shares in our fictive company, which shares you should be able to trade individually.
+
+unit (optional) - how much each smallest quantity represents. Can be 1 for example. In this case we have exactly 1000 shares, so the unit is set to 1, that is if you trade 1/1000 of the asset, that is exactly one share. If we wanted to issue ten million shares that can be traded in lots of 1000, then unit would be 1000 and quantity would be 10000.
+
+scheme (optional) - This has to do with how expressive we need the transactions to be. Set it to "epobc", the most expressive color scheme (the other possible value is "obc").
+
+
+    client.issueasset(moniker="fictive_co", quantity = 1000, unit = 1, scheme="epobc" )
+
+Exporting an asset definition
+-----------------------------
+
+You can now export a JSON file that contains the definition of your asset.
+
+    client.getasset('foo_inc')
+
+This should return JSON data that can be used for backing up the asset definition, and for sharing the asset definition with other wallets.
+
+Exporting a 
+
+Transfer 10 shares of the "Foo, Inc." company to someone else.
+-----------------------------------------------
+
+    send(moniker, coloraddress, amount)
+
+So in this case it will be:
+
+    client.send('foo_inc', <coloraddress>, 10)
+
+You can use our coloradress
+
 
 Importing an asset definition
 -------------------
+
+In every day use for e.g. an exchange it will be more common to import an asset than to create a new one. Assets are transferred in JSON format. Here is an example of an asset.
 
 For real-world use, verify with the issuer what it is they're issuing.
 
 Here is a nothing asset definition you can import [maybe we should have a faucet for a nothing asset, so that exchanges have something to import? That would mean having an extra server up, though.]:
 
 
-Creating an asset
------------------
-
-You can just play around with issuing assets, however for commercial use an asset obviously needs to be backed by someone
-
-Creating an asset on testnet
-----------------------
-
-Let's create an asset on testnet. in this case we will make a startup config for the server that puts the server on testnet:
-
-    {
-        "port": 8080,
-        "hostname": "localhost",
-        "wallet_path": "asset_test.wallet",
-        "testnet": true
-
-    }
-
-Save the config as "test_asset_config.json" The wallet will be created automatically on startup.
-
-Start the server with:
-
-    </path/to/python> ngccc-server.py startserver --config_path=test_asset_config.json
-
-Now it is time to create an asset. When creating an asset one decides decide it's moniker, the quantity and the unit of the asset, and you will get back an address that show where the definition of your asset got stored in the block chain.
-
-In this example we will create an asset for a fictional company, that has 1000 shares.
-
-issueasset - the procedure that creates the asset
-
-It will get the following parameters:
-
-moniker - a name the asset should be recognized under by the wallet. An asset can have several monikers. The first moniker given in a list is the primary moniker. If you only give one, that's the primary. The moniker is not stored in the blockchain but is saved in the wallet. It is your handle to manipulatimg the asset. Different assets in the world can have the same moniker but a wallet cannot have two assets by the same primary moniker. In this example we just give one moniker which will the be the primary, "fictive_co".
-
-quantity - the number of indivisable quantities the asset can be traded in. As an example 1000 would mean the smallest unit you can trade is 1/1000 of the total asset. We choose 1000 here for 1000 shares in our fictive company, which shares you should be able to trade individually.
-
-unit - how much each smallest quantity represents. Can be 1 for example. In this case we have exactly 1000 shares, so the unit is set to 1, that is if you trade 1/1000 of the asset, that is exactly one share. If we wanted to issue ten million shares that can be traded in lots of 1000, then unit would be 1000 and quantity would be 10000.
-
-scheme - This has to do with how expressive we need the transactions to be. Set it to "epobc", the most expressive color scheme (the other possible value is "obc").
-
-The server is started, time to create the asset:
 
 
-    import pyjsonrpc
 
-    client = pyjsonrpc.HttpClient(url = "http://localhost:8080")
-
-    client.issueasset(moniker="fictive_co", quantity = 1000, unit = 1, scheme="epobc" )
-
-This will return some info on what happened
 
 
 
