@@ -105,7 +105,7 @@ class Ngccc(apigen.Definition):
         return self.getasset(data['monikers'][0])
 
     @apigen.command()
-    def addasset(self, moniker, color_description, unit=100000000):
+    def addasset(self, moniker, color_description, unit=1):
         """Add a asset definition.
         Enables the use of colors/assets issued by others.
         """
