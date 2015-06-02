@@ -37,7 +37,7 @@ class DeterministicAddressRecord(AddressRecord):
         self.address = public_pair_to_bitcoin_address(
             self.publicPoint.pair(),
             compressed=False,
-            address_prefix=self.prefix
+            address_prefix=self.addressprefix
         )
 
 class DWalletAddressManager(object):
@@ -90,12 +90,15 @@ class DWalletAddressManager(object):
                 self.addresses.append(DeterministicAddressRecord(**params))
 
         # import the one-off addresses from the config
-        for addr_params in config.get('addresses', []):
-            addr_params['testnet'] = self.testnet
-            addr_params['color_set'] = ColorSet(self.colormap,
-                                                addr_params['color_set'])
-            address = LooseAddressRecord(**addr_params)
-            self.addresses.append(address)
+        map(self.add_loose_address, config.get('addresses', []))
+
+    def add_loose_address(self, addr_params):
+        addr_params['testnet'] = self.testnet
+        addr_params['color_set'] = ColorSet(self.colormap,
+                                            addr_params['color_set'])
+        address = LooseAddressRecord(**addr_params)
+        self.addresses.append(address)
+        return address
 
     def init_new_wallet(self):
         """Initialize the configuration if this is the first time
