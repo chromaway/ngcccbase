@@ -31,7 +31,9 @@ class Ngccc(apigen.Definition):
         self.model_is_initialized = False
 
     def __del__(self): # FIXME howt to test?
-        self.wallet.disconnect()
+        if self.wallet:
+            self.wallet.disconnect()
+            self.wallet = None
 
     def __getattribute__(self, name):
         if name in ['controller', 'model']:
