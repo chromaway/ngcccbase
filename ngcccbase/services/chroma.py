@@ -37,10 +37,8 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         self._socketIO_thread.start()
 
     def disconnect(self):
-        # XXX FIXME hackish!
         self._socketIO.disconnect()
         self._socketIO_thread.join()
-        self._socketIO.disconnect()
 
     def connected(self):
         return self._socketIO.connected
