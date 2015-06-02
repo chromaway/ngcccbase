@@ -36,19 +36,12 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         self._socketIO_thread = threading.Thread(target=self._socketIO.wait)
         self._socketIO_thread.start()
 
-    def disconnect(self):
-        self._socketIO.disconnect()
-        self._socketIO_thread.join()
-
     def connected(self):
         return self._socketIO.connected
 
-    def _update_cache_currentheight(self, currentheight):
-        if currentheight != self._cache_currentheight:
-            self._cache_currentheight = currentheight
-
-    def _on_newblock(self, blockid, blockheight):
-        self._update_cache_currentheight(blockheight)
+    def disconnect(self):
+        self._socketIO.disconnect()
+        self._socketIO_thread.join()
 
     def _query(self, url, data=None, exceptiononfail=True):
         header = {'Content-Type': 'application/json'}
@@ -59,6 +52,22 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         if payload["status"] == "fail" and exceptiononfail:
             raise Exception("Chromanode error: %s!" % payload['data']['type'])
         return payload.get("data")
+
+    def _update_cache_currentheight(self, currentheight):
+        if currentheight != self._cache_currentheight:
+            self._cache_currentheight = currentheight
+
+    def _on_newblock(self, blockid, blockheight):
+        self._update_cache_currentheight(blockheight)
+
+    def get_merkle(self, txid):
+        url = "%s/v1/transactions/merkle?txid=%s" % (self.baseurl, txid)
+        result = self._query(url)
+        return {
+            "merkle": result["block"]["merkle"],
+            "block_height": result["block"]["height"],
+            "pos": result["block"]["index"]
+        }
 
     def get_raw(self, txid):
         """ Return rawtx for given txid. """

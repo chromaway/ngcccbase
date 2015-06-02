@@ -30,7 +30,7 @@ class Ngccc(apigen.Definition):
                                        use_naivetxdb=use_naivetxdb)
         self.model_is_initialized = False
 
-    def __del__(self): # FIXME howt to test?
+    def __del__(self):
         if self.wallet:
             self.wallet.disconnect()
             self.wallet = None
