@@ -43,7 +43,7 @@ class TestJSONAPIServer(unittest.TestCase):
                 "testnet": False,
                 "port": 8080,
                 "hostname": "localhost",
-                "wallet_path": "/tmp/realnet.wallet"
+                "wallet_path": self.working_dir + "/realnet.wallet"
                   }
         with open(config_path, 'w') as fi:
             json.dump(config, fi)
