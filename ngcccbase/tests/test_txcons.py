@@ -94,6 +94,9 @@ class TestTxcons(unittest.TestCase):
         self.blockhash = '00000000c927c5d0ee1ca362f912f83c462f644e695337ce3731b9f7c5d1ca8c'
         self.txhash = '4fe45a5ba31bab1e244114c4555d9070044c73c98636231c77657022d76b87f7'
 
+    def tearDown(self):
+        self.pwallet.disconnect()
+
     def test_basic(self):
         self.assertRaises(InvalidTargetError, self.basic.is_monocolor)
         self.assertRaises(InvalidTargetError,

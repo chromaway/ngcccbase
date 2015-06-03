@@ -5,10 +5,12 @@ import json
 import csv
 from decimal import Decimal
 from ngcccbase.address import coloraddress_to_bitcoinaddress
+from pycoin.key import validate
 
 base58set = set('123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz')
 
-class InvalidInput(Exception): pass
+class InvalidInput(Exception):
+    pass
 
 
 class AssetNotFound(InvalidInput):
@@ -17,7 +19,7 @@ class AssetNotFound(InvalidInput):
 
 
 class SchemeNotFound(InvalidInput):
-    def __init__(scheme):
+    def __init__(self, scheme):
         super(SchemeNotFound, self).__init__("Scheme '%s' not found!" % scheme)
 
 
@@ -26,7 +28,7 @@ def asset(model, _moniker):
     adm = model.get_asset_definition_manager()
     asset = adm.get_asset_by_moniker(_moniker)
     if not asset:
-      raise AssetNotFound(_moniker)
+        raise AssetNotFound(_moniker)
     return asset
 
 
@@ -34,7 +36,7 @@ def decimal(decimal):
     return Decimal(decimal)
 
 
-def quantity(quantity): # asset unknown
+def quantity(quantity):  # asset unknown
     quantity = decimal(quantity)
     if quantity < Decimal("0"):
         raise InvalidInput("Quantity must be > 0!")
@@ -93,14 +95,15 @@ def cfgkey(key):
 def cfgvalue(value):
     return value
 
+
 def txid(txid):
-    if not re.match("^[0-9a-f]+$", txid): # TODO better validation
+    if not re.match("^[0-9a-f]+$", txid):  # TODO better validation
         raise InvalidInput("Invalid txid!")
     return txid
 
 
 def rawtx(rawtx):
-    if not re.match("^[0-9a-f]+$", rawtx): # TODO better validation
+    if not re.match("^[0-9a-f]+$", rawtx):  # TODO better validation
         raise InvalidInput("Invalid rawtx!")
     return rawtx
 
@@ -116,7 +119,7 @@ def jsonasset(data):
     monikers = [moniker(m) for m in data['monikers']]
     color_set = [colordesc(cd) for cd in data['color_set']]
     _unit = unit(data['unit'])
-    return { 'monikers' : monikers, 'color_set' : color_set, 'unit' : _unit }
+    return {'monikers': monikers, 'color_set': color_set, 'unit': _unit}
 
 
 def coloraddress(model, asset, coloraddress):
@@ -154,7 +157,7 @@ def sendmanycsv(model, path):
 
 
 def _sanitize_csv_input(model, csvvalues, row):
-    if len(csvvalues) != 3: # must have three entries
+    if len(csvvalues) != 3:  # must have three entries
         msg = ("CSV entry must have three values 'moniker,address,amount'. "
                "Row %s has %s values!")
         raise InvalidInput(msg % (row, len(csvvalues)))
@@ -169,8 +172,8 @@ def _sanitize_csv_input(model, csvvalues, row):
 def utxos(utxos):
     def reformat(utxo):
         return {
-            'txid' : txid(utxo['txid']),
-            'outindex' : positiveinteger(utxo['outindex'])
+            'txid': txid(utxo['txid']),
+            'outindex': positiveinteger(utxo['outindex'])
         }
     return map(reformat, json.loads(utxos))
 
@@ -180,10 +183,10 @@ def targets(model, targets):
         _asset = asset(model, target["moniker"])
         _amount = assetamount(_asset, target["amount"])
         _address = coloraddress(model, _asset, target["coloraddress"])
-        return { 
-            "asset" : _asset, 
-            "amount" : _amount, 
-            "coloraddress" : _address 
+        return {
+            "asset": _asset,
+            "amount": _amount,
+            "coloraddress": _address
         }
     return map(reformat, json.loads(targets))
 
@@ -191,3 +194,14 @@ def targets(model, targets):
 def bitcoin_address(address):
     address_set = set(address)
     return address_set.issubset(base58set)
+
+def wif(testnet, wif):
+    netcode = 'XTN' if testnet else 'BTC'
+    if not validate.is_wif_valid(wif, allowable_netcodes=[netcode]):
+        raise InvalidInput("Invalid wif!")
+    return wif
+
+
+def wifs(testnet, wifs):
+    wifs = json.loads(wifs)
+    return map(lambda w: wif(testnet, w), wifs)

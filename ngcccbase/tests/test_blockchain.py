@@ -21,7 +21,7 @@ class TestVerifierBlockchainState(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         #shutil.rmtree(cls.tempdir)
-        pass
+        cls.pwallet.disconnect()
 
     def test_(self):
         pass

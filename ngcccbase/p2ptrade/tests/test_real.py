@@ -32,6 +32,9 @@ class TestRealP2PTrade(unittest.TestCase):
         self.pwallet.init_model()
         self.wctrl = WalletController(self.pwallet.wallet_model)
 
+    def tearDown(self):
+        self.pwallet.disconnect()
+
     def test_real(self):
         ewctrl = EWalletController(self.pwallet.get_model(), self.wctrl)
         config = {"offer_expiry_interval": 30,

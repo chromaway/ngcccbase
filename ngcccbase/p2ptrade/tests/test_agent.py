@@ -62,6 +62,9 @@ class TestAgent(unittest.TestCase):
         self.offer0 = MyEOffer(None, self.cv0, self.cv1)
         self.offer1 = MyEOffer(None, self.cv1, self.cv0)
 
+    def tearDown(self):
+        self.pwallet.disconnect()
+
     def test_set_event_handler(self):
         tmp = { 'test': 0}
         def handler(val):

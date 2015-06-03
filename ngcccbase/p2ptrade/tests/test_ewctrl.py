@@ -29,6 +29,9 @@ class TestEWalletController(unittest.TestCase):
             pass
         self.wc.publish_tx = null
 
+    def tearDown(self):
+        self.pwallet.disconnect()
+
     def test_resolve_color_spec(self):
         self.cd =self.ewc.resolve_color_spec('')
         self.assertRaises(KeyError, self.ewc.resolve_color_spec, 'nonexistent')

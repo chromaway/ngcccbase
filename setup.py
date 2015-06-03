@@ -11,12 +11,16 @@ with open(os.path.join(here, 'README.md')) as f:
 
 requires = [
     'pycoin == 0.51',
-    'bunch',
+    'bunch == 1.0.1',
     'python-jsonrpc == 0.7.3',
     'python-bitcoinlib == 0.1.1',
-    'socketIO-client == 0.6.3',
+    'socketIO-client == 0.6.5',
     'apigen == 0.1.6',
-    'web.py',
+    'web.py == 0.37',
+    'six == 1.9.0',
+    'requests == 2.7.0',
+    'argparse == 1.2.1',
+    'websocket-client == 0.30.0',
 ]
 
 dependency_links = [

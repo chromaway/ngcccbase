@@ -173,6 +173,7 @@ class Wallet(object):
     def stop_all(self):
         self.async_utxo_fetcher.stop()
         self.p2ptrade_stop()
+        self.wallet.disconnect()
         if hasattr(self.model.txdb, 'vbs'):
             self.model.txdb.vbs.stop()
 

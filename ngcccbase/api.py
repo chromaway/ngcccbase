@@ -1,6 +1,5 @@
 
 
-import json
 import apigen
 from time import sleep
 from ngcccbase import sanitize
@@ -18,16 +17,22 @@ class AddressNotFound(Exception):
 class Ngccc(apigen.Definition):
     """Next-Generation Colored Coin Client interface."""
 
-    def __init__(self, wallet=None, testnet=False):
+    def __init__(self, wallet=None, testnet=False, use_naivetxdb=False):
 
         # sanitize inputs
-        testnet = sanitize.flag(testnet)
+        self.testnet = sanitize.flag(testnet)
 
         if not wallet:
-            wallet = "%s.wallet" % ("testnet" if testnet else "mainnet")
+            wallet = "%s.wallet" % ("testnet" if self.testnet else "mainnet")
 
-        self.wallet = PersistentWallet(wallet, testnet)
+        self.wallet = PersistentWallet(wallet, self.testnet,
+                                       use_naivetxdb=use_naivetxdb)
         self.model_is_initialized = False
+
+    def __del__(self):
+        if self.wallet:
+            self.wallet.disconnect()
+            self.wallet = None
 
     def __getattribute__(self, name):
         if name in ['controller', 'model']:
@@ -38,7 +43,6 @@ class Ngccc(apigen.Definition):
                 self.model = model
                 self.model_is_initialized = True
         return object.__getattribute__(self, name)
-
 
     @apigen.command()
     def setconfigval(self, key, value):
@@ -51,7 +55,6 @@ class Ngccc(apigen.Definition):
         value = sanitize.cfgvalue(value)
 
         self.wallet.setconfigval(key, value)
-
 
     @apigen.command()
     def getconfigval(self, key):
@@ -75,7 +78,7 @@ class Ngccc(apigen.Definition):
         self.wallet.importconfig(path)
 
     @apigen.command()
-    def issueasset(self, moniker, quantity, unit="100000000", scheme="epobc"):
+    def issueasset(self, moniker, quantity, unit="1", scheme="epobc"):
         """ Issue <quantity> of asset with name <moniker> and <unit> atoms,
         based on <scheme (epobc|obc)>."""
 
@@ -101,7 +104,7 @@ class Ngccc(apigen.Definition):
         return self.getasset(data['monikers'][0])
 
     @apigen.command()
-    def addasset(self, moniker, color_description, unit=100000000):
+    def addasset(self, moniker, color_description, unit=1):
         """Add a asset definition.
         Enables the use of colors/assets issued by others.
         """
@@ -114,7 +117,7 @@ class Ngccc(apigen.Definition):
         self.controller.add_asset_definition({
             "monikers": [moniker],
             "color_set": [color_description],
-            "unit" : unit
+            "unit": unit
         })
         return self.getasset(moniker)
 
@@ -222,7 +225,7 @@ class Ngccc(apigen.Definition):
     @apigen.command()
     def scan(self):
         """Update the database of transactions."""
-        sleep(5) # TODO why sleep?
+        sleep(5)  # TODO why sleep?
         self.controller.scan_utxos()
 
     @apigen.command()
@@ -248,7 +251,6 @@ class Ngccc(apigen.Definition):
         # sanitize inputs
         asset = sanitize.asset(self.model, moniker)
 
-        received = {}
         def reformat(data):
             coloraddress = data['color_address']
             colorvalue = data['value'].get_value()
@@ -264,15 +266,37 @@ class Ngccc(apigen.Definition):
             moniker = coin.asset.get_monikers()[0]
             moniker = 'bitcoin' if moniker == '' else moniker
             log[moniker].append({
-              'address' : coin.get_address(),
-              'txid' : coin.txhash,
-              'out' : coin.outindex,
-              'colorvalue' : coin.colorvalues[0].get_value(),
-              'value' : coin.value,
-              'confirmed' : coin.is_confirmed(),
-              'spendingtxs' : coin.get_spending_txs(),
+                'address': coin.get_address(),
+                'txid': coin.txhash,
+                'out': coin.outindex,
+                'colorvalue': coin.colorvalues[0].get_value(),
+                'value': coin.value,
+                'confirmed': coin.is_confirmed(),
+                'spendingtxs': coin.get_spending_txs(),
             })
         return log
+
+    @apigen.command()
+    def importprivkey(self, moniker, wif):
+        """Import private key for given asset."""
+
+        # sanitize inputs
+        asset = sanitize.asset(self.model, moniker)
+        wif = sanitize.wif(self.testnet, wif)
+
+        addressrecord = self.wallet.importprivkey(wif, asset)
+        return addressrecord.get_address()
+
+    @apigen.command()
+    def importprivkeys(self, moniker, wifs):
+        """Import private keys for given asset."""
+
+        # sanitize inputs
+        asset = sanitize.asset(self.model, moniker)
+        wifs = sanitize.wifs(self.testnet, wifs)
+
+        addrs = map(lambda wif: self.wallet.importprivkey(wif, asset), wifs)
+        return map(lambda ar: ar.get_address(), addrs)
 
     @apigen.command()
     def dumpprivkey(self, moniker, coloraddress):
@@ -371,11 +395,11 @@ class Ngccc(apigen.Definition):
         amount = sanitize.assetamount(asset, amount)
 
         def reformat(utxo):
-            return { 'txid' : utxo.txhash, 'outindex' : utxo.outindex }
+            return {'txid': utxo.txhash, 'outindex': utxo.outindex}
         utxos, total = self.controller.get_utxos(asset, amount)
         return {
-          'utxos' : map(reformat, utxos), 
-          'total' : asset.format_value(total)
+            'utxos': map(reformat, utxos),
+            'total': asset.format_value(total)
         }
 
     @apigen.command()
@@ -411,4 +435,3 @@ class Ngccc(apigen.Definition):
         rawtx = sanitize.rawtx(rawtx)
 
         return self.controller.publish_rawtx(rawtx)
-

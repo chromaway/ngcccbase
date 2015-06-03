@@ -46,6 +46,10 @@ class BaseUTXOFetcher(object):
         else:
             raise Exception('Unknown service for UTXOFetcher!')        
 
+    def disconnect(self):
+        # FIXME check instance is ChromanodeInterface
+        self.interface.disconnect()
+
     def scan_address(self, address):
         for txid in self.interface.get_utxo(address):
             self.add_utxo(address, txid)
@@ -100,6 +104,7 @@ class AsyncUTXOFetcher(BaseUTXOFetcher): # FIXME subscribe to addresses instead
 
     def stop(self):
         with self.lock:
+            self.disconnect()
             self.running = False
 
     def is_running(self):

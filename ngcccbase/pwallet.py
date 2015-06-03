@@ -23,7 +23,7 @@ class PersistentWallet(object):
     That is, it doesn't go away every time you run the program.
     """
 
-    def __init__(self, wallet_path, testnet):
+    def __init__(self, wallet_path, testnet, use_naivetxdb=False):
         """Create a persistent wallet. If a configuration is passed
         in, put that configuration into the db by overwriting
         the relevant data, never deleting. Otherwise, load with
@@ -44,6 +44,7 @@ class PersistentWallet(object):
         if testnet and not self.wallet_config['testnet']:
             raise Exception("Not a testnet wallet!")
         self.wallet_model = None
+        self.use_naivetxdb = use_naivetxdb
 
     def getconfig(self):
         return self.wallet_config
@@ -52,7 +53,13 @@ class PersistentWallet(object):
         """Associate the wallet model based on the persistent
         configuration.
         """
-        self.wallet_model = WalletModel(self.wallet_config, self.store_conn)
+        self.wallet_model = WalletModel(self.wallet_config, self.store_conn,
+                                        use_naivetxdb=self.use_naivetxdb)
+
+    def disconnect(self):
+        if self.wallet_model:
+            self.wallet_model.disconnect()
+            self.wallet_model = None
 
     def initialize_new_wallet(self, testnet):
         """New wallets are born in testnet mode until we have a version 
@@ -93,6 +100,20 @@ class PersistentWallet(object):
             config = config[key]
         return config
 
+    def importprivkey(self, wif, asset):
+        addr_params = { 
+            'address_data': wif,
+            'color_set': asset.get_color_set().get_data(),
+        }
+
+        # add to config
+        if not self.wallet_config.get("addresses"):
+            self.wallet_config["addresses"] = []
+        self.wallet_config["addresses"] += [addr_params]
+
+        # add to address manager
+        wam = self.wallet_model.get_address_manager()
+        return wam.add_loose_address(addr_params)
 
     def dumpconfig(self):
         return dict(self.wallet_config.iteritems())

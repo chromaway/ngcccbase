@@ -75,6 +75,9 @@ class TestWalletController(unittest.TestCase):
         self.color_id = list(self.asset.color_set.color_id_set)[0]
         self.model.ccc.metastore.set_as_scanned(self.color_id, self.blockhash)
 
+    def tearDown(self):
+        self.pwallet.disconnect()
+
     def test_issue(self):
         self.assertRaises(InvalidColorDefinitionError, self.wc.issue_coins,
                           self.moniker, 'nonexistent', 10000, 1)
