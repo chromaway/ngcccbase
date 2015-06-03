@@ -19,7 +19,7 @@ class TestJSONAPIServer(unittest.TestCase):
         pass
 
     def test_default_config(self):
-        """See to that server starts and pulls in config.json file"""
+        """See to that server starts and pulls in a config.json file"""
         server = subprocess.Popen('python ngccc-server.py startserver', preexec_fn=os.setsid, shell=True)
         time.sleep(4)
         self.assertTrue(self.client.dumpconfig().has_key('testnet') )
