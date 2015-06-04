@@ -218,7 +218,7 @@ For real-world use, verify with the issuer what it is they're issuing.
 
 Import the asset definition:
 
-    client.importasset(    {
+    other_partys_client.importasset(    {
             "color_set": [
                 "epobc:b3b2c25ea6366d8506ea338f8e93624af897f284a511864eafe472d283819b41:0:147478"
             ], 
@@ -233,7 +233,7 @@ Import the asset definition:
 Generate an address for the asset
 ----------------------------------
 
-    client.newaddress('foo_inc')
+    other_partys_client.newaddress('foo_inc')
 
 Send the 10 shares to that address
 -----------------------------
