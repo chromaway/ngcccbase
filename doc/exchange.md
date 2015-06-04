@@ -43,7 +43,7 @@ testnet - controls whether the wallet should be a testnet wallet, that is operat
 Running chromawallet as a service/daemon
 ---------------
 
-This step is optional, but íf you want to run teh wallet as a service, you can use supervisord for this.
+This step is optional, but íf you want to run the wallet as a service, you can use supervisord for this.
 
 Supervisord is a framework for running processes and keeping them alive. Read more about it here: http://supervisord.org . Supervisord runs processes that think they are running in the foreground, such as ngccc-server.py but are in fact connected to supervisord. Supervisord can restart and otherwise manage ngccc-server.py, without the need for pid files or other such things.
 
@@ -141,7 +141,6 @@ After a while the getbalance command should return the new balance. This may tak
 
 Wait until the wallet signals that it knows about the funding.
 
-    client.getbalance('bitcoin', unconfirmed = True)
 
 Issue the asset
 ------------------
@@ -219,7 +218,7 @@ For real-world use, verify with the issuer what it is they're issuing.
 
 Import the asset definition:
 
-   client.importasset(    {
+    client.importasset(    {
             "color_set": [
                 "epobc:b3b2c25ea6366d8506ea338f8e93624af897f284a511864eafe472d283819b41:0:147478"
             ], 
@@ -227,7 +226,7 @@ Import the asset definition:
                 "foo_inc"
             ], 
             "unit": 1
-    })
+     })
 
 
 
