@@ -1,6 +1,7 @@
 
 
 import apigen
+import pyjsonrpc
 from time import sleep
 from ngcccbase import sanitize
 from collections import defaultdict
