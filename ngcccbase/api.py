@@ -225,13 +225,26 @@ class Ngccc(apigen.Definition):
     @apigen.command()
     def scan(self):
         """Update the database of transactions."""
-        sleep(5)  # TODO why sleep?
-        self.controller.scan_utxos()
+        try:
+            self.controller.scan_utxos()
+            return ""
+        except Exception as e: # FIXME move to apigen
+            raise pyjsonrpc.JsonRpcError(
+                message = e.message,
+                code = -32000
+            )
 
     @apigen.command()
     def fullrescan(self):
         """Rebuild database of wallet transactions."""
-        self.controller.full_rescan()
+        try:
+            self.controller.full_rescan()
+            return ""
+        except Exception as e: # FIXME move to apigen
+            raise pyjsonrpc.JsonRpcError(
+                message = e.message,
+                code = -32000
+            )
 
     @apigen.command()
     def history(self, moniker):
