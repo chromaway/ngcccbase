@@ -5,16 +5,15 @@ Trying out chromawallet's JSON API for exchange use
 
 Starting and stopping chromawallet from the command line
 ---------------
-
 The chromawallet can be run both from the command line and as a background server. For running from the command line:
 
 Path to the python you use (the python in the virtual environmnent if you use virtualenv, otherwise the system python)
 
-    </path/to/python> ngccc-server.py startserver
+    chromawallet-server
 
 The server will start with configuration parameters found in config.json. If you want to start the server with another config file, add the config_path switch when starting:
 
-    </path/to/python> ngccc-server.py startserver --config_path=<other_config.json>
+    chromawallet-server --config_path=<other_config.json>
 
 
 Ctrl-c will stop the wallet in the terminal.
@@ -43,15 +42,68 @@ testnet - controls whether the wallet should be a testnet wallet, that is operat
 Running chromawallet as a service/daemon
 ---------------
 
-This step is optional, but íf you want to run the wallet as a service, you can use supervisord for this.
+This step is optional, but íf you want to run the wallet as a service, you can use supervisord for this. 
 
-Supervisord is a framework for running processes and keeping them alive. Read more about it here: http://supervisord.org . Supervisord runs processes that think they are running in the foreground, such as ngccc-server.py but are in fact connected to supervisord. Supervisord can restart and otherwise manage ngccc-server.py, without the need for pid files or other such things.
+Supervisord is a framework for running processes and keeping them alive. Supervisord runs, according to its documentation pages, on practically all systems except Windows. Read more about it here: http://supervisord.org . Supervisord runs processes that think they are running in the foreground, such as chromawallet-server.py but are in fact connected to supervisord. Supervisord can restart and otherwise manage chromawallet-server.py, without the need for pid files or other such things.
 
 On Ubuntu, you can install supervisord easily; it is one of the packages in the usual repositories. It is named "supervisor":
 
     sudo apt-get install supervisor
 
-After supervisord has been installed, it has an entry in the /etc/init.d directory, and in /etc/supervisor/conf.d directory you can add a file with directions for it to run ngccc-server.py . On install supervisord is configured to start immediately and then re-start every time that the server boots.
+After supervisord has been installed, it has an entry in the /etc/init.d directory, and in /etc/supervisor/conf.d directory you can add a file with directions for it to run chromawallet-server . On install supervisord is configured to start immediately and then re-start every time that the server boots.
+
+Below is an example entry in the /etc/supervisorsuper/supervisord.conf file on a Ubuntu 14.04 LTS server for running chromawallet. In this setup example, the install directory is:
+
+    /home/a_user_name/chromawallet
+
+
+...inside that directory.
+
+The file could be called chromawallet.conf (as long as you put conf at the end you are good to go) in this example and the user it should run under is "a_user_name":
+
+    [program:chromawallet]
+    command=/home/a_user_name/chromawallet/chromawallet-server startserver
+    process_name=%(program_name)s
+    numprocs=1
+    directory=/home/a_user_name/chromawallet
+    stopsignal=TERM
+    user=a_user_name
+
+
+
+You can then re-start supervisord to load the new settings: 
+
+    sudo service supervisor restart
+
+At any time you can control the server with:
+
+    sudo supervisorctl
+
+...and issue start, stop, restart and status commands.
+
+
+### From source
+
+Checking out chromawallet from source
+
+    mkdir chromawallet
+    cd chromawallet
+    virtualenv .
+    . bin/activate
+    git clone git@github.com:chromaway/ngcccbase.git
+    cd ngcccbase
+    git checkout develop
+    cd ..
+    python ngcccbase/setup.py develop
+
+
+The chromawallet can be run both from the command line and as a background server. For running from the command line:
+
+    python ngccc-server.py startserver
+
+
+### Running chromawallet from source as a service/daemon
+
 
 Below is an example entry in the /etc/supervisorsuper/supervisord.conf file on a Ubuntu 14.04 LTS server for running chromawallet. In this setup example, the install directory is:
 
@@ -133,13 +185,13 @@ Currently, you must ask the server to check the state of the blockchain, and upd
 
     client.scan()
 
-After a while the getbalance command should return the new balance. This may take one hour, so it might be a good time for a break, an dthe try again:
+After a while the getbalance command should return the new balance. This may take ten minutes, so it might be a good time for a break, and then try again:
 
     client.getbalance('bitcoin')
     {u'bitcoin': u'0.001'}
 
 
-Wait until the wallet signals that it knows about the funding.
+Wait until the wallet signals that it knows about the funding before proceeding to the next step.
 
 
 Issue the asset
@@ -176,7 +228,7 @@ The asset definition is now in your wallet. You can now copy the definition by e
 
 This should return JSON data that can be used for backing up the asset definition, and for sharing the asset definition with other parties and exchanges that may want to trade your asset.
 
-Let's say you want to send 10 shares to another party. This could be a withdraw from a shared wallet on an exchange, or part of a trade between you and another party.
+Let's say you want to send 10 shares to another party. This could be a withdrawal from a shared wallet on an exchange, or part of a trade between you and another party.
 
 
 Transfer 10 shares of the "Foo, Inc." company to someone else's wallet.
