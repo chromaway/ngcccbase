@@ -226,6 +226,7 @@ class Ngccc(apigen.Definition):
     def scan(self):
         """Update the database of transactions."""
         try:
+            sleep(5)  # window to download headers
             self.controller.scan_utxos()
             return ""
         except Exception as e: # FIXME move to apigen
