@@ -225,7 +225,7 @@ class Ngccc(apigen.Definition):
     @apigen.command()
     def scan(self):
         """Update the database of transactions."""
-        sleep(5)  # TODO why sleep?
+        sleep(5)  # window to download headers
         self.controller.scan_utxos()
 
     @apigen.command()
