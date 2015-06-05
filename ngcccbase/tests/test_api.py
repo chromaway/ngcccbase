@@ -6,11 +6,17 @@ import unittest
 from ngcccbase.api import Ngccc
 
 
+wallet_path = "ngcccbase/tests/unittest.wallet"
+
+
+use_bitcoind = 'false'
+
+
 class TestSignrawtx(unittest.TestCase):
 
     def setUp(self):
-        self.api = Ngccc(wallet="ngcccbase/tests/unittest.wallet",
-                         testnet=True, use_naivetxdb=True)
+        self.api = Ngccc(wallet=wallet_path, testnet=True, use_naivetxdb=True)
+        self.api.setconfigval('use_bitcoind', use_bitcoind)
 
     def test_sign_uncolored(self):
         unsigned = "0100000001ef5b2eb4b9b0c10449cbabedca45709135d457a04dabd33c1068aaf86562a72b0200000000ffffffff0240420f00000000001976a91491cc9812ca45e7209ff9364ce96527a7c49f1f3188ac3e770400000000001976a9142e330c36e1d0f199fd91446f2210209a0d35caef88ac00000000"
@@ -34,8 +40,8 @@ class TestSignrawtx(unittest.TestCase):
 class TestCreatetx(unittest.TestCase):
 
     def setUp(self):
-        self.api = Ngccc(wallet="ngcccbase/tests/unittest.wallet",
-                         testnet=True, use_naivetxdb=True)
+        self.api = Ngccc(wallet=wallet_path, testnet=True, use_naivetxdb=True)
+        self.api.setconfigval('use_bitcoind', use_bitcoind)
 
     def test_sign_uncolored(self):
         inputs = """[{
@@ -127,8 +133,8 @@ class TestCreatetx(unittest.TestCase):
 class TestTxoutvalue(unittest.TestCase):
 
     def setUp(self):
-        self.api = Ngccc(wallet="ngcccbase/tests/unittest.wallet",
-                         testnet=True, use_naivetxdb=True)
+        self.api = Ngccc(wallet=wallet_path, testnet=True, use_naivetxdb=True)
+        self.api.setconfigval('use_bitcoind', use_bitcoind)
 
     def test_uncolored(self):
         txid = "2ba76265f8aa68103cd3ab4da057d435917045caedabcb4904c1b0b9b42e5bef"
