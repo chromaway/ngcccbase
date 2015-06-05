@@ -17,7 +17,6 @@ class ConfigKeyNotFound(Exception):
         super(ConfigKeyNotFound, self).__init__("Key '%s' not found!" % key)
 
 
-
 class PersistentWallet(object):
     """Represents a wallet object that stays persistent.
     That is, it doesn't go away every time you run the program.
