@@ -14,13 +14,16 @@ from ngcccbase import sanitize
 
 def start_server(testnet, working_dir):
     config = {
-        "testnet": "--testnet" if testnet else "",
+        "testnet": testnet,
         "port": "8080",
         "hostname": "localhost",
         "wallet": working_dir + "/coloredcoins.wallet"
     }
-    cmd = ('python ngccc-cli.py --wallet="%(wallet)s" %(testnet)s startserver'
-           ' --hostname="%(hostname)s" --port="%(port)s"') % config
+    config_path = working_dir + '/config.json'
+    with open(config_path, 'w') as fi:      
+        json.dump(config, fi)
+
+    cmd = 'python ngccc-server.py ' + config_path
     return subprocess.Popen(cmd, preexec_fn=os.setsid, shell=True)
 
 
