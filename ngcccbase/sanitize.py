@@ -203,5 +203,5 @@ def wif(testnet, wif):
 
 
 def wifs(testnet, wifs):
-    wifs = json.loads(wifs)
+    # wifs = json.loads(wifs)
     return map(lambda w: wif(testnet, w), wifs)
