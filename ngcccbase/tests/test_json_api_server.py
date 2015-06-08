@@ -29,22 +29,24 @@ class TestJSONAPIServer(unittest.TestCase):
             shutil.rmtree(self.working_dir)
         self.reset_status()
 
-    def create_server(self, testnet=False):
+    def create_server(self, testnet=False, wallet_path=None, port=8080):
         self.working_dir = tempfile.mkdtemp()
+        print "WORKING DIR", self.working_dir
         config_path = self.working_dir + '/config.json'
-
+        if wallet_path is None:
+            self.working_dir + "/coloredcoins.wallet"
         config = {
             "testnet": testnet,
-            "port": 8080,
+            "port": port,
             "hostname": "localhost",
-            "wallet_path": self.working_dir + "/coloredcoins.wallet"
+            "wallet_path": wallet_path
         }
         with open(config_path, 'w') as fi:
             json.dump(config, fi)
 
         self.server = subprocess.Popen('python ngccc-server.py startserver --config_path=%s'
                                        % config_path, preexec_fn=os.setsid, shell=True)
-        time.sleep(4)
+        time.sleep(1)
 
     def test_default_config(self):
         """See to that server starts and pulls in a config.json file"""
