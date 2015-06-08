@@ -78,7 +78,7 @@ class Ngccc(apigen.Definition):
         self.wallet.importconfig(path)
 
     @apigen.command()
-    def issueasset(self, moniker, quantity, unit="1", scheme="epobc"):
+    def issueasset(self, moniker, quantity, unit=1, scheme="epobc"):
         """ Issue <quantity> of asset with name <moniker> and <unit> atoms,
         based on <scheme (epobc|obc)>."""
 

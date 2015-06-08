@@ -67,6 +67,7 @@ class AssetDefinition(object):
         """
         if isinstance(portion, ColorValue) or isinstance(portion, AssetValue):
             portion = portion.get_value()
+        # FIXME check not > 2100000000000000
         atom = Decimal("1") / Decimal(self.unit)
         return Decimal(portion) % atom == Decimal("0")
 
