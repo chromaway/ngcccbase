@@ -31,7 +31,7 @@ class TestJSONAPIServer(unittest.TestCase):
 
     def create_server(self, testnet=False, wallet_path=None, port=8080):
         self.working_dir = tempfile.mkdtemp()
-        print "WORKING DIR", self.working_dir
+        # print "WORKING DIR", self.working_dir
         config_path = self.working_dir + '/config.json'
         if wallet_path is None:
             self.working_dir + "/coloredcoins.wallet"
