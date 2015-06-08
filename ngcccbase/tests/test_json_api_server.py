@@ -46,7 +46,7 @@ class TestJSONAPIServer(unittest.TestCase):
 
         self.server = subprocess.Popen('python ngccc-server.py startserver --config_path=%s'
                                        % config_path, preexec_fn=os.setsid, shell=True)
-        time.sleep(1)
+        time.sleep(4)
 
     def test_default_config(self):
         """See to that server starts and pulls in a config.json file"""
@@ -94,17 +94,22 @@ class TestJSONAPIServer(unittest.TestCase):
         addresses = self.client.listaddresses('bitcoin')
         self.assertTrue(bitcoin_address in addresses)
 
-    def test_importprivkeys(self):
-        """Test of importing private keys"""
-        private_keys = ['5J7i6VrN6kedk2EfB3eLnJ79bxw5MJyAas8BwKwoziMPyKDrgi4',
-                        '5KYXdVsaYs7m9oVXmLeRzCPfVTgbYoZEzCW3uQkMBya3vkcaPWT']
-        bitcoin_addresses = ['14nsAgexJULTvmsA82455ArmoNRgnxToGj',
-                             '1PpgeDc29AzZJJ4sr4wn7bHSEeXVJo5B7n']
-        self.create_server()
-        res = self.client.importprivkeys('bitcoin', wifs=private_keys)
-        addresses = self.client.listaddresses('bitcoin')
-        for bitcoin_address in bitcoin_addresses:
-            self.assertTrue(bitcoin_address in addresses)
+    # def test_get_balance(self):
+    #     """ Test to see if a non zero balance cam be retrieved from mainnet"""
+    #     self.create_server()
+    #     # Should be funded with 0.1 mbtc
+    #     private_key = '5JTuHqTdknhZSnk5pBZaqWDaSuhz6xmJEc9fH9UXgvpZbdRNsLq'
+    #     _ = self.client.importprivkey('bitcoin', private_key)
+    #     _ = self.client.scan()
+    #     res = self.client.getbalance('bitcoin')
+    #     print "******"
+    #     print res
+    #     print "*****"
+    #     addr = self.client.listaddresses('bitcoin')
+    #     print "******"
+    #     print addr
+    #     print "*****"
+
 
 if __name__ == '__main__':
     unittest.main()

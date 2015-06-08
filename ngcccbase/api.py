@@ -302,16 +302,6 @@ class Ngccc(apigen.Definition):
         addressrecord = self.wallet.importprivkey(wif, asset)
         return addressrecord.get_address()
 
-    @apigen.command()
-    def importprivkeys(self, moniker, wifs):
-        """Import private keys for given asset."""
-
-        # sanitize inputs
-        asset = sanitize.asset(self.model, moniker)
-        wifs = sanitize.wifs(self.testnet, wifs)
-
-        addrs = map(lambda wif: self.wallet.importprivkey(wif, asset), wifs)
-        return map(lambda ar: ar.get_address(), addrs)
 
     @apigen.command()
     def dumpprivkey(self, moniker, coloraddress):
