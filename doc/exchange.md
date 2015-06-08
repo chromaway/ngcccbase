@@ -268,9 +268,9 @@ For real-world use, verify with the issuer what it is they're issuing.
 
 (the above asset definition is in JSON format but is actually also valid python)
 
-Import the asset definition:
+Import the asset definition with the addasset command:
 
-    other_partys_client.importasset(    {
+    other_partys_client.addasset(    {
             "color_set": [
                 "epobc:b3b2c25ea6366d8506ea338f8e93624af897f284a511864eafe472d283819b41:0:147478"
             ], 
