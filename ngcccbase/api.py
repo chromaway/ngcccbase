@@ -231,13 +231,14 @@ class Ngccc(apigen.Definition):
 
         sleep(5)  # window to download headers
         self.controller.scan_utxos()
+        return "Scanning done"
 
     @apigen.command()
     def fullrescan(self):
         """Rebuild database of wallet transactions."""
         try:
             self.controller.full_rescan()
-            return ""
+            return "Full rescan done"
         except Exception as e:  # FIXME move to apigen
             raise pyjsonrpc.JsonRpcError(
                 message=e.message,
