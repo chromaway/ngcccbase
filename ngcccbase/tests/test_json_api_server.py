@@ -83,7 +83,7 @@ class TestJSONAPIServer(unittest.TestCase):
         try:
             res = self.client.fullrescan()
         except:
-            self.fail('Fullrescan raised an exception\n' + traceback.format_exc())
+            self.fail('Fullrescan raised exception\n' + traceback.format_exc())
 
     def test_importprivkey(self):
         """Test of importing private keys"""
@@ -99,14 +99,13 @@ class TestJSONAPIServer(unittest.TestCase):
         self.create_server()
         # Should be funded with 0.1 mbtc
         private_key = '5JTuHqTdknhZSnk5pBZaqWDaSuhz6xmJEc9fH9UXgvpZbdRNsLq'
-        _ = self.client.importprivkey('bitcoin', private_key)
-        _ = self.client.scan()
+        self.client.importprivkey('bitcoin', private_key)
+        self.client.scan()
         res = self.client.getbalance('bitcoin')
         self.assertEqual(res['bitcoin'], '0.0001')
-        
 
     def test_no_dup_importprivkey(self):
-        """Test of importing private keys"""
+        """Test that duplicate imports don't change balance or address count"""
         private_key = '5JTuHqTdknhZSnk5pBZaqWDaSuhz6xmJEc9fH9UXgvpZbdRNsLq'
         self.create_server()
         self.client.importprivkey('bitcoin', private_key)
@@ -115,7 +114,7 @@ class TestJSONAPIServer(unittest.TestCase):
         self.assertEqual(balances['bitcoin'], '0.0001')
         res = self.client.importprivkey('bitcoin', private_key)
         self.client.scan()
-        self.assertEqual( len(self.client.listaddresses('bitcoin')), 1)
+        self.assertEqual(len(self.client.listaddresses('bitcoin')), 1)
         self.assertEqual(balances['bitcoin'], '0.0001')
 
 if __name__ == '__main__':
