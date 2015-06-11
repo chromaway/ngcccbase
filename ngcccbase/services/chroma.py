@@ -2,18 +2,17 @@
 
 import json
 import urllib2
+import time
 import threading
 from pycoin.tx.Tx import Tx
 from ngcccbase.blockchain import BaseStore
 from coloredcoinlib import BlockchainStateBase
-from socketIO_client import SocketIO
 
 
 class ChromanodeInterface(BlockchainStateBase, BaseStore):
 
     def __init__(self, baseurl=None, testnet=False):
 
-        # init baseurl
         # Chromanode api documentation.
         # https://github.com/chromaway/chromanode/blob/master/docs/API_v1.md
         testnet_baseurl = "http://v1.testnet.bitcoin.chromanode.net"
@@ -24,24 +23,41 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         # init caches
         self._cache_rawtx = {}  # txid -> rawtx
         self._cache_currentheight = 0
-        queryurl = "%s/v1/headers/latest" % self.baseurl
-        self._update_cache_currentheight(self._query(queryurl)["height"])
-
+        self._last_connected = 0
+        self._update_height_interval = 10
+        self._thread = None
         self.connect()
 
+    def _update_height(self):
+        queryurl = "%s/v1/headers/latest" % self.baseurl
+        self._cache_currentheight = self._query(queryurl)["height"]
+
     def connect(self):
-        self._socketIO = SocketIO(self.baseurl, 80)
-        self._socketIO.on('new-block', self._on_newblock)
-        self._socketIO.emit('subscribe', 'new-block')
-        self._socketIO_thread = threading.Thread(target=self._socketIO.wait)
-        self._socketIO_thread.start()
+        class _Thread(threading.Thread):
+
+            def __init__(self, service):
+                threading.Thread.__init__(self)
+                self._stop = threading.Event()
+                self.service = service
+
+            def stop(self):
+                self._stop.set()
+
+            def run(self):
+                while not self._stop.is_set():
+                    self.service._update_height()
+                    time.sleep(self.service._update_height_interval)
+
+        self._thread = _Thread(self)
+        self._thread.start()
 
     def connected(self):
-        return self._socketIO.connected
+        delta = time.time() - self._last_connected
+        return delta < (self._update_height_interval + 1)
 
     def disconnect(self):
-        self._socketIO.disconnect()
-        self._socketIO_thread.join()
+        self._thread.stop()
+        self._thread = None
 
     def _query(self, url, data=None, exceptiononfail=True):
         header = {'Content-Type': 'application/json'}
@@ -49,16 +65,10 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         fp = urllib2.urlopen(urllib2.Request(url, data, header))
         payload = json.loads(fp.read())
         fp.close()
+        self._last_connected = time.time()
         if payload["status"] == "fail" and exceptiononfail:
             raise Exception("Chromanode error: %s!" % payload['data']['type'])
         return payload.get("data")
-
-    def _update_cache_currentheight(self, currentheight):
-        if currentheight != self._cache_currentheight:
-            self._cache_currentheight = currentheight
-
-    def _on_newblock(self, blockid, blockheight):
-        self._update_cache_currentheight(blockheight)
 
     def get_merkle(self, txid):
         url = "%s/v1/transactions/merkle?txid=%s" % (self.baseurl, txid)
@@ -112,7 +122,7 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         header = self.read_header(blockheight)
         header['block_height'] = blockheight
         return header
-        
+
     def read_raw_header(self, blockheight):
         """ Return rawheader for given blockheight. """
         urlargs = (self.baseurl, blockheight)
@@ -124,7 +134,7 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         url = "%s/v1/addresses/query?addresses=%s" % (self.baseurl, address)
         result = self._query(url)
         txids = [entry["txid"] for entry in result["transactions"]]
-        self._update_cache_currentheight(result['latest']['height'])
+        self._cache_currentheight = result['latest']['height']
         return txids
 
     def get_height(self):
@@ -147,7 +157,7 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         url = "%s/v1/addresses/query?addresses=%s&status=unspent" % urlargs
         result = self._query(url)
         txids = [entry["txid"] for entry in result["transactions"]]
-        self._update_cache_currentheight(result['latest']['height'])
+        self._cache_currentheight = result['latest']['height']
         return txids
 
     def get_chunk(self, index, chunksize=2016):

@@ -103,7 +103,7 @@ class BlockchainStateBase(object):
         return CTransaction.from_bitcoincore(txhash, tx, self)
 
     def sort_txs(self, tx_list):
-        block_txs = {h:self.get_tx(h) for h in tx_list}
+        block_txs = {h: self.get_tx(h) for h in tx_list}
 
         def get_dependent_txs(tx):
             """all transactions from current block this transaction
@@ -123,18 +123,20 @@ class BlockchainState(BlockchainStateBase):
     def __init__(self, bitcoind):
         self.bitcoind = bitcoind
 
+    def disconnect(self):
+        del self.bitcoind
+        self.bitcoind = None
+
     def publish_tx(self, txdata):
         return self.bitcoind.sendrawtransaction(txdata)
 
     @classmethod
     def from_url(cls, url, testnet=False):
         if testnet:
-            bitcoind = bitcoin.rpc.RawProxy(
-                service_url=url, service_port=18332)
+            rpc = bitcoin.rpc.RawProxy(service_url=url, service_port=18332)
         else:
-            bitcoind = bitcoin.rpc.RawProxy(  # pragma: no cover
-                service_url=url)              # pragma: no cover
-        return cls(bitcoind)
+            rpc = bitcoin.rpc.RawProxy(service_url=url)
+        return cls(rpc)
 
     def get_block_height(self, blockhash):
         block = self.bitcoind.getblock(blockhash)
@@ -159,8 +161,7 @@ class BlockchainState(BlockchainStateBase):
     def get_tx_blockhash(self, txhash):
         try:
             raw = self.bitcoind.getrawtransaction(txhash, 1)
-        except Exception, e:
-            # print txhash, e
+        except:
             return None, False
         return raw.get('blockhash', None), True
 

@@ -1,7 +1,6 @@
 
 
 import re
-import json
 import csv
 from decimal import Decimal
 from ngcccbase.address import coloraddress_to_bitcoinaddress
@@ -9,16 +8,19 @@ from pycoin.key import validate
 
 base58set = set('123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz')
 
+
 class InvalidInput(Exception):
     pass
 
 
 class AssetNotFound(InvalidInput):
+
     def __init__(self, moniker):
         super(AssetNotFound, self).__init__("Asset '%s' not found!" % moniker)
 
 
 class SchemeNotFound(InvalidInput):
+
     def __init__(self, scheme):
         super(SchemeNotFound, self).__init__("Scheme '%s' not found!" % scheme)
 
@@ -33,17 +35,19 @@ def asset(model, _moniker):
 
 
 def decimal(decimal):
+    decimal = unicode_string(decimal)
     return Decimal(decimal)
 
 
-def quantity(quantity):  # asset unknown
-    quantity = decimal(quantity)
-    if quantity < Decimal("0"):
+def quantity(q):  # asset unknown
+    q = decimal(q)
+    if q < Decimal("0"):
         raise InvalidInput("Quantity must be > 0!")
-    return quantity
+    return q
 
 
 def assetamount(asset, amount):
+    amount = quantity(amount)
     amount = asset.parse_value(amount)
     if amount < 0:
         raise InvalidInput("Amount must be > 0!")
@@ -52,14 +56,17 @@ def assetamount(asset, amount):
     return amount
 
 
-def unit(unit):
-    return int(unit)
+def unit(u):
+    u = int(u)
+    if u < 0:
+        raise InvalidInput("unit must be > 0!")
+    return u
 
 
-def scheme(scheme):
-    if scheme not in ['obc', 'epobc']:
-        raise SchemeNotFound(scheme)
-    return scheme
+def scheme(s):
+    if s not in [u'obc', u'epobc']:
+        raise SchemeNotFound(s)
+    return s
 
 
 def integer(number):
@@ -77,7 +84,12 @@ def flag(flag):
     return bool(flag)
 
 
+def unicode_string(s):
+    return unicode(s)
+
+
 def moniker(moniker):
+    moniker = unicode_string(moniker)
     # limit charset for now
     if not re.match("^[a-zA-Z0-9_-]+$", moniker):
         raise InvalidInput("Moniker may only contain chars a-zA-Z0-9_-")
@@ -86,6 +98,7 @@ def moniker(moniker):
 
 def cfgkey(key):
     # limit charset for now
+    key = unicode_string(key)
     for subkey in key.split('.'):
         if not re.match("^[a-zA-Z0-9_-]+$", subkey):
             raise InvalidInput("Invalid key!")
@@ -93,29 +106,31 @@ def cfgkey(key):
 
 
 def cfgvalue(value):
-    return value
+    return value  # any json serializable object
 
 
 def txid(txid):
+    txid = unicode_string(txid)
     if not re.match("^[0-9a-f]+$", txid):  # TODO better validation
         raise InvalidInput("Invalid txid!")
     return txid
 
 
 def rawtx(rawtx):
+    rawtx = unicode_string(rawtx)
     if not re.match("^[0-9a-f]+$", rawtx):  # TODO better validation
         raise InvalidInput("Invalid rawtx!")
     return rawtx
 
 
 def colordesc(colordesc):
+    colordesc = unicode_string(colordesc)
     if not re.match("^(epobc|obc):[0-9a-f]+:[0-9]+:[0-9]+$", colordesc):
         raise InvalidInput("Invalid color description!")
     return colordesc
 
 
 def jsonasset(data):
-    data = json.loads(data)
     monikers = [moniker(m) for m in data['monikers']]
     color_set = [colordesc(cd) for cd in data['color_set']]
     _unit = unit(data['unit'])
@@ -123,6 +138,7 @@ def jsonasset(data):
 
 
 def coloraddress(model, asset, coloraddress):
+    coloraddress = unicode_string(coloraddress)
 
     # asset must match address asset id
     adm = model.get_asset_definition_manager()
@@ -139,7 +155,7 @@ def coloraddress(model, asset, coloraddress):
 
 def sendmanyjson(model, data):
     sendmany_entries = []
-    for entry in json.loads(data):
+    for entry in data:
         _asset = asset(model, entry['moniker'])
         _amount = assetamount(_asset, entry['amount'])
         _coloraddress = coloraddress(model, _asset, entry['coloraddress'])
@@ -149,6 +165,7 @@ def sendmanyjson(model, data):
 
 
 def sendmanycsv(model, path):
+    path = unicode_string(path)
     entries = []
     with open(path, 'rb') as csvfile:
         for index, csvvalues in enumerate(csv.reader(csvfile)):
@@ -175,7 +192,7 @@ def utxos(utxos):
             'txid': txid(utxo['txid']),
             'outindex': positiveinteger(utxo['outindex'])
         }
-    return map(reformat, json.loads(utxos))
+    return map(reformat, utxos)
 
 
 def targets(model, targets):
@@ -188,12 +205,13 @@ def targets(model, targets):
             "amount": _amount,
             "coloraddress": _address
         }
-    return map(reformat, json.loads(targets))
+    return map(reformat, targets)
 
 
 def bitcoin_address(address):
     address_set = set(address)
     return address_set.issubset(base58set)
+
 
 def wif(testnet, wif):
     netcode = 'XTN' if testnet else 'BTC'
@@ -203,5 +221,4 @@ def wif(testnet, wif):
 
 
 def wifs(testnet, wifs):
-    # wifs = json.loads(wifs)
     return map(lambda w: wif(testnet, w), wifs)

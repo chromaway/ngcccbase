@@ -54,7 +54,7 @@ class DWalletAddressManager(object):
         self.config = config
         self.testnet = config.get('testnet', False)
         self.colormap = colormap
-        self.addresses = []
+        self.addresses = set()
 
         # initialize the wallet manager if this is the first time
         #  this will generate a master key.
@@ -73,7 +73,7 @@ class DWalletAddressManager(object):
             addr = self.get_genesis_address(i)
             addr.color_set = ColorSet(self.colormap,
                                       color_desc_list)
-            self.addresses.append(addr)
+            self.addresses.add(addr)
 
         # now import the specific color addresses
         for color_set_st in self.color_set_states:
@@ -87,7 +87,7 @@ class DWalletAddressManager(object):
                 }
             for index in xrange(max_index + 1):
                 params['index'] = index
-                self.addresses.append(DeterministicAddressRecord(**params))
+                self.addresses.add(DeterministicAddressRecord(**params))
 
         # import the one-off addresses from the config
         map(self.add_loose_address, config.get('addresses', []))
@@ -97,8 +97,15 @@ class DWalletAddressManager(object):
         addr_params['color_set'] = ColorSet(self.colormap,
                                             addr_params['color_set'])
         address = LooseAddressRecord(**addr_params)
-        self.addresses.append(address)
+        self.addresses.add(address)
         return address
+    
+    def find_address_by_wif(self, wif):
+        for address in list(self.addresses):
+            data = address.get_data()
+            if wif == data["address_data"]:
+                return address
+        return None
 
     def init_new_wallet(self):
         """Initialize the configuration if this is the first time
@@ -147,7 +154,7 @@ class DWalletAddressManager(object):
         na = DeterministicAddressRecord(master_key=self.master_key,
                                         color_set=color_set, index=index,
                                         testnet=self.testnet)
-        self.addresses.append(na)
+        self.addresses.add(na)
         self.update_config()
         return na
 
@@ -172,7 +179,7 @@ class DWalletAddressManager(object):
         self.update_config()
         address = self.get_genesis_address(index)
         address.index = index
-        self.addresses.append(address)
+        self.addresses.add(address)
         return address
 
     def update_genesis_address(self, address, color_set):
@@ -207,10 +214,10 @@ class DWalletAddressManager(object):
     def get_all_addresses(self):
         """Returns the list of all AddressRecords in this wallet.
         """
-        return self.addresses
+        return list(self.addresses)
 
     def find_address_record(self, address):
-        for address_rec in self.addresses:
+        for address_rec in list(self.addresses):
             if address_rec.get_address() == address:
                 return address_rec
         return None
@@ -219,7 +226,7 @@ class DWalletAddressManager(object):
         """Given a color <color_set>, returns all AddressRecords
         that have that color.
         """
-        return [addr for addr in self.addresses
+        return [addr for addr in list(self.addresses)
                 if color_set.intersects(addr.get_color_set())]
 
     def update_config(self):

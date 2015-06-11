@@ -10,12 +10,14 @@ from ngcccbase.pwallet import PersistentWallet
 
 
 class AddressNotFound(Exception):
+
     def __init__(self, coloraddress):
         msg = "Address '%s' not found!" % coloraddress
         super(AddressNotFound, self).__init__(msg)
 
 
 class Ngccc(apigen.Definition):
+
     """Next-Generation Colored Coin Client interface."""
 
     def __init__(self, wallet=None, testnet=False, use_naivetxdb=False):
@@ -79,7 +81,7 @@ class Ngccc(apigen.Definition):
         self.wallet.importconfig(path)
 
     @apigen.command()
-    def issueasset(self, moniker, quantity, unit="1", scheme="epobc"):
+    def issueasset(self, moniker, quantity, unit=1, scheme="epobc"):
         """ Issue <quantity> of asset with name <moniker> and <unit> atoms,
         based on <scheme (epobc|obc)>."""
 
@@ -226,15 +228,9 @@ class Ngccc(apigen.Definition):
     @apigen.command()
     def scan(self):
         """Update the database of transactions."""
-        try:
-            sleep(5)  # window to download headers
-            self.controller.scan_utxos()
-            return ""
-        except Exception as e: # FIXME move to apigen
-            raise pyjsonrpc.JsonRpcError(
-                message = e.message,
-                code = -32000
-            )
+
+        sleep(5)  # window to download headers
+        self.controller.scan_utxos()
 
     @apigen.command()
     def fullrescan(self):
@@ -242,10 +238,10 @@ class Ngccc(apigen.Definition):
         try:
             self.controller.full_rescan()
             return ""
-        except Exception as e: # FIXME move to apigen
+        except Exception as e:  # FIXME move to apigen
             raise pyjsonrpc.JsonRpcError(
-                message = e.message,
-                code = -32000
+                message=e.message,
+                code=-32000
             )
 
     @apigen.command()
@@ -301,7 +297,6 @@ class Ngccc(apigen.Definition):
 
         addressrecord = self.wallet.importprivkey(wif, asset)
         return addressrecord.get_address()
-
 
     @apigen.command()
     def dumpprivkey(self, moniker, coloraddress):

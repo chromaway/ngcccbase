@@ -37,6 +37,12 @@ class AddressRecord(object):
         """
         return self.color_set
 
+    def __eq__(self, other):
+        return self.get_data() == other.get_data()
+
+    def __hash__(self):
+        return 0
+
     def get_data(self):
         """Get this object as a JSON/Storage compatible dict.
         Useful for storage and persistence.
