@@ -117,5 +117,19 @@ class TestJSONAPIServer(unittest.TestCase):
         self.assertEqual(len(self.client.listaddresses('bitcoin')), 1)
         self.assertEqual(balances['bitcoin'], '0.0001')
 
+    def test_issue_asset_not_throw_exception(self):
+        """Needs funds on mainnet."""
+        private_key = "5KAtWUcg45VDNB3QftP4V5cwcavBhLj9UWpJCtxsZBBqevGjhZN"
+        address = "12WarJccsEjzzf3Aoukh8YJXwxK58qpj8W" # listed for convenience
+        self.create_server()
+        self.client.importprivkey('bitcoin', private_key)
+        self.client.scan()
+        res = self.client.getbalance('bitcoin')
+        self.assertTrue(Decimal(res['bitcoin']) > Decimal('0.00006'))
+        try:
+            res = self.client.issueasset('foo_inc', 1000)
+        except:
+            self.fail('Issueasset raised exception\n' + traceback.format_exc())
+
 if __name__ == '__main__':
     unittest.main()
