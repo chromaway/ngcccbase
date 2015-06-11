@@ -100,6 +100,13 @@ class PersistentWallet(object):
         return config
 
     def importprivkey(self, wif, asset):
+        wam = self.wallet_model.get_address_manager()
+
+        # chack if pk already in wallet
+        address = wam.find_address_by_wif(wif)
+        if address:
+            return address
+
         addr_params = { 
             'address_data': wif,
             'color_set': asset.get_color_set().get_data(),
@@ -111,7 +118,6 @@ class PersistentWallet(object):
         self.wallet_config["addresses"] += [addr_params]
 
         # add to address manager
-        wam = self.wallet_model.get_address_manager()
         return wam.add_loose_address(addr_params)
 
     def dumpconfig(self):
