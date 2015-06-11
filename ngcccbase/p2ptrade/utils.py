@@ -19,7 +19,7 @@ class CommonEqualityMixin(object):
         return not self.__eq__(other)
 
 
-class HTTPInterface(object): # TODO test it
+class HTTPInterface(object):
 
     def poll(self, url):
         try:
