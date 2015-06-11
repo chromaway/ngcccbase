@@ -94,21 +94,16 @@ class TestJSONAPIServer(unittest.TestCase):
         addresses = self.client.listaddresses('bitcoin')
         self.assertTrue(bitcoin_address in addresses)
 
-    # def test_get_balance(self):
-    #     """ Test to see if a non zero balance cam be retrieved from mainnet"""
-    #     self.create_server()
-    #     # Should be funded with 0.1 mbtc
-    #     private_key = '5JTuHqTdknhZSnk5pBZaqWDaSuhz6xmJEc9fH9UXgvpZbdRNsLq'
-    #     _ = self.client.importprivkey('bitcoin', private_key)
-    #     _ = self.client.scan()
-    #     res = self.client.getbalance('bitcoin')
-    #     print "******"
-    #     print res
-    #     print "*****"
-    #     addr = self.client.listaddresses('bitcoin')
-    #     print "******"
-    #     print addr
-    #     print "*****"
+    def test_get_balance(self):
+        """ Test to see if a non zero balance cam be retrieved from mainnet"""
+        self.create_server()
+        # Should be funded with 0.1 mbtc
+        private_key = '5JTuHqTdknhZSnk5pBZaqWDaSuhz6xmJEc9fH9UXgvpZbdRNsLq'
+        _ = self.client.importprivkey('bitcoin', private_key)
+        _ = self.client.scan()
+        res = self.client.getbalance('bitcoin')
+        self.assertEqual(res['bitcoin'], '0.0001')
+        
 
 
 if __name__ == '__main__':
