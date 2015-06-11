@@ -34,7 +34,7 @@ class TestJSONAPIServer(unittest.TestCase):
         # print "WORKING DIR", self.working_dir
         config_path = self.working_dir + '/config.json'
         if wallet_path is None:
-            self.working_dir + "/coloredcoins.wallet"
+            wallet_path = self.working_dir + "/coloredcoins.wallet"
         config = {
             "testnet": testnet,
             "port": port,
