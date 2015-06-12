@@ -9,6 +9,7 @@ import shutil
 import tempfile
 import json
 import pyjsonrpc
+from decimal import Decimal
 from pycoin.key.validate import is_address_valid
 
 
