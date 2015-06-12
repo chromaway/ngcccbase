@@ -26,6 +26,7 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         self._last_connected = 0
         self._update_height_interval = 10
         self._thread = None
+        self._update_height()
         self.connect()
 
     def _update_height(self):
@@ -92,8 +93,14 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         """ Return blockid for given txid. """
         url = "%s/v1/transactions/merkle?txid=%s" % (self.baseurl, txid)
         result = self._query(url, exceptiononfail=False)
-        if not result:
-            return None, False
+        # errors
+        if 'source' not in result:
+            if result['type'] == 'TxNotFound':
+                return None, False
+            else:
+                msg = "Error getting tx blockhash '%s'!" % result["type"]
+                raise Exception(msg)
+
         if result["source"] == "mempool":  # unconfirmed
             return None, True
         return result["block"]["hash"], True

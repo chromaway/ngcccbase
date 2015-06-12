@@ -5,8 +5,9 @@ Controls wallet model in a high level manner
 Executes high level tasks such as get balance
 """
 
-import os
-from ngcccbase import sanitize
+import time
+import bitcoin.core
+from coloredcoinlib.blockchain import CTransaction
 from collections import defaultdict
 from decimal import Decimal
 from asset import AssetTarget, AdditiveAssetValue
@@ -26,11 +27,10 @@ from coloredcoinlib import (InvalidColorDefinitionError, ColorDefinition,
                             GENESIS_OUTPUT_MARKER,
                             ColorTarget, SimpleColorValue)
 from ngcccbase.coindb import ProvidedUTXO
-from txcons import (BasicTxSpec, 
-                    SimpleOperationalTxSpec, 
+from txcons import (BasicTxSpec,
+                    SimpleOperationalTxSpec,
                     InputsProvidedOperationalTxSpec,
                     RawTxSpec)
-from wallet_model import ColorSet
 from ngcccbase.address import coloraddress_to_bitcoinaddress
 
 
@@ -64,6 +64,7 @@ class WalletController(object):
 
     def get_txout_assetvalues(self, txid, outindex, asset=None):
         assets = [asset] if asset else self.get_all_assets()
+
         def getassetvalue(asset):
             color_id_set = asset.color_set.color_id_set
             values = self.get_txout_coloridvalues(txid, outindex, color_id_set)
@@ -74,11 +75,11 @@ class WalletController(object):
         if wait and wait > 0:
             for _ in xrange(wait):
                 agent.update()
-                sleep(1)
+                time.sleep(1)
         else:
             for _ in xrange(4*6):
                 agent.update()
-                sleep(0.25)
+                time.sleep(0.25)
 
     def p2ptrade_make_offer(self, we_sell, asset, value, price, wait):
         total = int(Decimal(value)/Decimal(asset.unit)*Decimal(price))
@@ -109,6 +110,7 @@ class WalletController(object):
         # filter asset if given
         if asset:
             descs = asset.get_color_set().color_desc_list
+
             def func(offer):
                 return (offer["A"]["color_spec"] in descs or
                         offer["B"]["color_spec"] in descs)
@@ -153,7 +155,8 @@ class WalletController(object):
         bc_interface = self.model.utxo_fetcher.interface
         tx_hashes = []
         for ar in wam.get_all_addresses():
-            tx_hashes.extend(bc_interface.get_address_history(ar.get_address()))
+            history = bc_interface.get_address_history(ar.get_address())
+            tx_hashes.extend(history)
         sorted_txs = self.model.get_blockchain_state().sort_txs(tx_hashes)
         txdb = self.model.get_tx_db()
         for tx in sorted_txs:
@@ -180,9 +183,9 @@ class WalletController(object):
             if amount > available:
                 msg = ("Requred amount of %(value)s %(moniker)s exceeds your "
                        "available balance of %(available)s %(moniker)s!") % {
-                    'moniker' : asset.get_monikers()[0],
-                    'value' : asset.format_value(amount),
-                    'available' : asset.format_value(available),
+                    'moniker': asset.get_monikers()[0],
+                    'value': asset.format_value(amount),
+                    'available': asset.format_value(available),
                 }
                 raise Exception(msg)
 
@@ -206,7 +209,7 @@ class WalletController(object):
                 a.get_monikers()[0], b.get_monikers()[0]
             ))
         reduce(reduce_function, sums.keys())
-    
+
     def get_utxos(self, asset, amount):
         tx_spec = SimpleOperationalTxSpec(self.model, None)
         color_id = asset.get_color_id()
@@ -247,10 +250,11 @@ class WalletController(object):
 
     def sign_rawtx(self, rawtx):
         tx = Tx.tx_from_hex(rawtx)
+
         def reformat(tx_in):
             return ProvidedUTXO(self, {
-                'txid' : b2h_rev(tx_in.previous_hash),
-                'outindex' : tx_in.previous_index
+                'txid': b2h_rev(tx_in.previous_hash),
+                'outindex': tx_in.previous_index
             })
         utxos = map(reformat, tx.txs_in)
         self.model.is_testnet()
@@ -286,11 +290,16 @@ class WalletController(object):
                                                          value=raw_colorvalue))
             tx_spec.add_target(assettarget)
         signed_tx_spec = self.model.transform_tx_spec(tx_spec, 'signed')
-        return "foo"
         txid = self.publish_tx(signed_tx_spec)
 
+        # get fee
+        txbin = signed_tx_spec.get_tx_data()
+        bctx = bitcoin.core.CTransaction.deserialize(txbin)
+        bs = self.model.get_blockchain_state()
+        txfee = CTransaction.from_bitcoincore(txid, bctx, bs).get_fee()
+
         self.model.tx_history.add_send_entry(
-            txid, asset, target_addrs, raw_colorvalues
+            txid, asset, target_addrs, raw_colorvalues, txfee
         )
         return txid
 
@@ -413,12 +422,12 @@ class WalletController(object):
         return self._get_balance(asset, {"spent": False})
 
     def get_total_balance(self, asset):
-        return self._get_balance(asset, {"spent": False,
-                                        "include_unconfirmed": True})
+        args = {"spent": False, "include_unconfirmed": True}
+        return self._get_balance(asset, args)
 
     def get_unconfirmed_balance(self, asset):
-        return self._get_balance(asset, {"spent": False,
-                                        "only_unconfirmed": True})
+        args = {"spent": False, "only_unconfirmed": True}
+        return self._get_balance(asset, args)
 
     def get_history(self, asset):
         """Returns the history of an asset for all addresses of that color
