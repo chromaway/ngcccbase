@@ -12,9 +12,9 @@ with open(os.path.join(here, 'README.md')) as f:
 requires = [
     'pycoin == 0.51',
     'bunch == 1.0.1',
-    'python-jsonrpc == 0.7.3',
+    'python-jsonrpc == 0.7.7',
     'python-bitcoinlib == 0.1.1',
-    'apigen == 1.1.7',
+    'apigen == 1.1.8',
     'web.py == 0.37',
     'six == 1.9.0',
     'requests == 2.7.0',
