@@ -14,7 +14,7 @@ requires = [
     'bunch == 1.0.1',
     'python-jsonrpc == 0.7.3',
     'python-bitcoinlib == 0.1.1',
-    'apigen == 1.1.7',
+    'apigen == 1.1.6',
     'web.py == 0.37',
     'six == 1.9.0',
     'requests == 2.7.0',
