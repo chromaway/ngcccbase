@@ -72,8 +72,7 @@ class CTransaction(object):
                 tx.inputs.append(CTxIn('coinbase', 0))
             else:
                 op = i.prevout
-                tx.inputs.append(CTxIn(bitcoin.core.b2lx(op.hash),
-                                       op.n))
+                tx.inputs.append(CTxIn(bitcoin.core.b2lx(op.hash), op.n))
         tx.outputs = []
         for o in bctx.vout:
             tx.outputs.append(CTxOut(o.nValue, o.scriptPubKey))
