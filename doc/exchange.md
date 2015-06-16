@@ -1,19 +1,19 @@
 Please note that this documentation is a work in progress. [text in square brackets] are placeholders or comments about the development of the documentation, while `<text in angle brackets>` are placeholders for the user's particular setup.
 
-Trying out chromawallet's JSON API for exchange use
+Trying out chromawallet's JSON API
 ===============
+
+For exchange use and other uses.
 
 Starting and stopping chromawallet from the command line
 ---------------
-The chromawallet can be run both from the command line and as a background server. For running from the command line:
+The chromawallet can be run both from the command line and as a background server. For running it from the command line, type:
 
-Path to the python you use (the python in the virtual environmnent if you use virtualenv, otherwise the system python)
+    ./chromawallet-server startserver
 
-    chromawallet-server
+The server will start with configuration parameters found in ```config.json```. If you want to start the server with another config file, add the ```config_path``` switch when starting:
 
-The server will start with configuration parameters found in config.json. If you want to start the server with another config file, add the config_path switch when starting:
-
-    chromawallet-server --config_path=<other_config.json>
+    ./chromawallet-server --config_path=<other_config.json>
 
 
 Ctrl-c will stop the wallet in the terminal.
@@ -33,9 +33,9 @@ The config.json file looks like this:
 
 port - what port the json-rpc server should listen to
 
-hostname - what interface the server should listen to. "localhost" will only allow connections from a client on localhost. Use e.g. "0.0.0.0" for accepting connections from everywhere.
+hostname - what interface the server should listen to. "localhost" will only allow connections from a client on localhost. Use e.g. "0.0.0.0" for accepting connections from everywhere. Make sure your computer is properly firewalled for production use.
 
-wallet_path - path to the wallet database. The wallet database is used by the server process. If you specify a path where no file exists, chromawallet will create a new wallet for you there.
+wallet_path - path to the wallet database. The wallet database is used by the server process. If you specify a path where no file exists, chromawallet-server will create a new wallet for you there.
 
 testnet - controls whether the wallet should be a testnet wallet, that is operate with bitcoin addresses and colored coins on the testnet3 network, or if the wallet should operate on the real bitcoin network, with real bitcoins. The testnet setting must agree with the wallet you specify on wallet_path. A wallet cannot be switched to and from testnet. If you specify a path that creates a new wallet, the wallet will take its testnet setting from the "testnet" setting. So for a live wallet, ```testnet``` should be set to ```false```.
 
@@ -44,7 +44,7 @@ Running chromawallet as a service/daemon
 
 This step is optional, but íf you want to run the wallet as a service, you can use supervisord for this. 
 
-Supervisord is a framework for running processes and keeping them alive. Supervisord runs, according to its documentation pages, on practically all systems except Windows. Read more about it here: http://supervisord.org . Supervisord runs processes that think they are running in the foreground, such as chromawallet-server.py but are in fact connected to supervisord. Supervisord can restart and otherwise manage chromawallet-server.py, without the need for pid files or other such things.
+Supervisord is a framework for running processes and keeping them alive. Supervisord runs on practically all systems except Windows. You can read more about supervisord here: http://supervisord.org . Supervisord runs processes that think they are running in the foreground, such as chromawallet-server but are in fact connected to supervisord. Supervisord can start, stop and restart chromawallet-server, without the need for pid files or other such things.
 
 On Ubuntu, you can install supervisord easily; it is one of the packages in the usual repositories. It is named "supervisor":
 
@@ -52,14 +52,14 @@ On Ubuntu, you can install supervisord easily; it is one of the packages in the 
 
 After supervisord has been installed, it has an entry in the /etc/init.d directory, and in /etc/supervisor/conf.d directory you can add a file with directions for it to run chromawallet-server . On install supervisord is configured to start immediately and then re-start every time that the server boots.
 
-Below is an example entry in the /etc/supervisorsuper/supervisord.conf file on a Ubuntu 14.04 LTS server for running chromawallet. In this setup example, the install directory is:
+Below is an example entry in the /etc/supervisorsuper/supervisord.conf file on a Ubuntu 14.04 LTS server for running chromawallet-server. In this setup example, the install directory is:
 
     /home/a_user_name/chromawallet
 
 
 ...inside that directory.
 
-The file could be called chromawallet.conf (as long as you put conf at the end you are good to go) in this example and the user it should run under is "a_user_name":
+The file could be called chromawallet.conf (as long as you put conf at the end you are good to go). In this example the user it should run under is "a_user_name":
 
     [program:chromawallet]
     command=/home/a_user_name/chromawallet/chromawallet-server startserver
@@ -82,9 +82,11 @@ At any time you can control the server with:
 ...and issue start, stop, restart and status commands.
 
 
-### From source
+### Running chromawallet from source
 
-Checking out chromawallet from source
+This step is only for those who wish to run chromawallet-server from source.
+
+Checking out chromawallet-server from source
 
     mkdir chromawallet
     cd chromawallet
@@ -97,15 +99,17 @@ Checking out chromawallet from source
     python ngcccbase/setup.py develop
 
 
-The chromawallet can be run both from the command line and as a background server. For running from the command line:
+The chromawallet-server can be run both from the command line and as a background server. For running from the command line:
 
     python ngccc-server.py startserver
 
 
 ### Running chromawallet from source as a service/daemon
 
+This step is only for those who wish to run chromawallet-server from source.
 
-Below is an example entry in the /etc/supervisorsuper/supervisord.conf file on a Ubuntu 14.04 LTS server for running chromawallet. In this setup example, the install directory is:
+
+Below is an example entry in the /etc/supervisorsuper/supervisord.conf file on a Ubuntu 14.04 LTS server for running chromawallet-server. In this setup example, the install directory is:
 
     /home/a_user_name/chromawallet_virtual_env
 
@@ -144,7 +148,7 @@ At any time you can control the server with:
 Testing that the server is up
 -----------------------
 
-Whether you are running ngccc-server from the command line or from supervisord, you can use a json-rpc library to do this.
+Whether you are running ngccc-server from the command line or from supervisord, you can use a json-rpc client to check that the server is up and working.
 
 Example in python with pyjsonrpc:
 
@@ -176,6 +180,12 @@ If it returned a bitcoin address, you can use that. However if you are using a p
 
     client.newaddress('bitcoin')
 
+This should return a bitcoin address. At any time you can do:
+
+    client.listaddresses('bitcoin')
+
+to see what bitcoin addresses are available for funding.
+
 Fund the bitcoin address
 -------------------------
 
@@ -202,7 +212,6 @@ You should now be able to issue an asset of 1000 shares in "Foo, Inc."
     client.issueasset('foo_inc', 1000)
 
 You have just created your first asset. 
-This asset resides on a coloraddress. A coloraddress is simply a bitcoin address with some data added in front of an "@" sign.
 
 The 'issueasset' command has the following parameters (in python syntax):
 
@@ -220,9 +229,6 @@ scheme (optional) - This has to do with how expressive we need the transactions 
 
 You should get something back like this:
 
-
-    client.issueasset('foo_inc', 1000)
-
     {u'assetid': u'Bf1aXLmTv41pc2',
      u'color_set': [u'epobc:27da3337fb4a5bb8e2e5a537448e5ec9cfaa3c15628c3c333025d547bbcf9d71:0:361077'],
      u'monikers': [u'foo_inc'],
@@ -238,8 +244,12 @@ This is in JSON format, and is the definition of your asset.
      u'monikers': [u'foo_ingc54'],
      u'unit': 1}
 
-If you make mistakes when issuing assets, don't worry too much. The asset only beomes an asset of yours once you decide to legally define it as such.
-If you botch som issuances, all you lose is some Bitcoin transfer fees.
+This asset resides on a coloraddress. A coloraddress is simply a bitcoin address with some data added in front of an "@" sign. You can ask for the coloraddress if you want to with:
+
+    client.listaddresses('foo_inc')
+
+If you make mistakes when issuing assets, don't worry too much. The asset only becomes an asset of yours once you decide to legally define it as such.
+If you botch some attempts at issuances, all you lose is some Bitcoin transfer fees.
 
 Issuing multiple assets
 ------------------------
@@ -251,7 +261,7 @@ For production use it is recommended to use one wallet and server per asset.
 Exporting an asset definition
 -----------------------------
 
-The asset definition is now in your wallet. You got it back as JSON when issuing the asset, but you can also make the wallet list it with the getasset command, using the moniker "foo_inc" as search key:
+The asset definition is now in your wallet. You got it back as JSON when issuing the asset, but you can also make the wallet list it with the ```getasset``` command, using the asset's moniker "foo_inc" as the search key:
 
     client.getasset('foo_inc')
 
@@ -296,14 +306,12 @@ And finally *you* need to:
 
 * Send the 10 shares to that address
 
-See the steps below:
-
 Importing an asset definition
 -------------------
 
 For this exercise you need to set up one more json-rpc server, where you are going to pretend to be the other party, i.e. the person or organisation that you want to transfer the 10 shares to. In this way you will have one server running your wallet, and a new server pretending to be the other party.
 
-You need to use a completely separate instance of chromawallet for this, so make sure you have downloaded and installed an extra instance where you want it, before continuing. Then configure it just as the one you already have, but if you run them on the same computer, let it listen to another port, e.g. port 8081.
+You need to use a completely separate instance of chromawallet for this, so make sure you have installed an extra instance where you want it, before continuing. Then configure it just as the one you already have, but if you run them on the same computer, let the new server listen to another port, e.g. port 8081.
 
 In every day use for e.g. an exchange it will be more common to import an asset than to create a new one. Assets are transferred in the JSON format. Here is an example of an asset in JSON format:
 
@@ -320,10 +328,10 @@ For real-world use, if you got this JSON file from someone else, verify with the
 Now it is time to import the asset. Use your own JSON that you got when you issued your asset.
 
 
-Import your asset definition with the addasset command (the asset definition is in JSON format but is actually also valid python)
+Import your asset definition with the ```addasset``` command (the asset definition is in JSON format but is actually also valid python)
 :
-    other_partys_client = pyjsonrpc.HttpClient(url = "http://localhost:8081")
 
+    other_partys_client = pyjsonrpc.HttpClient(url = "http://localhost:8081")
     other_partys_client.addasset(    {
             "color_set": [
                 "epobc:27da3337fb4a5bb8e2e5a537448e5ec9cfaa3c15628c3c333025d547bbcf9d71:0:361077"
@@ -336,10 +344,9 @@ Import your asset definition with the addasset command (the asset definition is 
 
 Make sure the import worked by calling:
 
-    import json
-    asset_info = other_partys_client.getasset('foo_inc')
+    other_partys_client.getasset('foo_inc')
 
-You can also check that there is 0 of this asset in the wallet:
+You can also verify that there is 0 of this asset in the wallet:
 
     other_partys_client.getbalance('foo_inc')
 
@@ -349,7 +356,7 @@ This should return:
 
 Generate an address for the asset
 ----------------------------------
-If everything worked, it is time for the other party to generate an address to which you can transfer 10 shares.
+If everything worked, it is time for the other party to generate an address to which you can transfer the 10 shares.
 
     other_partys_client.newaddress('foo_inc')
 
@@ -361,7 +368,7 @@ It should return something similar to this:
 Send the 10 shares to that address
 -----------------------------
 
-Now go back to your server and send the 10 shares over. Use the address that was generated above, not the one in the example below:
+Now go back to your server and send the 10 shares over. Use the address you got, not the one in the example below:
 
     client.send('foo_inc, 'Bf1aXLmTv41pc2@1Bto2AF2vmPYXfbcD5NHd2Sm1f58YFrXHe, 10)
 
