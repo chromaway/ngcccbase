@@ -218,21 +218,71 @@ unit (optional) - how much each smallest quantity represents. Can be 1 for examp
 
 scheme (optional) - This has to do with how expressive we need the transactions to be. Default is "epobc", the most expressive color scheme (the other possible value is "obc").
 
+You should get something back like this:
+
+
+    client.issueasset('foo_inc', 1000)
+
+    {u'assetid': u'Bf1aXLmTv41pc2',
+     u'color_set': [u'epobc:27da3337fb4a5bb8e2e5a537448e5ec9cfaa3c15628c3c333025d547bbcf9d71:0:361077'],
+     u'monikers': [u'foo_inc'],
+     u'unit': 1}
+
+This is in JSON format, and is the definition of your asset.
+
+     In [29]: 
+    client.issueasset('foo_ingc54', 1000)
+    Out[29]: 
+    {u'assetid': u'Bf1aXLmTv41pc2',
+     u'color_set': [u'epobc:27da3337fb4a5bb8e2e5a537448e5ec9cfaa3c15628c3c333025d547bbcf9d71:0:361077'],
+     u'monikers': [u'foo_ingc54'],
+     u'unit': 1}
+
+If you make mistakes when issuing assets, don't worry too much. The asset only beomes an asset of yours once you decide to legally define it as such.
+If you botch som issuances, all you lose is some Bitcoin transfer fees.
+
+Issuing multiple assets
+------------------------
+
+Issuing an asset is a bitcoin transaction, and when issuing an asset Chromawallet takes funds and uses a rather small amount to issue the asset and sends the rest of the output it's spending back to itself as _change_. This means that there are more coins on the move than what is used for issuing the asset. This is how all bitcoin transactions work. This means that if you have issued an asset, it may take some time before you can issue another one, even if you put in enough coins in your wallet to fund more issuances. The coins are simply in a round trip on their way back to your wallet, and they need to be stored under some blocks in the blockchain again before deemed confirmed by chromawallet. 
+
+For production use it is recommended to use one wallet and server per asset.
 
 Exporting an asset definition
 -----------------------------
 
-The asset definition is now in your wallet. You can now copy the definition by exporting a JSON file.
+The asset definition is now in your wallet. You got it back as JSON when issuing the asset, but you can also make the wallet list it with the getasset command, using the moniker "foo_inc" as search key:
 
     client.getasset('foo_inc')
 
-This should return JSON data that can be used for backing up the asset definition, and for sharing the asset definition with other parties and exchanges that may want to trade your asset.
+This will get you back JSON as such:
 
-Let's say you want to send 10 shares to another party. This could be a withdrawal from a shared wallet on an exchange, or part of a trade between you and another party.
+    {u'assetid': u'Bf1aXLmTv41pc2',
+    u'color_set': [u'epobc:27da3337fb4a5bb8e2e5a537448e5ec9cfaa3c15628c3c333025d547bbcf9d71:0:361077'],
+    u'monikers': [u'foo_inc'],
+    u'unit': 1}
+
+The JSON data should be backed up, and can also be used for _sharing_ the asset definition with other parties and exchanges that may want to trade your asset.
+
+Here is a simple backup to file example, in python:
+
+    import json
+    asset_info = client.getasset('foo_inc')
+    json.dump(asset_info, 'backup.json')
+
+You can also check that you indeed have 1000 items of "foo_inc".
+
+    client.getbalance('foo_inc')
+
+This should return:
+
+    {u'foo_inc': u'1000'}
 
 
 Transfer 10 shares of the "Foo, Inc." company to someone else's wallet.
 -----------------------------------------------
+
+Ok, let's say you want to send 10 shares to another party. This could be a withdrawal from a shared wallet on an exchange, or part of a trade between you and another party.
 
 In order to transfer 10 shares of "Foo Inc." to someone else, they first need to:
 
@@ -251,28 +301,32 @@ See the steps below:
 Importing an asset definition
 -------------------
 
+For this exercise you need to set up one more json-rpc server, where you are going to pretend to be the other party, i.e. the person or organisation that you want to transfer the 10 shares to. In this way you will have one server running your wallet, and a new server pretending to be the other party.
+
+You need to use a completely separate instance of chromawallet for this, so make sure you have downloaded and installed an extra instance where you want it, before continuing. Then configure it just as the one you already have, but if you run them on the same computer, let it listen to another port, e.g. port 8081.
+
 In every day use for e.g. an exchange it will be more common to import an asset than to create a new one. Assets are transferred in the JSON format. Here is an example of an asset in JSON format:
 
-    {
-            "color_set": [
-                "obc:b3b2c25ea6366d8506ea338f8e93624af897f284a511864eafe472d283819b41:0:147478"
-            ], 
-            "monikers": [
-                "foo_inc"
-            ], 
-            "unit": 1
-    }
+    {u'assetid': u'Bf1aXLmTv41pc2',
+    u'color_set': [u'epobc:27da3337fb4a5bb8e2e5a537448e5ec9cfaa3c15628c3c333025d547bbcf9d71:0:361077'],
+    u'monikers': [u'foo_inc'],
+    u'unit': 1}
 
 
-For real-world use, verify with the issuer what it is they're issuing.
+Yours should look pretty much the same, but with other values for assetid and color_set.
 
-(the above asset definition is in JSON format but is actually also valid python)
+For real-world use, if you got this JSON file from someone else, verify with the issuer what it is they're issuing and what legal framework governs its use and transfer. 
 
-Import the asset definition with the addasset command:
+Now it is time to import the asset. Use your own JSON that you got when you issued your asset.
+
+
+Import your asset definition with the addasset command (the asset definition is in JSON format but is actually also valid python)
+:
+    other_partys_client = pyjsonrpc.HttpClient(url = "http://localhost:8081")
 
     other_partys_client.addasset(    {
             "color_set": [
-                "epobc:b3b2c25ea6366d8506ea338f8e93624af897f284a511864eafe472d283819b41:0:147478"
+                "epobc:27da3337fb4a5bb8e2e5a537448e5ec9cfaa3c15628c3c333025d547bbcf9d71:0:361077"
             ], 
             "monikers": [
                 "foo_inc"
@@ -280,17 +334,36 @@ Import the asset definition with the addasset command:
             "unit": 1
      })
 
+Make sure the import worked by calling:
 
+    import json
+    asset_info = other_partys_client.getasset('foo_inc')
+
+You can also check that there is 0 of this asset in the wallet:
+
+    other_partys_client.getbalance('foo_inc')
+
+This should return:
+
+    {u'foo_inc': u'0'}
 
 Generate an address for the asset
 ----------------------------------
+If everything worked, it is time for the other party to generate an address to which you can transfer 10 shares.
 
     other_partys_client.newaddress('foo_inc')
+
+It should return something similar to this:
+
+    u'Bf1aXLmTv41pc2@1Bto2AF2vmPYXfbcD5NHd2Sm1f58YFrXHe'
+
 
 Send the 10 shares to that address
 -----------------------------
 
-    client.send('8et28whdkqo@198y9ojooj9u0')
+Now go back to your server and send the 10 shares over. Use the address that was generated above, not the one in the example below:
+
+    client.send('foo_inc, 'Bf1aXLmTv41pc2@1Bto2AF2vmPYXfbcD5NHd2Sm1f58YFrXHe, 10)
 
 
 
