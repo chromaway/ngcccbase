@@ -129,11 +129,16 @@ class PersistentWallet(object):
     def dumpconfig(self):
         return dict(self.wallet_config.iteritems())
 
-    def importconfig(self, path):
-        # FIXME what about subkeys and removed keys?
+    def importconfig(self, path): # FIXME test it
+
+        # remove previous entries
+        for key in self.wallet_config:
+            del self.wallet_config[key]
+
+        # add new entries
         with open(path, 'r') as fp:
             config = json.loads(fp.read())
             wallet_config = self.wallet_config
-            for k in config:
-                wallet_config[k] = config[k]
+            for key in config:
+                wallet_config[key] = config[key]
 
