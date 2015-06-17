@@ -17,6 +17,11 @@ class ConfigKeyNotFound(Exception):
         super(ConfigKeyNotFound, self).__init__("Key '%s' not found!" % key)
 
 
+class ConfigPathInUse(Exception):
+    def __init__(self, key):
+        super(ConfigPathInUse, self).__init__("Key '%s' intersects value!" % key)
+
+
 class PersistentWallet(object):
     """Represents a wallet object that stays persistent.
     That is, it doesn't go away every time you run the program.
@@ -72,32 +77,33 @@ class PersistentWallet(object):
         """
         return self.wallet_model
 
-    def setconfigval(self, key, value): # FIXME behaviour ok?
-        kpath = key.split('.')
-        value = json.loads(value)
+    def setconfigval(self, keypath, value):
+        keys = keypath.split('.')
+        config = dict(self.wallet_config)
 
-        # traverse the path until we get to the value we need to set
-        if len(kpath) > 1:
-            branch = self.wallet_config[kpath[0]]
-            cdict = branch
-            for k in kpath[1:-1]:
-                cdict = cdict[k]
-            cdict[kpath[-1]] = value
-            value = branch
-        if kpath[0] in self.wallet_config:
-            self.wallet_config[kpath[0]] = value
-        else:
-            raise ConfigKeyNotFound(key)
+        # set in config copy
+        branch = config
+        while len(keys) > 1:
+            if keys[0] not in branch:
+                branch[keys[0]] = { }
+            branch = branch[keys[0]]
+            keys = keys[1:]
+            if not isinstance(branch, dict):
+                raise ConfigPathInUse(keypath)
+        branch[keys[0]] = value
 
-    def getconfigval(self, key):
-        if not key:
-            raise ConfigKeyNotFound(key)
-        keys = key.split('.')
-        config = self.wallet_config
-        # traverse the path until we get the value
+        # set wallet_config from copy
+        root_key = keypath.split('.')[0]
+        self.wallet_config[root_key] = config[root_key]
+
+    def getconfigval(self, keypath):
+        if not keypath:
+            raise ConfigKeyNotFound(keypath)
+        keys = keypath.split('.')
+        branch = self.wallet_config
         for key in keys:
-            config = config[key]
-        return config
+            branch = branch[key]
+        return branch
 
     def importprivkey(self, wif, asset):
         wam = self.wallet_model.get_address_manager()
