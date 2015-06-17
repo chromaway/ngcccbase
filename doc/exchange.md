@@ -52,14 +52,13 @@ On Ubuntu, you can install supervisord easily; it is one of the packages in the 
 
 After supervisord has been installed, it has an entry in the /etc/init.d directory, and in /etc/supervisor/conf.d directory you can add a file with directions for it to run chromawallet-server . On install supervisord is configured to start immediately and then re-start every time that the server boots.
 
-Below is an example entry in the /etc/supervisorsuper/supervisord.conf file on a Ubuntu 14.04 LTS server for running chromawallet-server. In this setup example, the install directory is:
+Below is an example entry in the /etc/supervisor/conf.d directory on a Ubuntu 14.04 LTS server for running chromawallet-server.
+
+The file could be called chromawallet.conf (as long as you put conf at the end you are good to go). In this setup example, the install directory for the chromawallet-server is:
 
     /home/a_user_name/chromawallet
 
-
-...inside that directory.
-
-The file could be called chromawallet.conf (as long as you put conf at the end you are good to go). In this example the user it should run under is "a_user_name":
+In this example the user it should run under is "a_user_name":
 
     [program:chromawallet]
     command=/home/a_user_name/chromawallet/chromawallet-server startserver
@@ -70,8 +69,7 @@ The file could be called chromawallet.conf (as long as you put conf at the end y
     user=a_user_name
 
 
-
-You can then re-start supervisord to load the new settings: 
+You may then re-start supervisord to load the new settings: 
 
     sudo service supervisor restart
 
@@ -148,7 +146,7 @@ At any time you can control the server with:
 Testing that the server is up
 -----------------------
 
-Whether you are running ngccc-server from the command line or from supervisord, you can use a json-rpc client to check that the server is up and working.
+Whether you are running chromawallet-server from the command line or from supervisord, you can use a json-rpc client to check that the server is up and working.
 
 Example in python with pyjsonrpc:
 
@@ -272,13 +270,13 @@ This will get you back JSON as such:
     u'monikers': [u'foo_inc'],
     u'unit': 1}
 
-The JSON data should be backed up, and can also be used for _sharing_ the asset definition with other parties and exchanges that may want to trade your asset.
+The JSON data is important since it defines your asset and without it your asset would be lost! The asset definition in JSON should therefore be backed up, and can also be used for _sharing_ the asset definition with other parties and exchanges that may want to trade your asset.
 
 Here is a simple backup to file example, in python:
 
     import json
     asset_info = client.getasset('foo_inc')
-    json.dump(asset_info, 'backup.json')
+    json.dump(asset_info, 'foo_inc_backup.json')
 
 You can also check that you indeed have 1000 items of "foo_inc".
 
@@ -311,7 +309,7 @@ Importing an asset definition
 
 For this exercise you need to set up one more json-rpc server, where you are going to pretend to be the other party, i.e. the person or organisation that you want to transfer the 10 shares to. In this way you will have one server running your wallet, and a new server pretending to be the other party.
 
-You need to use a completely separate instance of chromawallet for this, so make sure you have installed an extra instance where you want it, before continuing. Then configure it just as the one you already have, but if you run them on the same computer, let the new server listen to another port, e.g. port 8081.
+You need to use a completely separate instance of chromawallet for this, so make sure you have installed an extra instance where you want it in its own directory, before continuing. Then configure it just as the one you already have, but if you run them on the same computer, let the new server listen to another port, e.g. port 8081.
 
 In every day use for e.g. an exchange it will be more common to import an asset than to create a new one. Assets are transferred in the JSON format. Here is an example of an asset in JSON format:
 
@@ -371,6 +369,8 @@ Send the 10 shares to that address
 Now go back to your server and send the 10 shares over. Use the address you got, not the one in the example below:
 
     client.send('foo_inc, 'Bf1aXLmTv41pc2@1Bto2AF2vmPYXfbcD5NHd2Sm1f58YFrXHe, 10)
+
+And now 10 shares of the Foo Inc. company have been sent to the other party, confirmed by the block chain.
 
 
 
