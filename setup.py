@@ -14,7 +14,7 @@ requires = [
     'bunch == 1.0.1',
     'python-jsonrpc == 0.7.7',
     'python-bitcoinlib == 0.1.1',
-    'apigen == 1.1.8',
+    'apigen == 1.2.9',
     'web.py == 0.37',
     'six == 1.9.0',
     'requests == 2.7.0',
@@ -29,7 +29,7 @@ dependency_links = [
 
 setup(
     name='ngcccbase',
-    version='0.0.10',
+    version='0.0.11',
     description='A flexible and modular base for colored coin software.',
     long_description=README,
     classifiers=[
