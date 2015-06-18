@@ -61,6 +61,7 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         self._thread = None
 
     def _query(self, url, data=None, exceptiononfail=True):
+        # FIXME what about network errors!!!
         header = {'Content-Type': 'application/json'}
         data = json.dumps(data) if data else None
         fp = urllib2.urlopen(urllib2.Request(url, data, header))
