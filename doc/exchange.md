@@ -300,10 +300,10 @@ You need to use a completely separate instance of chromawallet for this, so make
 
 In every day use for e.g. an exchange it will be more common to import an asset than to create a new one. Assets are transferred in the JSON format. Here is an example of an asset in JSON format:
 
-    {u'assetid': u'Bf1aXLmTv41pc2',
-    u'color_set': [u'epobc:27da3337fb4a5bb8e2e5a537448e5ec9cfaa3c15628c3c333025d547bbcf9d71:0:361077'],
-    u'monikers': [u'foo_inc'],
-    u'unit': 1}
+    {assetid: "Bf1aXLmTv41pc2",
+    color_set: ["epobc:27da3337fb4a5bb8e2e5a537448e5ec9cfaa3c15628c3c333025d547bbcf9d71:0:361077"],
+    monikers: ["foo_inc"],
+    unit: 1}
 
 
 Yours should look pretty much the same, but with other values for assetid and color_set.
@@ -313,7 +313,7 @@ For real-world use, if you got this JSON file from someone else, verify with the
 Now it is time to import the asset. Use your own JSON that you got when you issued your asset.
 
 
-Import your asset definition with the ```addassetjson``` command:
+Import your asset definition with the ```addassetjson``` command. With the pyjsonrpc client you actually use a native python dictionary, but it will be converted to JSON before being sent over the network:
 :
 
     other_partys_client.addassetjson({u'assetid': u'Bf1aXLmTv41pc2',
