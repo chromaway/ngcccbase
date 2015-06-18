@@ -3,7 +3,7 @@ Please note that this documentation is a work in progress. [text in square brack
 Trying out chromawallet's JSON API
 ===============
 
-For exchange use and other uses.
+For exchange use and other uses. Note that chromawallet-server is not meant to be run over an untrusted network. Use firewall rules accordingly.
 
 Starting and stopping chromawallet from the command line
 ---------------
@@ -79,69 +79,49 @@ At any time you can control the server with:
 
 ...and issue start, stop, restart and status commands.
 
+Running chromawallet-server from source
+-----------------------------------------
 
-### Running chromawallet from source
+Follow the below two links if you are interested in running the chromawallet-server from source.
 
-This step is only for those who wish to run chromawallet-server from source.
-
-Checking out chromawallet-server from source
-
-    mkdir chromawallet
-    cd chromawallet
-    virtualenv .
-    . bin/activate
-    git clone git@github.com:chromaway/ngcccbase.git
-    cd ngcccbase
-    git checkout develop
-    cd ..
-    python ngcccbase/setup.py develop
+* [Running chromawallet from source](./run-from-source.md)
+* [Running chromawallet from source as a service/daemon](./source-as-daemon.md)
 
 
-The chromawallet-server can be run both from the command line and as a background server. For running from the command line:
+JSON-RPC clients
+---------------------
+For these example pyjsonrpc under python 2.7 will be used, but any JSON-RPC client in any language should work , such as node-json-rpc in javascript. 
 
-    python ngccc-server.py startserver
+## Error handling
+For brevity and clarity, error handling will be ignored in the examples. In case of errors when making JSON-RPC calls, there will be an "error" object in the response. pyjsonrpc will automatically convert the error response to an JSON-RPC exception which you can catch, and with some other libraries such as node-json-rpc you should check for the presence of an error object in the reponse.
 
+This is how to handle errors with pyjsonrpc, ```e.message``` is the one that may be most of interest:
 
-### Running chromawallet from source as a service/daemon
+    import pyjsonrpc
+    client = pyjsonrpc.HttpClient(url = "http://localhost:8080")
 
-This step is only for those who wish to run chromawallet-server from source.
+    try:
+        client.dumpconfig()
+    except pyjsonrpc.rpcerror.JsonRpcError as e:
+        print e.code  # see http://www.jsonrpc.org/specification#error_object
 
+        # Error from the server if an exception is raised during the call.
+        if e.code <= -32000 and e.code >= -32099:
+            print e.message  # source exception message
+            data = json.loads(e.data)
+            print data["classname"]  # source exception class name
+            print data["repr"]  # source exception repr string
+            print data["traceback"]  # source exception traceback
 
-Below is an example entry in the /etc/supervisorsuper/supervisord.conf file on a Ubuntu 14.04 LTS server for running chromawallet-server. In this setup example, the install directory is:
+For other clients, this is what the JSON esponse may look like in case of an error. ```error.message``` being the one that may be of most interest:
 
-    /home/a_user_name/chromawallet_virtual_env
+    { jsonrpc: '2.0',
+      id: 0,
+      error: 
+       { message: 'Not enough coins: : 1000004840 requested, : 256670 found!',
+         code: -32000,
+         data: '{"classname": "InsufficientFundsError", "traceback": "Traceback (most recent call last): [...] "}' } }
 
-with the python interpreter in
-
-                                         ./bin
-
-and the chromawallet script in
-
-                                         ./ngcccbase
-
-...inside that directory.
-
-The file is called chromawallet.conf in this example and the user it should run under is "a_user_name":
-
-    [program:chromawallet]
-    command=/home/a_user_name/chromawallet_virtual_env/bin/python ngccc-server.py startserver
-    process_name=%(program_name)s
-    numprocs=1
-    directory=/home/a_user/chromawallet_virtual_env/ngcccbase
-    stopsignal=TERM
-    user=a_user_name
-
-
-
-You can then re-start supervisord to load the new settings: 
-
-    sudo service supervisor restart
-
-At any time you can control the server with:
-
-    sudo supervisorctl
-
-...and issue start, stop, restart and status commands.
 
 Testing that the server is up
 -----------------------
@@ -200,6 +180,13 @@ After a while the getbalance command should return the new balance. This may tak
 
 
 Wait until the wallet signals that it knows about the funding before proceeding to the next step.
+
+Backing up private keys
+--------------------------
+
+You can get a list of the private bitcoin keys with:
+
+    client.dumpprivkeys('bitcoin')
 
 
 Issue the asset
@@ -326,19 +313,13 @@ For real-world use, if you got this JSON file from someone else, verify with the
 Now it is time to import the asset. Use your own JSON that you got when you issued your asset.
 
 
-Import your asset definition with the ```addasset``` command (the asset definition is in JSON format but is actually also valid python)
+Import your asset definition with the ```addassetjson``` command:
 :
 
-    other_partys_client = pyjsonrpc.HttpClient(url = "http://localhost:8081")
-    other_partys_client.addasset(    {
-            "color_set": [
-                "epobc:27da3337fb4a5bb8e2e5a537448e5ec9cfaa3c15628c3c333025d547bbcf9d71:0:361077"
-            ], 
-            "monikers": [
-                "foo_inc"
-            ], 
-            "unit": 1
-     })
+    other_partys_client.addassetjson({u'assetid': u'Bf1aXLmTv41pc2',
+             u'color_set': [u'epobc:27da3337fb4a5bb8e2e5a537448e5ec9cfaa3c15628c3c333025d547bbcf9d71:0:361077'],
+             u'monikers': [u'foo_inc'],
+             u'unit': 1})
 
 Make sure the import worked by calling:
 
@@ -370,7 +351,7 @@ Now go back to your server and send the 10 shares over. Use the address you got,
 
     client.send('foo_inc, 'Bf1aXLmTv41pc2@1Bto2AF2vmPYXfbcD5NHd2Sm1f58YFrXHe, 10)
 
-And now 10 shares of the Foo Inc. company have been sent to the other party, confirmed by the block chain.
+And now 10 shares of the Foo Inc. company have been sent to the other party, progressively confirmed by the Bitcoin block chain.
 
 
 
