@@ -9,7 +9,7 @@ from ngcccbase.api import Ngccc
 wallet_path = "ngcccbase/tests/unittest.wallet"
 
 
-use_bitcoind = 'false'
+use_bitcoind = False
 
 
 class TestSignrawtx(unittest.TestCase):
