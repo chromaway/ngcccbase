@@ -81,7 +81,8 @@ class WalletModel(object):
             self.address_man = DWalletAddressManager(self.ccc.colormap, config)
 
     def init_tx_db(self, config):
-        if config.get('use_naivetxdb') or self.use_naivetxdb:
+        use_naivetxdb = config.get('use_naivetxdb') or self.use_naivetxdb
+        if self._using_bitcoind(config) or use_naivetxdb:
             self.txdb = NaiveTxDb(self, config)
         else:
             self.txdb = VerifiedTxDb(self, config)
@@ -90,13 +91,16 @@ class WalletModel(object):
         self.utxo_fetcher = SimpleUTXOFetcher(
             self, config.get('utxo_fetcher', {}))
 
-    def init_blockchain_state(self, config):
+    def _using_bitcoind(self, config):
         thin = config.get('thin', True)
         use_bitcoind = config.get('use_bitcoind', False)
-        if thin and not use_bitcoind: # use chromanode api (headers only)
-            self.blockchain_state = ChromanodeInterface(None, self.testnet)
-        else: # use bitcoind api (full node)
+        return not thin or use_bitcoind
+
+    def init_blockchain_state(self, config):
+        if self._using_bitcoind(config): # use bitcoind api (full node)
             self.blockchain_state = BlockchainState.from_url(None, self.testnet)
+        else:
+            self.blockchain_state = ChromanodeInterface(None, self.testnet)
 
     def disconnect(self):
         # FIXME check instance is ChromanodeInterface
