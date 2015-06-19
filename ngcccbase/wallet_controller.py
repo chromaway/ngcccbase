@@ -143,7 +143,6 @@ class WalletController(object):
 
         if signed_tx_spec.composed_tx_spec:
             self.model.txdb.add_raw_tx(signed_tx_spec)
-        # TODO add to history
         return txhash
 
     def full_rescan(self):
@@ -174,7 +173,10 @@ class WalletController(object):
         return sums
 
     def validate_sendmany_entries(self, entries):
-        # TODO check for max entries
+        if len(entries) > 1000: # actual limit is tx size of 100000 bytes
+            msg = "Maximum of 1000 sendmany entries exceeded!"
+            raise Exception(msg)
+
         sums = self.sendmany_sums(entries)
 
         # check if required asset amount available
@@ -292,16 +294,17 @@ class WalletController(object):
         signed_tx_spec = self.model.transform_tx_spec(tx_spec, 'signed')
         txid = self.publish_tx(signed_tx_spec)
 
-        # get fee
+        # add to history
+        fee = self._get_fee(txid, signed_tx_spec)
+        self.model.tx_history.add_send_entry(txid, asset, target_addrs,
+                                             raw_colorvalues, fee)
+        return txid
+
+    def _get_fee(self, txid, signed_tx_spec):
         txbin = signed_tx_spec.get_tx_data()
         bctx = bitcoin.core.CTransaction.deserialize(txbin)
         bs = self.model.get_blockchain_state()
-        txfee = CTransaction.from_bitcoincore(txid, bctx, bs).get_fee()
-
-        self.model.tx_history.add_send_entry(
-            txid, asset, target_addrs, raw_colorvalues, txfee
-        )
-        return txid
+        return CTransaction.from_bitcoincore(txid, bctx, bs).get_fee()
 
     def get_address_record(self, bitcoinaddress):
         wam = self.model.get_address_manager()

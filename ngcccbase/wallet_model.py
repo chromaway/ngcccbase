@@ -103,7 +103,6 @@ class WalletModel(object):
             self.blockchain_state = ChromanodeInterface(None, self.testnet)
 
     def disconnect(self):
-        # FIXME check instance is ChromanodeInterface
         self.blockchain_state.disconnect()
         self.utxo_fetcher.disconnect()
 

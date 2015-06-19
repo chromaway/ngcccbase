@@ -148,7 +148,6 @@ class ThinColorData(StoredColorData):
                 )
                 inputs = inputs.union(affecting_inputs)
             for i in inputs:
-                # fixme stop recursion
                 if not maxdepthreached(current_txhash):
                     process(i.prevout.hash, i.prevout.n)
             self.cdbuilder_manager.scan_tx(color_id_set, current_tx, [current_outindex])

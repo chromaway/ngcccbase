@@ -120,12 +120,6 @@ class MyReplyEProposal(EProposal):
         data['etx_data'] = self.tx.get_hex_tx_data()
         return data
 
-    def process_reply(self, reply_ep):
-        # FIXME how is ever valid to call this function???
-        rtxs = RawTxSpec.from_tx_data(self.ewctrl.model,
-                                      reply_ep.etx_data.decode('hex'))
-        self.ewctrl.publish_tx(rtxs, self.my_offer) # TODO: ???
-
 
 class ForeignEProposal(EProposal):
     def __init__(self, ewctrl, ep_data):

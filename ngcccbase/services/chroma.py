@@ -26,7 +26,10 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         self._last_connected = 0
         self._update_height_interval = 10
         self._thread = None
-        self._update_height()
+        try:
+            self._update_height()
+        except urllib2.URLError:
+            pass # surpress connection error, handled later
         self.connect()
 
     def _update_height(self):
@@ -61,7 +64,6 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         self._thread = None
 
     def _query(self, url, data=None, exceptiononfail=True):
-        # FIXME what about network errors!!!
         header = {'Content-Type': 'application/json'}
         data = json.dumps(data) if data else None
         fp = urllib2.urlopen(urllib2.Request(url, data, header))

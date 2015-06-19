@@ -253,7 +253,7 @@ class TxHistory(object):
         if len(cids) > 2 or (len(cids) == 2 and 0 not in cids):
             return False
 
-        return False  # FIXME disabled for now
+        return False  # disabled for now
 
     def create_send_entry(self, raw_tx, spent_coins, received_coins):
         pass  # TODO

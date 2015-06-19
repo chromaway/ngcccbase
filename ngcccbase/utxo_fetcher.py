@@ -47,7 +47,6 @@ class BaseUTXOFetcher(object):
             raise Exception('Unknown service for UTXOFetcher!')        
 
     def disconnect(self):
-        # FIXME check instance is ChromanodeInterface
         self.interface.disconnect()
 
     def scan_address(self, address):
@@ -70,7 +69,7 @@ class SimpleUTXOFetcher(BaseUTXOFetcher):
         for address_rec in wam.get_all_addresses():
             self.scan_address(address_rec.get_address())
 
-class AsyncUTXOFetcher(BaseUTXOFetcher): # FIXME subscribe to addresses instead
+class AsyncUTXOFetcher(BaseUTXOFetcher): # TODO subscribe to addresses instead
 
     def __init__(self, model, params):
         interface = self.make_interface(model, params)
@@ -118,7 +117,7 @@ class AsyncUTXOFetcher(BaseUTXOFetcher): # FIXME subscribe to addresses instead
             try:
                 with self.lock:
                     address_list = self.address_list[:]
-                for address in address_list: # FIXME do in parallel!
+                for address in address_list: # TODO do in parallel!
                     self.scan_address(address)
             except Exception as e:
                 print e

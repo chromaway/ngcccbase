@@ -129,7 +129,7 @@ class PersistentWallet(object):
     def dumpconfig(self):
         return dict(self.wallet_config.iteritems())
 
-    def importconfig(self, path): # FIXME test it
+    def importconfig(self, path):
 
         # remove previous entries
         for key in self.wallet_config:
