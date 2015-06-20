@@ -15,17 +15,46 @@ fixtures = json.load(open("ngcccbase/tests/fixtures.json"))
 # read only unit test wallet
 ro_wallet_path = "ngcccbase/tests/ro_unittest.wallet"
 ro_api = Ngccc(wallet=ro_wallet_path, testnet=True, use_naivetxdb=True)
-ro_api.setconfigval('use_bitcoind', False)  # set to True to test bitcoind
+#ro_api.setconfigval('use_bitcoind', False)  # set to True to test bitcoind
 
 
 # read write unit test wallet
 rw_wallet_path = "ngcccbase/tests/rw_unittest.wallet"
 rw_api = Ngccc(wallet=rw_wallet_path, testnet=True, use_naivetxdb=True)
-rw_api.setconfigval('use_bitcoind', False)  # set to True to test bitcoind
+#rw_api.setconfigval('use_bitcoind', False)  # set to True to test bitcoind
+
+
+class TestHistory(unittest.TestCase):
+
+    def test_uncolored(self):  # FIXME why an empty list?
+        moniker = fixtures["history"]["uncolored"]["moniker"]
+        expected = fixtures["history"]["uncolored"]["expected"]
+        output = ro_api.history(moniker)
+        self.assertEquals(output, expected)
+
+    def test_epobc(self):
+        moniker = fixtures["history"]["epobc"]["moniker"]
+        expected = fixtures["history"]["epobc"]["expected"]
+        output = ro_api.history(moniker)
+        self.assertEquals(output, expected)
+
+    def test_obc(self):
+        moniker = fixtures["history"]["obc"]["moniker"]
+        expected = fixtures["history"]["obc"]["expected"]
+        output = ro_api.history(moniker)
+        self.assertEquals(output, expected)
+
+
+class TestListAssets(unittest.TestCase):
+
+    def test(self):
+        expected = fixtures["listassets"]["expected"]
+        output = ro_api.listassets()
+        self.assertEquals(output, expected)
 
 
 class TestDumpPrivateKey(unittest.TestCase):
-    
+
     def test_uncolored(self):
         moniker = fixtures["dumpprivkey"]["uncolored"]["moniker"]
         address = fixtures["dumpprivkey"]["uncolored"]["address"]
@@ -49,7 +78,7 @@ class TestDumpPrivateKey(unittest.TestCase):
 
 
 class TestDumpPrivateKeys(unittest.TestCase):
-    
+
     def test_uncolored(self):
         moniker = fixtures["dumpprivkeys"]["uncolored"]["moniker"]
         expected = fixtures["dumpprivkeys"]["uncolored"]["expected"]
@@ -70,7 +99,7 @@ class TestDumpPrivateKeys(unittest.TestCase):
 
 
 class TestTxOutValue(unittest.TestCase):  # TODO test non wallet tx
-    
+
     def test_uncolored(self):
         txid = fixtures["txoutvalue"]["uncolored"]["txid"]
         outindex = fixtures["txoutvalue"]["uncolored"]["outindex"]
@@ -97,7 +126,7 @@ class TestTxOutValue(unittest.TestCase):  # TODO test non wallet tx
 
 
 class TestTxOutValues(unittest.TestCase):  # TODO test non wallet tx
-    
+
     def test_uncolored(self):
         txid = fixtures["txoutvalues"]["uncolored"]["txid"]
         outindex = fixtures["txoutvalues"]["uncolored"]["outindex"]
@@ -251,22 +280,22 @@ class TestBalance(unittest.TestCase):  # TODO test unconfirmed and available
 class TestConfig(unittest.TestCase):
 
     def test_get_set_value(self):
-        ro_api.setconfigval("testapi", True)
-        value = ro_api.getconfigval("testapi")
+        rw_api.setconfigval("testapi", True)
+        value = rw_api.getconfigval("testapi")
         self.assertEquals(value, True)
 
-        ro_api.setconfigval("testapi", False)
-        value = ro_api.getconfigval("testapi")
+        rw_api.setconfigval("testapi", False)
+        value = rw_api.getconfigval("testapi")
         self.assertEquals(value, False)
 
     def test_dump_import(self):
-        config = ro_api.dumpconfig()
+        config = rw_api.dumpconfig()
         config["testapi"] = "testdump"
         path = tempfile.mktemp()
         with open(path, "w") as fobj:
             fobj.write(json.dumps(config))
-        ro_api.importconfig(path)
-        value = ro_api.getconfigval("testapi")
+        rw_api.importconfig(path)
+        value = rw_api.getconfigval("testapi")
         self.assertEquals(value, "testdump")
         os.remove(path)
 

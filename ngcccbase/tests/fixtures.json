@@ -1,4 +1,215 @@
 {
+    "history": {
+        "epobc":{
+            "moniker":"copper",
+            "expected":[
+              {
+                "outindex": 0, 
+                "value": 10000000, 
+                "height": 322982, 
+                "inindex": -1, 
+                "txhash": "0a34da8628c371338f36ca88411068b10608580bcc563ed90d86afc889280f40", 
+                "address": "mjuqsdRQvSXhspK5D4koD3WUwy6R7ZtvXs", 
+                "action": "received", 
+                "mempool": false
+              }, 
+              {
+                "outindex": -1, 
+                "value": 10000000, 
+                "height": 323320, 
+                "inindex": 1, 
+                "txhash": "e30fa138367bc73b2174f54bd4cf307521ba26fe91539e0a77e22d3dd2cdbc03", 
+                "address": "mjuqsdRQvSXhspK5D4koD3WUwy6R7ZtvXs", 
+                "action": "sent", 
+                "mempool": false
+              }, 
+              {
+                "outindex": 4, 
+                "value": 9900000, 
+                "height": 323320, 
+                "inindex": -1, 
+                "txhash": "e30fa138367bc73b2174f54bd4cf307521ba26fe91539e0a77e22d3dd2cdbc03", 
+                "address": "mjuqsdRQvSXhspK5D4koD3WUwy6R7ZtvXs", 
+                "action": "received", 
+                "mempool": false
+              }, 
+              {
+                "outindex": -1, 
+                "value": 9900000, 
+                "height": 325497, 
+                "inindex": 0, 
+                "txhash": "dd5b376c8b642f59ccff0426c4e02e19e5f895eb83b3180c3dfb65dc1b603203", 
+                "address": "mjuqsdRQvSXhspK5D4koD3WUwy6R7ZtvXs", 
+                "action": "sent", 
+                "mempool": false
+              }, 
+              {
+                "outindex": 1, 
+                "value": 9800000, 
+                "height": 325497, 
+                "inindex": -1, 
+                "txhash": "dd5b376c8b642f59ccff0426c4e02e19e5f895eb83b3180c3dfb65dc1b603203", 
+                "address": "mjuqsdRQvSXhspK5D4koD3WUwy6R7ZtvXs", 
+                "action": "received", 
+                "mempool": false
+              }
+            ]
+        },
+        "obc":{
+            "moniker": "bronze",
+            "expected": [
+              {
+                "outindex": 0, 
+                "value": 100000000, 
+                "height": 323347, 
+                "inindex": -1, 
+                "txhash": "14207baf5fc51615811ddbde86b33be21a5d8f60cad658994b489a3f1b695aa4", 
+                "address": "mwxph77nmxqBv23pb6nwG8qM5W4axCzCqt", 
+                "action": "issued", 
+                "mempool": false
+              }, 
+              {
+                "outindex": -1, 
+                "value": 100000000, 
+                "height": 325470, 
+                "inindex": 0, 
+                "txhash": "b20fe12e45b66c5d8bb7a5982dad8c5d041ae4d5cf502dea0273b78109305733", 
+                "address": "mwxph77nmxqBv23pb6nwG8qM5W4axCzCqt", 
+                "action": "sent", 
+                "mempool": false
+              }, 
+              {
+                "outindex": 1, 
+                "value": 99900000, 
+                "height": 325470, 
+                "inindex": -1, 
+                "txhash": "b20fe12e45b66c5d8bb7a5982dad8c5d041ae4d5cf502dea0273b78109305733", 
+                "address": "mwxph77nmxqBv23pb6nwG8qM5W4axCzCqt", 
+                "action": "received", 
+                "mempool": false
+              }, 
+              {
+                "outindex": -1, 
+                "value": 99900000, 
+                "height": 325472, 
+                "inindex": 0, 
+                "txhash": "4091de7ad5d07406bf18906d6e35447168b01557ba134fb0ea96ebd4c8669742", 
+                "address": "mwxph77nmxqBv23pb6nwG8qM5W4axCzCqt", 
+                "action": "sent", 
+                "mempool": false
+              }, 
+              {
+                "outindex": 1, 
+                "value": 99700000, 
+                "height": 325472, 
+                "inindex": -1, 
+                "txhash": "4091de7ad5d07406bf18906d6e35447168b01557ba134fb0ea96ebd4c8669742", 
+                "address": "mwxph77nmxqBv23pb6nwG8qM5W4axCzCqt", 
+                "action": "received", 
+                "mempool": false
+              }, 
+              {
+                "outindex": -1, 
+                "value": 99700000, 
+                "height": 325477, 
+                "inindex": 0, 
+                "txhash": "646ec338b2920ba3e87c484122b0363c57cccccc9858ca8aa86b176279382d0f", 
+                "address": "mwxph77nmxqBv23pb6nwG8qM5W4axCzCqt", 
+                "action": "sent", 
+                "mempool": false
+              }, 
+              {
+                "outindex": 1, 
+                "value": 99670000, 
+                "height": 325477, 
+                "inindex": -1, 
+                "txhash": "646ec338b2920ba3e87c484122b0363c57cccccc9858ca8aa86b176279382d0f", 
+                "address": "mwxph77nmxqBv23pb6nwG8qM5W4axCzCqt", 
+                "action": "received", 
+                "mempool": false
+              }
+            ]
+        },
+        "uncolored":{
+            "moniker": "bitcoin",
+            "expected": [
+            ]
+        }
+    },
+    "listassets": {
+        "expected": [
+          {
+            "assetid": "JNu4AFCBNmTE1",
+            "color_set": [
+              ""
+            ],
+            "monikers": [
+              "bitcoin"
+            ],
+            "unit": 100000000
+          },
+          {
+            "assetid": "nghRxMdVmnrpK",
+            "color_set": [
+              "epobc:9df37ce731eb891455955fad86b6b56ed328520b196488d008e6011a0a6f8eeb:0:322628"
+            ],
+            "monikers": [
+              "fabecoin"
+            ],
+            "unit": 1
+          },
+          {
+            "assetid": "BvxhTsvo9kinXQ",
+            "color_set": [
+              "epobc:634e55751bff754df406c513210ce0be4ada8eee1bd9c085eb74bb54fb28d3b1:0:322976"
+            ],
+            "monikers": [
+              "copper"
+            ],
+            "unit": 100000000
+          },
+          {
+            "assetid": "7TR9SB6nKw81cw",
+            "color_set": [
+              "obc:14207baf5fc51615811ddbde86b33be21a5d8f60cad658994b489a3f1b695aa4:0:323345"
+            ],
+            "monikers": [
+              "bronze"
+            ],
+            "unit": 100000000
+          },
+          {
+            "assetid": "C96PXFxdna82rf",
+            "color_set": [
+              "epobc:facc9ec73c01f3ffd44aa9487f27bc328fee765ada0d20550a7f0a1cb8e82eb4:0:326365"
+            ],
+            "monikers": [
+              "testcoin"
+            ],
+            "unit": 100000000
+          },
+          {
+            "assetid": "q7v1m7Epct5kR",
+            "color_set": [
+              "epobc:3e738768f81b9805cc325c289c77e57c09a655d4f54ab176f0881032991c355e:0:350077"
+            ],
+            "monikers": [
+              "diamond"
+            ],
+            "unit": 1
+          },
+          {
+            "assetid": "Ewg6ayrFBWHUYB",
+            "color_set": [
+              "epobc:a03a1a4de5f8b8c1345851c462b2d681d0af6726c6c8ad1f7122cc81d4704e0f:0:376051"
+            ],
+            "monikers": [
+              "wood"
+            ],
+            "unit": 100000000
+          }
+        ]
+    },
     "dumpprivkey": {
         "uncolored": {
             "moniker": "bitcoin",
@@ -20,30 +231,30 @@
         "uncolored": {
             "moniker": "bitcoin",
             "expected": [
-                "93PfA2sbEFHrEpNu3NBfYXx2RU96iMwCi3WrkMb73ZK9rHMjpGy", 
-                "927uHo3KD6mPw8SCqJKJkuYdNKH2cr1inFxK6FEzp7d2aSPfP43", 
-                "91gNik2kkRz3TkL3hUGkzoN8r3kAJ5imozzU3Dbfd9Ykb8Ha5E5", 
-                "92DAtbEPSPHXSgXgZnjoYvArABovtGgUmsvHX5kSdTPaySNYqVa", 
-                "93F2tzK4nkGd5TDXC5SaaHpCWDq1vkiYF5mGseEKsbJKAzHRZ9r", 
+                "93PfA2sbEFHrEpNu3NBfYXx2RU96iMwCi3WrkMb73ZK9rHMjpGy",
+                "927uHo3KD6mPw8SCqJKJkuYdNKH2cr1inFxK6FEzp7d2aSPfP43",
+                "91gNik2kkRz3TkL3hUGkzoN8r3kAJ5imozzU3Dbfd9Ykb8Ha5E5",
+                "92DAtbEPSPHXSgXgZnjoYvArABovtGgUmsvHX5kSdTPaySNYqVa",
+                "93F2tzK4nkGd5TDXC5SaaHpCWDq1vkiYF5mGseEKsbJKAzHRZ9r",
                 "92ggotYkER2yCwnACJa7vfFQakB4WfmhHzmastubn5P5bkhWptf"
             ]
         },
         "epobc": {
             "moniker": "fabecoin",
             "expected": [
-                "91nq93CWZW1Aqh8s2vbXeYFTEAjKFVLViY4J7NeK9mexJTre39o", 
-                "93TaeCNSAw7hcRyyqkd4UmBChj2vobdnoQUvK9ovPG91ZMGEYxf", 
-                "92wm29WC917FKiEPZLn3yfGiZaC9ULWSc6ULxQCkgMk3p8yWB4X", 
-                "93SmTZuGELYdkYwBBtfFtn9eUHfG5Zfn1QvppczXcvyH8fnV2Sz", 
-                "92PAddVPhRmim7V3QbigMFJNfyzmaPdGKDKbggZtzaNpw1oLmg4", 
-                "92TattDtfitRG4Nm1ciLtxZH934ofrqZ7BRp4u55YJPTsvpmGxn", 
+                "91nq93CWZW1Aqh8s2vbXeYFTEAjKFVLViY4J7NeK9mexJTre39o",
+                "93TaeCNSAw7hcRyyqkd4UmBChj2vobdnoQUvK9ovPG91ZMGEYxf",
+                "92wm29WC917FKiEPZLn3yfGiZaC9ULWSc6ULxQCkgMk3p8yWB4X",
+                "93SmTZuGELYdkYwBBtfFtn9eUHfG5Zfn1QvppczXcvyH8fnV2Sz",
+                "92PAddVPhRmim7V3QbigMFJNfyzmaPdGKDKbggZtzaNpw1oLmg4",
+                "92TattDtfitRG4Nm1ciLtxZH934ofrqZ7BRp4u55YJPTsvpmGxn",
                 "927G4akNRfaADrRg7uBN1myxFQyQwRZCZU37hXcHYHVHVZsvwyu"
             ]
         },
         "obc": {
             "moniker": "bronze",
             "expected": [
-                "92Ai2W8mC86TXW1azjzoaiVf5teeYujifdnUkmXLNCctC9KnVyj", 
+                "92Ai2W8mC86TXW1azjzoaiVf5teeYujifdnUkmXLNCctC9KnVyj",
                 "93CojAKXht76pEHB3Ne1Urr2k3eXdbMZY4CsZMuJJSdziyFiQAn"
             ]
         }
@@ -73,12 +284,12 @@
             "txid": "0a34da8628c371338f36ca88411068b10608580bcc563ed90d86afc889280f40",
             "outindex": "2",
             "expected": {
-                "copper": "0", 
-                "testcoin": "0", 
-                "wood": "0", 
-                "bitcoin": "0.0999267", 
-                "diamond": "0", 
-                "fabecoin": "0", 
+                "copper": "0",
+                "testcoin": "0",
+                "wood": "0",
+                "bitcoin": "0.0999267",
+                "diamond": "0",
+                "fabecoin": "0",
                 "bronze": "0"
             }
         },
@@ -86,12 +297,12 @@
             "txid": "3a0d5886ded3ca0727005433aafd0b6f1c85eb35119944d21622b7a413af980a",
             "outindex": "0",
             "expected": {
-                "copper": "0", 
-                "testcoin": "0", 
-                "wood": "0", 
-                "bitcoin": "0.00008205", 
-                "diamond": "0", 
-                "fabecoin": "13", 
+                "copper": "0",
+                "testcoin": "0",
+                "wood": "0",
+                "bitcoin": "0.00008205",
+                "diamond": "0",
+                "fabecoin": "13",
                 "bronze": "0"
             }
         },
@@ -99,12 +310,12 @@
             "txid": "646ec338b2920ba3e87c484122b0363c57cccccc9858ca8aa86b176279382d0f",
             "outindex": "1",
             "expected": {
-                "copper": "0", 
-                "testcoin": "0", 
-                "wood": "0", 
-                "bitcoin": "0.9967", 
-                "diamond": "0", 
-                "fabecoin": "0", 
+                "copper": "0",
+                "testcoin": "0",
+                "wood": "0",
+                "bitcoin": "0.9967",
+                "diamond": "0",
+                "fabecoin": "0",
                 "bronze": "0.9967"
             }
         }
@@ -116,14 +327,14 @@
             "expected": {
             "utxos": [
                 {
-                    "outindex": 2, 
+                    "outindex": 2,
                     "txid": "2ba76265f8aa68103cd3ab4da057d435917045caedabcb4904c1b0b9b42e5bef"
-                }, 
+                },
                 {
-                    "outindex": 5, 
+                    "outindex": 5,
                     "txid": "00983ae91d3169a4e86754f277c57cf111593432820050d1430f06e6d9ef11f4"
                 }
-            ], 
+            ],
             "total": "0.02617226"
             }
         },
@@ -132,9 +343,9 @@
             "amount": "59678",
             "expected": {
                 "utxos": [{
-                    "outindex": 1, 
+                    "outindex": 1,
                     "txid": "00983ae91d3169a4e86754f277c57cf111593432820050d1430f06e6d9ef11f4"
-                }], 
+                }],
                 "total": "59678"
             }
         },
@@ -143,9 +354,9 @@
             "amount": "0.9967",
             "expected": {
                 "utxos": [{
-                    "outindex": 1, 
+                    "outindex": 1,
                     "txid": "646ec338b2920ba3e87c484122b0363c57cccccc9858ca8aa86b176279382d0f"
-                }], 
+                }],
                 "total": "0.9967"
             }
         },

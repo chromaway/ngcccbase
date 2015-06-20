@@ -146,7 +146,6 @@ INSERT INTO blockchain_headers (
 ) VALUES (?, ?, ?, ?, ?, ?, ?)""", params)
 
     def save_chunk(self, index, chunk):
-        import time
         chunk = chunk.encode('hex')
         for i in xrange(2016):
             header = self.header_from_raw(chunk[i*80:(i+1)*80])

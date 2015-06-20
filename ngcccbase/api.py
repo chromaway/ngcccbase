@@ -127,7 +127,7 @@ class Ngccc(apigen.Definition):
         return sanitize.asset(self.model, moniker).get_data()
 
     @apigen.command()
-    def listassets(self):  # TODO unittest
+    def listassets(self):
         """Lists all assets/colors registered."""
         assets = self.controller.get_all_assets()
         return map(lambda asset: asset.get_data(), assets)
