@@ -67,7 +67,8 @@ class AssetDefinition(object):
         """
         if isinstance(portion, ColorValue) or isinstance(portion, AssetValue):
             portion = portion.get_value()
-        if Decimal(portion) * Decimal(self.unit) > Decimal("2100000000000000"):
+        satoshis = Decimal(portion) * Decimal(self.unit)
+        if satoshis > Decimal("2100000000000000"):
             return False
         atom = Decimal("1") / Decimal(self.unit)
         return Decimal(portion) % atom == Decimal("0")

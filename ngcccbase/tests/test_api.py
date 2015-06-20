@@ -1,181 +1,385 @@
 #!/usr/bin/env python
 
+
+import os
 import unittest
-
-
+import json
+import tempfile
 from ngcccbase.api import Ngccc
+from ngcccbase import sanitize
 
 
-wallet_path = "ngcccbase/tests/unittest.wallet"
+fixtures = json.load(open("ngcccbase/tests/fixtures.json"))
 
 
-use_bitcoind = False  # set to True to test bitcoind
+# read only unit test wallet
+ro_wallet_path = "ngcccbase/tests/ro_unittest.wallet"
+ro_api = Ngccc(wallet=ro_wallet_path, testnet=True, use_naivetxdb=True)
+ro_api.setconfigval('use_bitcoind', False)  # set to True to test bitcoind
+
+
+# read write unit test wallet
+rw_wallet_path = "ngcccbase/tests/rw_unittest.wallet"
+rw_api = Ngccc(wallet=rw_wallet_path, testnet=True, use_naivetxdb=True)
+rw_api.setconfigval('use_bitcoind', False)  # set to True to test bitcoind
+
+
+class TestDumpPrivateKey(unittest.TestCase):
+    
+    def test_uncolored(self):
+        moniker = fixtures["dumpprivkey"]["uncolored"]["moniker"]
+        address = fixtures["dumpprivkey"]["uncolored"]["address"]
+        expected = fixtures["dumpprivkey"]["uncolored"]["expected"]
+        output = ro_api.dumpprivkey(moniker, address)
+        self.assertEquals(output, expected)
+
+    def test_epobc(self):
+        moniker = fixtures["dumpprivkey"]["epobc"]["moniker"]
+        address = fixtures["dumpprivkey"]["epobc"]["address"]
+        expected = fixtures["dumpprivkey"]["epobc"]["expected"]
+        output = ro_api.dumpprivkey(moniker, address)
+        self.assertEquals(output, expected)
+
+    def test_obc(self):
+        moniker = fixtures["dumpprivkey"]["obc"]["moniker"]
+        address = fixtures["dumpprivkey"]["obc"]["address"]
+        expected = fixtures["dumpprivkey"]["obc"]["expected"]
+        output = ro_api.dumpprivkey(moniker, address)
+        self.assertEquals(output, expected)
+
+
+class TestDumpPrivateKeys(unittest.TestCase):
+    
+    def test_uncolored(self):
+        moniker = fixtures["dumpprivkeys"]["uncolored"]["moniker"]
+        expected = fixtures["dumpprivkeys"]["uncolored"]["expected"]
+        output = ro_api.dumpprivkeys(moniker)
+        self.assertEquals(output, expected)
+
+    def test_epobc(self):
+        moniker = fixtures["dumpprivkeys"]["epobc"]["moniker"]
+        expected = fixtures["dumpprivkeys"]["epobc"]["expected"]
+        output = ro_api.dumpprivkeys(moniker)
+        self.assertEquals(output, expected)
+
+    def test_obc(self):
+        moniker = fixtures["dumpprivkeys"]["obc"]["moniker"]
+        expected = fixtures["dumpprivkeys"]["obc"]["expected"]
+        output = ro_api.dumpprivkeys(moniker)
+        self.assertEquals(output, expected)
+
+
+class TestTxOutValue(unittest.TestCase):  # TODO test non wallet tx
+    
+    def test_uncolored(self):
+        txid = fixtures["txoutvalue"]["uncolored"]["txid"]
+        outindex = fixtures["txoutvalue"]["uncolored"]["outindex"]
+        moniker = fixtures["txoutvalue"]["uncolored"]["moniker"]
+        expected = fixtures["txoutvalue"]["uncolored"]["expected"]
+        output = ro_api.txoutvalue(txid, outindex, moniker)
+        self.assertEquals(output, expected)
+
+    def test_epobc(self):
+        txid = fixtures["txoutvalue"]["epobc"]["txid"]
+        outindex = fixtures["txoutvalue"]["epobc"]["outindex"]
+        moniker = fixtures["txoutvalue"]["epobc"]["moniker"]
+        expected = fixtures["txoutvalue"]["epobc"]["expected"]
+        output = ro_api.txoutvalue(txid, outindex, moniker)
+        self.assertEquals(output, expected)
+
+    def test_obc(self):
+        txid = fixtures["txoutvalue"]["obc"]["txid"]
+        outindex = fixtures["txoutvalue"]["obc"]["outindex"]
+        moniker = fixtures["txoutvalue"]["obc"]["moniker"]
+        expected = fixtures["txoutvalue"]["obc"]["expected"]
+        output = ro_api.txoutvalue(txid, outindex, moniker)
+        self.assertEquals(output, expected)
+
+
+class TestTxOutValues(unittest.TestCase):  # TODO test non wallet tx
+    
+    def test_uncolored(self):
+        txid = fixtures["txoutvalues"]["uncolored"]["txid"]
+        outindex = fixtures["txoutvalues"]["uncolored"]["outindex"]
+        expected = fixtures["txoutvalues"]["uncolored"]["expected"]
+        output = ro_api.txoutvalues(txid, outindex)
+        self.assertEquals(output, expected)
+
+    def test_epobc(self):
+        txid = fixtures["txoutvalues"]["epobc"]["txid"]
+        outindex = fixtures["txoutvalues"]["epobc"]["outindex"]
+        expected = fixtures["txoutvalues"]["epobc"]["expected"]
+        output = ro_api.txoutvalues(txid, outindex)
+        self.assertEquals(output, expected)
+
+    def test_obc(self):
+        txid = fixtures["txoutvalues"]["obc"]["txid"]
+        outindex = fixtures["txoutvalues"]["obc"]["outindex"]
+        expected = fixtures["txoutvalues"]["obc"]["expected"]
+        output = ro_api.txoutvalues(txid, outindex)
+        self.assertEquals(output, expected)
+
+
+class TestGetUTXOs(unittest.TestCase):
+
+    def test_uncolored(self):
+        moniker = fixtures["getutxos"]["uncolored"]["moniker"]
+        amount = fixtures["getutxos"]["uncolored"]["amount"]
+        expected = fixtures["getutxos"]["uncolored"]["expected"]
+        output = ro_api.getutxos(moniker, amount)
+        self.assertEquals(output, expected)
+
+    def test_epobc(self):
+        moniker = fixtures["getutxos"]["epobc"]["moniker"]
+        amount = fixtures["getutxos"]["epobc"]["amount"]
+        expected = fixtures["getutxos"]["epobc"]["expected"]
+        output = ro_api.getutxos(moniker, amount)
+        self.assertEquals(output, expected)
+
+    def test_obc(self):
+        moniker = fixtures["getutxos"]["obc"]["moniker"]
+        amount = fixtures["getutxos"]["obc"]["amount"]
+        expected = fixtures["getutxos"]["obc"]["expected"]
+        output = ro_api.getutxos(moniker, amount)
+        self.assertEquals(output, expected)
+
+    def test_undefined(self):
+        def callback():
+            moniker = fixtures["getutxos"]["undefined"]["moniker"]
+            amount = fixtures["getutxos"]["undefined"]["amount"]
+            ro_api.getutxos(moniker, amount)
+        self.assertRaises(sanitize.AssetNotFound, callback)
+
+
+class TestReceived(unittest.TestCase):
+
+    def test_uncolored(self):
+        moniker = fixtures["received"]["uncolored"]["moniker"]
+        expected = fixtures["received"]["uncolored"]["expected"]
+        output = ro_api.received(moniker)
+        self.assertEquals(output, expected)
+
+    def test_epobc(self):
+        moniker = fixtures["received"]["epobc"]["moniker"]
+        expected = fixtures["received"]["epobc"]["expected"]
+        output = ro_api.received(moniker)
+        self.assertEquals(output, expected)
+
+    def test_obc(self):
+        moniker = fixtures["received"]["obc"]["moniker"]
+        expected = fixtures["received"]["obc"]["expected"]
+        output = ro_api.received(moniker)
+        self.assertEquals(output, expected)
+
+    def test_undefined(self):
+        def callback():
+            moniker = fixtures["received"]["undefined"]["moniker"]
+            ro_api.received(moniker)
+        self.assertRaises(sanitize.AssetNotFound, callback)
+
+
+class TestListNewAddresses(unittest.TestCase):
+
+    def test(self):
+        before = rw_api.listaddresses("bitcoin")
+        newaddress = rw_api.newaddress("bitcoin")
+        after = rw_api.listaddresses("bitcoin")
+        self.assertFalse(newaddress in before)
+        self.assertTrue(newaddress in after)
+        self.assertEquals(len(after), len(before) + 1)
+
+
+class TestGetAsset(unittest.TestCase):
+
+    def test_uncolored(self):
+        moniker = fixtures["getasset"]["uncolored"]["moniker"]
+        expected = fixtures["getasset"]["uncolored"]["expected"]
+        output = ro_api.getasset(moniker)
+        self.assertEquals(output, expected)
+
+    def test_epobc(self):
+        moniker = fixtures["getasset"]["epobc"]["moniker"]
+        expected = fixtures["getasset"]["epobc"]["expected"]
+        output = ro_api.getasset(moniker)
+        self.assertEquals(output, expected)
+
+    def test_obc(self):
+        moniker = fixtures["getasset"]["obc"]["moniker"]
+        expected = fixtures["getasset"]["obc"]["expected"]
+        output = ro_api.getasset(moniker)
+        self.assertEquals(output, expected)
+
+    def test_undefined(self):
+        def callback():
+            moniker = fixtures["getasset"]["undefined"]["moniker"]
+            ro_api.getasset(moniker)
+        self.assertRaises(sanitize.AssetNotFound, callback)
+
+
+class TestBalance(unittest.TestCase):  # TODO test unconfirmed and available
+
+    def test_uncolored(self):
+        moniker = fixtures["getbalance"]["uncolored"]["moniker"]
+        expected = fixtures["getbalance"]["uncolored"]["expected"]
+        output = ro_api.getbalance(moniker)
+        self.assertEquals(output, expected)
+
+    def test_epobc(self):
+        moniker = fixtures["getbalance"]["epobc"]["moniker"]
+        expected = fixtures["getbalance"]["epobc"]["expected"]
+        output = ro_api.getbalance(moniker)
+        self.assertEquals(output, expected)
+
+    def test_obc(self):
+        moniker = fixtures["getbalance"]["obc"]["moniker"]
+        expected = fixtures["getbalance"]["obc"]["expected"]
+        output = ro_api.getbalance(moniker)
+        self.assertEquals(output, expected)
+
+    def test_undefined(self):
+        def callback():
+            moniker = fixtures["getbalance"]["undefined"]["moniker"]
+            ro_api.getbalance(moniker)
+        self.assertRaises(sanitize.AssetNotFound, callback)
+
+    def test_all(self):
+        expected = fixtures["getbalance"]["all"]["expected"]
+        output = ro_api.getbalances()
+        self.assertEquals(output, expected)
+
+
+class TestConfig(unittest.TestCase):
+
+    def test_get_set_value(self):
+        ro_api.setconfigval("testapi", True)
+        value = ro_api.getconfigval("testapi")
+        self.assertEquals(value, True)
+
+        ro_api.setconfigval("testapi", False)
+        value = ro_api.getconfigval("testapi")
+        self.assertEquals(value, False)
+
+    def test_dump_import(self):
+        config = ro_api.dumpconfig()
+        config["testapi"] = "testdump"
+        path = tempfile.mktemp()
+        with open(path, "w") as fobj:
+            fobj.write(json.dumps(config))
+        ro_api.importconfig(path)
+        value = ro_api.getconfigval("testapi")
+        self.assertEquals(value, "testdump")
+        os.remove(path)
 
 
 class TestSignrawtx(unittest.TestCase):
 
-    def setUp(self):
-        self.api = Ngccc(wallet=wallet_path, testnet=True, use_naivetxdb=True)
-        self.api.setconfigval('use_bitcoind', use_bitcoind)
-
     def test_sign_uncolored(self):
-        unsigned = "0100000001ef5b2eb4b9b0c10449cbabedca45709135d457a04dabd33c1068aaf86562a72b0200000000ffffffff0240420f00000000001976a91491cc9812ca45e7209ff9364ce96527a7c49f1f3188ac3e770400000000001976a9142e330c36e1d0f199fd91446f2210209a0d35caef88ac00000000"
-        expected = "0100000001ef5b2eb4b9b0c10449cbabedca45709135d457a04dabd33c1068aaf86562a72b020000008a4730440220022799b32e076417c62b6d7ff3ee8c588e13dc60ba7e00ecb0f1ccc85c9dcbef022066f185a4c4d8c22764c712c4a7ffc0375cd4c186661ab74602db27f23b2598060141040e4aeac170f3c6c78696e57b1b07d14276044f1e14674ca3eddbb999b9239711f9f136902f680e2176398d6ebd3c72a5482a5ac8fc12038428ff9d59829f624bffffffff0240420f00000000001976a91491cc9812ca45e7209ff9364ce96527a7c49f1f3188ac3e770400000000001976a9142e330c36e1d0f199fd91446f2210209a0d35caef88ac00000000"
-        output = self.api.signrawtx(unsigned)
+        unsigned = fixtures["signrawtx"]["uncolored"]["unsigned"]
+        expected = fixtures["signrawtx"]["uncolored"]["expected"]
+        output = ro_api.signrawtx(unsigned)
         self.assertEquals(output, expected)
 
     def test_sign_epobc(self):
-        unsigned = "0100000001f411efd9e6060f43d150008232345911f17cc577f25467e8a469311de93a98000100000000330000000250c30000000000001976a914461932f048fd8a60daddc34323301781f216839a88acce250000000000001976a914fde53f69a72cac25cd4bdfe6a2a50cecdcf6050e88ac00000000"
-        expected = "0100000001f411efd9e6060f43d150008232345911f17cc577f25467e8a469311de93a9800010000008b483045022100b0b10a46a2502f560161e381918816d1f9bebadae312ec49f9d3e939091adf200220050528b47165f31aa2f98029f1f0c75545077ff48bd4668e07e1ff759f4ddf79014104c55ba47261d6bca5aee2350a7e578f81e02ace331acb6bafdcfc956dffca9e02d59c32aaad764511db694e44e25313707c1749198e1c21146522ee42b74766a2330000000250c30000000000001976a914461932f048fd8a60daddc34323301781f216839a88acce250000000000001976a914fde53f69a72cac25cd4bdfe6a2a50cecdcf6050e88ac00000000"
-        output = self.api.signrawtx(unsigned)
+        unsigned = fixtures["signrawtx"]["epobc"]["unsigned"]
+        expected = fixtures["signrawtx"]["epobc"]["expected"]
+        output = ro_api.signrawtx(unsigned)
         self.assertEquals(output, expected)
 
     def test_sign_obc(self):
-        unsigned = "01000000020f2d387962176ba88aca5898cccccc573c36b02241487ce8a30b92b238c36e640100000000ffffffff0f2d387962176ba88aca5898cccccc573c36b02241487ce8a30b92b238c36e640100000000ffffffff0380969800000000001976a9141075536ca2044f7db00a563f58b5f5cde182b9c588ac70415805000000001976a914b4667b33dd89990702e4adbedc6d07e3a12c91b088ac6cc5f005000000001976a9142e330c36e1d0f199fd91446f2210209a0d35caef88ac00000000"
-        output = self.api.signrawtx(unsigned)
-        expected = "01000000020f2d387962176ba88aca5898cccccc573c36b02241487ce8a30b92b238c36e64010000008a47304402201e7bf56a917f90dc8a87c21c58664283318d77eab7f0810914e3063a7bbd67b402207ce6b10796252002b9f43c23760346d130cf22268fb21997e9e48bd7233b9354014104a44feb7524b7a98ea7272c563bff183e455bf4f0ac5662533321505a01b4771ad41379c724d1f2133b4d543278cf8b9b6a47bc0c3c17bd0a0d24e2962c64fabbffffffff0f2d387962176ba88aca5898cccccc573c36b02241487ce8a30b92b238c36e64010000008a4730440220643e6b8288f0866138fef3bc4afc7d57c0597edb02589b0c47366c9a72f4c7120220588e7311e734ecce09e60751155146e4c610e4319c0c52d2b3777b911a9b2364014104a44feb7524b7a98ea7272c563bff183e455bf4f0ac5662533321505a01b4771ad41379c724d1f2133b4d543278cf8b9b6a47bc0c3c17bd0a0d24e2962c64fabbffffffff0380969800000000001976a9141075536ca2044f7db00a563f58b5f5cde182b9c588ac70415805000000001976a914b4667b33dd89990702e4adbedc6d07e3a12c91b088ac6cc5f005000000001976a9142e330c36e1d0f199fd91446f2210209a0d35caef88ac00000000"
+        unsigned = fixtures["signrawtx"]["obc"]["unsigned"]
+        expected = fixtures["signrawtx"]["obc"]["expected"]
+        output = ro_api.signrawtx(unsigned)
         self.assertEquals(output, expected)
 
 
-class TestCreatetx(unittest.TestCase):
-
-    def setUp(self):
-        self.api = Ngccc(wallet=wallet_path, testnet=True, use_naivetxdb=True)
-        self.api.setconfigval('use_bitcoind', use_bitcoind)
+class TestCreatetx(unittest.TestCase):  # TODO test publish
 
     def test_sign_uncolored(self):
-        inputs = [{
-          "outindex": "2",
-          "txid": "2ba76265f8aa68103cd3ab4da057d435917045caedabcb4904c1b0b9b42e5bef"
-        }]
-        targets = [{
-          "moniker" : "bitcoin",
-          "amount" : "0.01",
-          "coloraddress" : "mtosNK4tJzrePxM7tb2V2zTxYyJUW4xx83"
-        }]
-        output = self.api.createtx(inputs, targets, sign=True)
-        expected = "0100000001ef5b2eb4b9b0c10449cbabedca45709135d457a04dabd33c1068aaf86562a72b020000008b483045022100b50492daf58994a5e7f912cc78cb6d9293ffd3c2f4bab9ec547ba564d307f7070220729f734a1c7fa9dcba0892fc63c358f8edb8a28396aff65be565e1217fdaa28e0141040e4aeac170f3c6c78696e57b1b07d14276044f1e14674ca3eddbb999b9239711f9f136902f680e2176398d6ebd3c72a5482a5ac8fc12038428ff9d59829f624bffffffff0240420f00000000001976a91491cc9812ca45e7209ff9364ce96527a7c49f1f3188ac3b760400000000001976a9141395ba7d33546972341f28e6c953bdac103e126588ac00000000"
+        inputs = fixtures["createtx"]["sign_uncolored"]["inputs"]
+        targets = fixtures["createtx"]["sign_uncolored"]["targets"]
+        expected = fixtures["createtx"]["sign_uncolored"]["expected"]
+        output = ro_api.createtx(inputs, targets, sign=True)
         self.assertEquals(output, expected)
 
     def test_uncolored(self):
-        inputs = [{
-          "outindex": "2",
-          "txid": "2ba76265f8aa68103cd3ab4da057d435917045caedabcb4904c1b0b9b42e5bef"
-        }]
-        targets = [{
-          "moniker" : "bitcoin",
-          "amount" : "0.01",
-          "coloraddress" : "mtosNK4tJzrePxM7tb2V2zTxYyJUW4xx83"
-        }]
-        output = self.api.createtx(inputs, targets)
-        expected = "0100000001ef5b2eb4b9b0c10449cbabedca45709135d457a04dabd33c1068aaf86562a72b0200000000ffffffff0240420f00000000001976a91491cc9812ca45e7209ff9364ce96527a7c49f1f3188ac3b760400000000001976a9141395ba7d33546972341f28e6c953bdac103e126588ac00000000"
+        inputs = fixtures["createtx"]["uncolored"]["inputs"]
+        targets = fixtures["createtx"]["uncolored"]["targets"]
+        expected = fixtures["createtx"]["uncolored"]["expected"]
+        output = ro_api.createtx(inputs, targets)
         self.assertEquals(output, expected)
 
     def test_epobc(self):
-        inputs = [{
-          "outindex": "1",
-          "txid": "00983ae91d3169a4e86754f277c57cf111593432820050d1430f06e6d9ef11f4"
-        }]
-        targets = [{
-          "moniker" : "fabecoin",
-          "amount" : "50000",
-          "coloraddress" : "nghRxMdVmnrpK@mmubnLYxcPKABKSWVyFqvYEdzKoPZBH1gZ"
-        }]
-        output = self.api.createtx(inputs, targets)
-        expected = "0100000001f411efd9e6060f43d150008232345911f17cc577f25467e8a469311de93a98000100000000330000000350c30000000000001976a914461932f048fd8a60daddc34323301781f216839a88acce250000000000001976a914fde53f69a72cac25cd4bdfe6a2a50cecdcf6050e88ac69130000000000001976a9141395ba7d33546972341f28e6c953bdac103e126588ac00000000"
+        inputs = fixtures["createtx"]["epobc"]["inputs"]
+        targets = fixtures["createtx"]["epobc"]["targets"]
+        expected = fixtures["createtx"]["epobc"]["expected"]
+        output = ro_api.createtx(inputs, targets)
         self.assertEquals(output, expected)
 
     def test_sign_epobc(self):
-        inputs = [{
-          "outindex": "1",
-          "txid": "00983ae91d3169a4e86754f277c57cf111593432820050d1430f06e6d9ef11f4"
-        }]
-        targets = [{
-          "moniker" : "fabecoin",
-          "amount" : "50000",
-          "coloraddress" : "nghRxMdVmnrpK@mmubnLYxcPKABKSWVyFqvYEdzKoPZBH1gZ"
-        }]
-        output = self.api.createtx(inputs, targets, sign=True)
-        expected = "0100000001f411efd9e6060f43d150008232345911f17cc577f25467e8a469311de93a9800010000008b4830450221008937b4367e425cf3102bfcb7f31c2df8fb9fee703d1c21aa813fb43b4ea1b3c802205e168bdc1b1229c932d3b7513b726fdede211950c2a90797c17b5e9f91617722014104c55ba47261d6bca5aee2350a7e578f81e02ace331acb6bafdcfc956dffca9e02d59c32aaad764511db694e44e25313707c1749198e1c21146522ee42b74766a2330000000350c30000000000001976a914461932f048fd8a60daddc34323301781f216839a88acce250000000000001976a914fde53f69a72cac25cd4bdfe6a2a50cecdcf6050e88ac69130000000000001976a9141395ba7d33546972341f28e6c953bdac103e126588ac00000000"
+        inputs = fixtures["createtx"]["sign_epobc"]["inputs"]
+        targets = fixtures["createtx"]["sign_epobc"]["targets"]
+        expected = fixtures["createtx"]["sign_epobc"]["expected"]
+        output = ro_api.createtx(inputs, targets, sign=True)
         self.assertEquals(output, expected)
 
     def test_obc(self):
-        inputs = [{
-          "outindex": "1",
-          "txid": "646ec338b2920ba3e87c484122b0363c57cccccc9858ca8aa86b176279382d0f"
-        }]
-        targets = [{
-          "moniker" : "bronze",
-          "amount" : "0.1",
-          "coloraddress" : "7TR9SB6nKw81cw@mh1yf4uNmedzaJLfLKkYWUyvHAeEo13rLG"
-        }]
-        output = self.api.createtx(inputs, targets)
-        expected = "01000000020f2d387962176ba88aca5898cccccc573c36b02241487ce8a30b92b238c36e640100000000ffffffff0f2d387962176ba88aca5898cccccc573c36b02241487ce8a30b92b238c36e640100000000ffffffff0380969800000000001976a9141075536ca2044f7db00a563f58b5f5cde182b9c588ac70415805000000001976a914b4667b33dd89990702e4adbedc6d07e3a12c91b088ac92c3f005000000001976a9141395ba7d33546972341f28e6c953bdac103e126588ac00000000"
+        inputs = fixtures["createtx"]["obc"]["inputs"]
+        targets = fixtures["createtx"]["obc"]["targets"]
+        expected = fixtures["createtx"]["obc"]["expected"]
+        output = ro_api.createtx(inputs, targets)
         self.assertEquals(output, expected)
 
     def test_sign_obc(self):
-        inputs = [{
-          "outindex": "1",
-          "txid": "646ec338b2920ba3e87c484122b0363c57cccccc9858ca8aa86b176279382d0f"
-        }]
-        targets = [{
-          "moniker" : "bronze",
-          "amount" : "0.1",
-          "coloraddress" : "7TR9SB6nKw81cw@mh1yf4uNmedzaJLfLKkYWUyvHAeEo13rLG"
-        }]
-        output = self.api.createtx(inputs, targets, sign=True)
+        inputs = fixtures["createtx"]["sign_obc"]["inputs"]
+        targets = fixtures["createtx"]["sign_obc"]["targets"]
+        expected = fixtures["createtx"]["sign_obc"]["expected"]
         # FIXME why 2x the same input????!!!
-        expected = "01000000020f2d387962176ba88aca5898cccccc573c36b02241487ce8a30b92b238c36e64010000008b483045022100ec044ff6908f39e9476ce88baa0ad2717831d03e99b7177e6dcceae6b78f7d4202200e3dacb787a7660315e961b4536e92d89d821b89b39e22e3b69f8586a77742c3014104a44feb7524b7a98ea7272c563bff183e455bf4f0ac5662533321505a01b4771ad41379c724d1f2133b4d543278cf8b9b6a47bc0c3c17bd0a0d24e2962c64fabbffffffff0f2d387962176ba88aca5898cccccc573c36b02241487ce8a30b92b238c36e64010000008a47304402204bb50de6e4814fbecd8c2209856ba3645a899ac0e73e1b387ff737ea82e46d8c022048c944dedf306f9bee9362105038e109521d148b7fecb7d1d1a737f806a2bcf5014104a44feb7524b7a98ea7272c563bff183e455bf4f0ac5662533321505a01b4771ad41379c724d1f2133b4d543278cf8b9b6a47bc0c3c17bd0a0d24e2962c64fabbffffffff0380969800000000001976a9141075536ca2044f7db00a563f58b5f5cde182b9c588ac70415805000000001976a914b4667b33dd89990702e4adbedc6d07e3a12c91b088ac92c3f005000000001976a9141395ba7d33546972341f28e6c953bdac103e126588ac00000000"
+        output = ro_api.createtx(inputs, targets, sign=True)
         self.assertEquals(output, expected)
 
 
 class TestTxoutvalue(unittest.TestCase):
 
-    def setUp(self):
-        self.api = Ngccc(wallet=wallet_path, testnet=True, use_naivetxdb=True)
-        self.api.setconfigval('use_bitcoind', use_bitcoind)
-
     def test_uncolored(self):
-        txid = "2ba76265f8aa68103cd3ab4da057d435917045caedabcb4904c1b0b9b42e5bef"
-        outindex = 2
-        moniker = "bitcoin"
-        expected = { "bitcoin": "0.0129526" }
-        output = self.api.txoutvalue(txid, outindex, moniker)
+        txid = fixtures["txoutvalue"]["uncolored"]["txid"]
+        outindex = fixtures["txoutvalue"]["uncolored"]["outindex"]
+        moniker = fixtures["txoutvalue"]["uncolored"]["moniker"]
+        expected = fixtures["txoutvalue"]["uncolored"]["expected"]
+        output = ro_api.txoutvalue(txid, outindex, moniker)
         self.assertEquals(output, expected)
 
     def test_obc(self):
-        txid = "646ec338b2920ba3e87c484122b0363c57cccccc9858ca8aa86b176279382d0f"
-        outindex = 1
-        moniker = "bronze"
-        expected = { "bronze": "0.9967" }
-        output = self.api.txoutvalue(txid, outindex, moniker)
+        txid = fixtures["txoutvalue"]["obc"]["txid"]
+        outindex = fixtures["txoutvalue"]["obc"]["outindex"]
+        moniker = fixtures["txoutvalue"]["obc"]["moniker"]
+        expected = fixtures["txoutvalue"]["obc"]["expected"]
+        output = ro_api.txoutvalue(txid, outindex, moniker)
         self.assertEquals(output, expected)
 
     def test_zero_obc(self):
-        txid = "00983ae91d3169a4e86754f277c57cf111593432820050d1430f06e6d9ef11f4"
-        outindex = 1
-        moniker = "bronze"
-        expected = { "bronze": "0" }
-        output = self.api.txoutvalue(txid, outindex, moniker)
+        txid = fixtures["txoutvalue"]["zero_obc"]["txid"]
+        outindex = fixtures["txoutvalue"]["zero_obc"]["outindex"]
+        moniker = fixtures["txoutvalue"]["zero_obc"]["moniker"]
+        expected = fixtures["txoutvalue"]["zero_obc"]["expected"]
+        output = ro_api.txoutvalue(txid, outindex, moniker)
         self.assertEquals(output, expected)
 
     def test_epobc(self):
-        txid = "00983ae91d3169a4e86754f277c57cf111593432820050d1430f06e6d9ef11f4"
-        outindex = 1
-        moniker = "fabecoin"
-        expected = { "fabecoin": "59678" }
-        output = self.api.txoutvalue(txid, outindex, moniker)
+        txid = fixtures["txoutvalue"]["epobc"]["txid"]
+        outindex = fixtures["txoutvalue"]["epobc"]["outindex"]
+        moniker = fixtures["txoutvalue"]["epobc"]["moniker"]
+        expected = fixtures["txoutvalue"]["epobc"]["expected"]
+        output = ro_api.txoutvalue(txid, outindex, moniker)
         self.assertEquals(output, expected)
 
     def test_zero_epobc(self):
-        txid = "646ec338b2920ba3e87c484122b0363c57cccccc9858ca8aa86b176279382d0f"
-        outindex = 1
-        moniker = "fabecoin"
-        expected = { "fabecoin": "0" }
-        output = self.api.txoutvalue(txid, outindex, moniker)
+        txid = fixtures["txoutvalue"]["zero_epobc"]["txid"]
+        outindex = fixtures["txoutvalue"]["zero_epobc"]["outindex"]
+        moniker = fixtures["txoutvalue"]["zero_epobc"]["moniker"]
+        expected = fixtures["txoutvalue"]["zero_epobc"]["expected"]
+        output = ro_api.txoutvalue(txid, outindex, moniker)
         self.assertEquals(output, expected)
 
 
 if __name__ == '__main__':
     unittest.main()
-

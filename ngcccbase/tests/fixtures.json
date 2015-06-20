@@ -1,0 +1,377 @@
+{
+    "dumpprivkey": {
+        "uncolored": {
+            "moniker": "bitcoin",
+            "address": "mhJWW1rKotU4FvnzugiUGmVWvKsN1bNnSy",
+            "expected": "93PfA2sbEFHrEpNu3NBfYXx2RU96iMwCi3WrkMb73ZK9rHMjpGy"
+        },
+        "epobc": {
+            "moniker": "fabecoin",
+            "address": "nghRxMdVmnrpK@n4fRszn3hHkWdgsxjhwV7uXLKggBegVkaj",
+            "expected": "91nq93CWZW1Aqh8s2vbXeYFTEAjKFVLViY4J7NeK9mexJTre39o"
+        },
+        "obc": {
+            "moniker": "bronze",
+            "address": "7TR9SB6nKw81cw@mwxph77nmxqBv23pb6nwG8qM5W4axCzCqt",
+            "expected": "92Ai2W8mC86TXW1azjzoaiVf5teeYujifdnUkmXLNCctC9KnVyj"
+        }
+    },
+    "dumpprivkeys": {
+        "uncolored": {
+            "moniker": "bitcoin",
+            "expected": [
+                "93PfA2sbEFHrEpNu3NBfYXx2RU96iMwCi3WrkMb73ZK9rHMjpGy", 
+                "927uHo3KD6mPw8SCqJKJkuYdNKH2cr1inFxK6FEzp7d2aSPfP43", 
+                "91gNik2kkRz3TkL3hUGkzoN8r3kAJ5imozzU3Dbfd9Ykb8Ha5E5", 
+                "92DAtbEPSPHXSgXgZnjoYvArABovtGgUmsvHX5kSdTPaySNYqVa", 
+                "93F2tzK4nkGd5TDXC5SaaHpCWDq1vkiYF5mGseEKsbJKAzHRZ9r", 
+                "92ggotYkER2yCwnACJa7vfFQakB4WfmhHzmastubn5P5bkhWptf"
+            ]
+        },
+        "epobc": {
+            "moniker": "fabecoin",
+            "expected": [
+                "91nq93CWZW1Aqh8s2vbXeYFTEAjKFVLViY4J7NeK9mexJTre39o", 
+                "93TaeCNSAw7hcRyyqkd4UmBChj2vobdnoQUvK9ovPG91ZMGEYxf", 
+                "92wm29WC917FKiEPZLn3yfGiZaC9ULWSc6ULxQCkgMk3p8yWB4X", 
+                "93SmTZuGELYdkYwBBtfFtn9eUHfG5Zfn1QvppczXcvyH8fnV2Sz", 
+                "92PAddVPhRmim7V3QbigMFJNfyzmaPdGKDKbggZtzaNpw1oLmg4", 
+                "92TattDtfitRG4Nm1ciLtxZH934ofrqZ7BRp4u55YJPTsvpmGxn", 
+                "927G4akNRfaADrRg7uBN1myxFQyQwRZCZU37hXcHYHVHVZsvwyu"
+            ]
+        },
+        "obc": {
+            "moniker": "bronze",
+            "expected": [
+                "92Ai2W8mC86TXW1azjzoaiVf5teeYujifdnUkmXLNCctC9KnVyj", 
+                "93CojAKXht76pEHB3Ne1Urr2k3eXdbMZY4CsZMuJJSdziyFiQAn"
+            ]
+        }
+    },
+    "txoutvalue": {
+        "uncolored": {
+            "txid": "0a34da8628c371338f36ca88411068b10608580bcc563ed90d86afc889280f40",
+            "outindex": "2",
+            "moniker": "bitcoin",
+            "expected": { "bitcoin": "0.0999267" }
+        },
+        "epobc": {
+            "txid": "3a0d5886ded3ca0727005433aafd0b6f1c85eb35119944d21622b7a413af980a",
+            "outindex": "0",
+            "moniker": "fabecoin",
+            "expected": { "fabecoin": "13" }
+        },
+        "obc": {
+            "txid": "646ec338b2920ba3e87c484122b0363c57cccccc9858ca8aa86b176279382d0f",
+            "outindex": "1",
+            "moniker": "bronze",
+            "expected": { "bronze": "0.9967" }
+        }
+    },
+    "txoutvalues": {
+        "uncolored": {
+            "txid": "0a34da8628c371338f36ca88411068b10608580bcc563ed90d86afc889280f40",
+            "outindex": "2",
+            "expected": {
+                "copper": "0", 
+                "testcoin": "0", 
+                "wood": "0", 
+                "bitcoin": "0.0999267", 
+                "diamond": "0", 
+                "fabecoin": "0", 
+                "bronze": "0"
+            }
+        },
+        "epobc": {
+            "txid": "3a0d5886ded3ca0727005433aafd0b6f1c85eb35119944d21622b7a413af980a",
+            "outindex": "0",
+            "expected": {
+                "copper": "0", 
+                "testcoin": "0", 
+                "wood": "0", 
+                "bitcoin": "0.00008205", 
+                "diamond": "0", 
+                "fabecoin": "13", 
+                "bronze": "0"
+            }
+        },
+        "obc": {
+            "txid": "646ec338b2920ba3e87c484122b0363c57cccccc9858ca8aa86b176279382d0f",
+            "outindex": "1",
+            "expected": {
+                "copper": "0", 
+                "testcoin": "0", 
+                "wood": "0", 
+                "bitcoin": "0.9967", 
+                "diamond": "0", 
+                "fabecoin": "0", 
+                "bronze": "0.9967"
+            }
+        }
+    },
+    "getutxos": {
+        "uncolored": {
+            "moniker": "bitcoin",
+            "amount": "0.02617226",
+            "expected": {
+            "utxos": [
+                {
+                    "outindex": 2, 
+                    "txid": "2ba76265f8aa68103cd3ab4da057d435917045caedabcb4904c1b0b9b42e5bef"
+                }, 
+                {
+                    "outindex": 5, 
+                    "txid": "00983ae91d3169a4e86754f277c57cf111593432820050d1430f06e6d9ef11f4"
+                }
+            ], 
+            "total": "0.02617226"
+            }
+        },
+        "epobc": {
+            "moniker": "fabecoin",
+            "amount": "59678",
+            "expected": {
+                "utxos": [{
+                    "outindex": 1, 
+                    "txid": "00983ae91d3169a4e86754f277c57cf111593432820050d1430f06e6d9ef11f4"
+                }], 
+                "total": "59678"
+            }
+        },
+        "obc": {
+            "moniker": "bronze",
+            "amount": "0.9967",
+            "expected": {
+                "utxos": [{
+                    "outindex": 1, 
+                    "txid": "646ec338b2920ba3e87c484122b0363c57cccccc9858ca8aa86b176279382d0f"
+                }], 
+                "total": "0.9967"
+            }
+        },
+        "undefined": {
+            "moniker": "undefined",
+            "amount": "1"
+        }
+    },
+    "received": {
+        "uncolored": {
+            "moniker": "bitcoin",
+            "expected": {
+                "mzKk8zBV1yYaWNQqWNMDdpGzKKWe9dy3Ma": "0",
+                "mjjEXjcLu4DJMnh1Wbz4iAbYCSpy6cwPpv": "30.58807032",
+                "mfyceccXpYAzrN2jtjrybCXzeYbGByZYsc": "0",
+                "mtosNK4tJzrePxM7tb2V2zTxYyJUW4xx83": "0",
+                "mp5dm8B7XvWieHuWVeoiBG4dcQMgi4ZEhC": "0",
+                "mhJWW1rKotU4FvnzugiUGmVWvKsN1bNnSy": "0"
+            }
+        },
+        "epobc": {
+            "moniker": "fabecoin",
+            "expected":{
+                "nghRxMdVmnrpK@miUhpqgtEbfAdWwkqadSLLMcit4o5zskTd": "0",
+                "nghRxMdVmnrpK@mr8HnCAqevtzPpG9umeLqoQXeH3meAELVQ": "0",
+                "nghRxMdVmnrpK@mx25FtgePzowg3V4RypiD6B1xdgDYhm2uV": "0",
+                "nghRxMdVmnrpK@n4Bw4YJSoWBXJiWtS8A3gsiH8QNdtUuwXb": "0",
+                "nghRxMdVmnrpK@mmubnLYxcPKABKSWVyFqvYEdzKoPZBH1gZ": "0",
+                "nghRxMdVmnrpK@mrZY6xE6sRuMLHtiXcFAZznnQPEicky2QA": "0",
+                "nghRxMdVmnrpK@n4fRszn3hHkWdgsxjhwV7uXLKggBegVkaj": "1430383"
+            }
+        },
+        "obc": {
+            "moniker": "bronze",
+            "expected": {
+                "7TR9SB6nKw81cw@mwxph77nmxqBv23pb6nwG8qM5W4axCzCqt": "3.9927",
+                "7TR9SB6nKw81cw@mh1yf4uNmedzaJLfLKkYWUyvHAeEo13rLG": "0"
+            }
+        },
+        "undefined": {
+            "moniker": "undefined"
+        }
+    },
+    "getbalance": {
+        "uncolored": {
+            "moniker": "bitcoin",
+            "expected": { "bitcoin": "0.02617226" }
+        },
+        "epobc": {
+            "moniker": "fabecoin",
+            "expected": { "fabecoin": "59678" }
+        },
+        "obc": {
+            "moniker": "bronze",
+            "expected": { "bronze": "0.9967" }
+        },
+        "undefined": {
+            "moniker": "undefined"
+        },
+        "all": {
+            "expected": {
+                "copper": "0.098",
+                "testcoin": "1",
+                "wood": "0.0007",
+                "bitcoin": "0.02617226",
+                "diamond": "50000000",
+                "fabecoin": "59678",
+                "bronze": "0.9967"
+            }
+        }
+    },
+    "getasset": {
+        "uncolored": {
+            "moniker": "bitcoin",
+            "expected":{
+                "assetid": "JNu4AFCBNmTE1",
+                "color_set": [""],
+                "monikers": ["bitcoin"],
+                "unit": 100000000
+            }
+        },
+        "epobc": {
+            "moniker": "fabecoin",
+            "expected":{
+                "assetid": "nghRxMdVmnrpK",
+                "color_set": [
+                    "epobc:9df37ce731eb891455955fad86b6b56ed328520b196488d008e6011a0a6f8eeb:0:322628"
+                ],
+                "monikers": ["fabecoin"],
+                "unit": 1
+            }
+        },
+        "obc": {
+            "moniker": "bronze",
+            "expected":{
+                "assetid": "7TR9SB6nKw81cw",
+                "color_set": [
+                    "obc:14207baf5fc51615811ddbde86b33be21a5d8f60cad658994b489a3f1b695aa4:0:323345"
+                ],
+                "monikers": ["bronze"],
+                "unit": 100000000
+            }
+        },
+        "undefined": {
+            "moniker": "undefined"
+        }
+    },
+    "signrawtx": {
+        "uncolored": {
+            "unsigned" : "0100000001ef5b2eb4b9b0c10449cbabedca45709135d457a04dabd33c1068aaf86562a72b0200000000ffffffff0240420f00000000001976a91491cc9812ca45e7209ff9364ce96527a7c49f1f3188ac3e770400000000001976a9142e330c36e1d0f199fd91446f2210209a0d35caef88ac00000000",
+            "expected": "0100000001ef5b2eb4b9b0c10449cbabedca45709135d457a04dabd33c1068aaf86562a72b020000008a4730440220022799b32e076417c62b6d7ff3ee8c588e13dc60ba7e00ecb0f1ccc85c9dcbef022066f185a4c4d8c22764c712c4a7ffc0375cd4c186661ab74602db27f23b2598060141040e4aeac170f3c6c78696e57b1b07d14276044f1e14674ca3eddbb999b9239711f9f136902f680e2176398d6ebd3c72a5482a5ac8fc12038428ff9d59829f624bffffffff0240420f00000000001976a91491cc9812ca45e7209ff9364ce96527a7c49f1f3188ac3e770400000000001976a9142e330c36e1d0f199fd91446f2210209a0d35caef88ac00000000"
+        },
+        "epobc": {
+            "unsigned": "0100000001f411efd9e6060f43d150008232345911f17cc577f25467e8a469311de93a98000100000000330000000250c30000000000001976a914461932f048fd8a60daddc34323301781f216839a88acce250000000000001976a914fde53f69a72cac25cd4bdfe6a2a50cecdcf6050e88ac00000000",
+            "expected": "0100000001f411efd9e6060f43d150008232345911f17cc577f25467e8a469311de93a9800010000008b483045022100b0b10a46a2502f560161e381918816d1f9bebadae312ec49f9d3e939091adf200220050528b47165f31aa2f98029f1f0c75545077ff48bd4668e07e1ff759f4ddf79014104c55ba47261d6bca5aee2350a7e578f81e02ace331acb6bafdcfc956dffca9e02d59c32aaad764511db694e44e25313707c1749198e1c21146522ee42b74766a2330000000250c30000000000001976a914461932f048fd8a60daddc34323301781f216839a88acce250000000000001976a914fde53f69a72cac25cd4bdfe6a2a50cecdcf6050e88ac00000000"
+        },
+        "obc": {
+            "unsigned": "01000000020f2d387962176ba88aca5898cccccc573c36b02241487ce8a30b92b238c36e640100000000ffffffff0f2d387962176ba88aca5898cccccc573c36b02241487ce8a30b92b238c36e640100000000ffffffff0380969800000000001976a9141075536ca2044f7db00a563f58b5f5cde182b9c588ac70415805000000001976a914b4667b33dd89990702e4adbedc6d07e3a12c91b088ac6cc5f005000000001976a9142e330c36e1d0f199fd91446f2210209a0d35caef88ac00000000",
+            "expected": "01000000020f2d387962176ba88aca5898cccccc573c36b02241487ce8a30b92b238c36e64010000008a47304402201e7bf56a917f90dc8a87c21c58664283318d77eab7f0810914e3063a7bbd67b402207ce6b10796252002b9f43c23760346d130cf22268fb21997e9e48bd7233b9354014104a44feb7524b7a98ea7272c563bff183e455bf4f0ac5662533321505a01b4771ad41379c724d1f2133b4d543278cf8b9b6a47bc0c3c17bd0a0d24e2962c64fabbffffffff0f2d387962176ba88aca5898cccccc573c36b02241487ce8a30b92b238c36e64010000008a4730440220643e6b8288f0866138fef3bc4afc7d57c0597edb02589b0c47366c9a72f4c7120220588e7311e734ecce09e60751155146e4c610e4319c0c52d2b3777b911a9b2364014104a44feb7524b7a98ea7272c563bff183e455bf4f0ac5662533321505a01b4771ad41379c724d1f2133b4d543278cf8b9b6a47bc0c3c17bd0a0d24e2962c64fabbffffffff0380969800000000001976a9141075536ca2044f7db00a563f58b5f5cde182b9c588ac70415805000000001976a914b4667b33dd89990702e4adbedc6d07e3a12c91b088ac6cc5f005000000001976a9142e330c36e1d0f199fd91446f2210209a0d35caef88ac00000000"
+
+        }
+    },
+    "createtx": {
+        "sign_uncolored": {
+            "inputs": [{
+                "outindex": "2",
+                "txid": "2ba76265f8aa68103cd3ab4da057d435917045caedabcb4904c1b0b9b42e5bef"
+            }],
+            "targets": [{
+                "moniker" : "bitcoin",
+                "amount" : "0.01",
+                "coloraddress" : "mtosNK4tJzrePxM7tb2V2zTxYyJUW4xx83"
+            }],
+            "expected": "0100000001ef5b2eb4b9b0c10449cbabedca45709135d457a04dabd33c1068aaf86562a72b020000008b483045022100b50492daf58994a5e7f912cc78cb6d9293ffd3c2f4bab9ec547ba564d307f7070220729f734a1c7fa9dcba0892fc63c358f8edb8a28396aff65be565e1217fdaa28e0141040e4aeac170f3c6c78696e57b1b07d14276044f1e14674ca3eddbb999b9239711f9f136902f680e2176398d6ebd3c72a5482a5ac8fc12038428ff9d59829f624bffffffff0240420f00000000001976a91491cc9812ca45e7209ff9364ce96527a7c49f1f3188ac3b760400000000001976a9141395ba7d33546972341f28e6c953bdac103e126588ac00000000"
+        },
+        "uncolored": {
+            "inputs": [{
+                "outindex": "2",
+                "txid": "2ba76265f8aa68103cd3ab4da057d435917045caedabcb4904c1b0b9b42e5bef"
+            }],
+            "targets": [{
+                "moniker" : "bitcoin",
+                "amount" : "0.01",
+                "coloraddress" : "mtosNK4tJzrePxM7tb2V2zTxYyJUW4xx83"
+            }],
+            "expected": "0100000001ef5b2eb4b9b0c10449cbabedca45709135d457a04dabd33c1068aaf86562a72b0200000000ffffffff0240420f00000000001976a91491cc9812ca45e7209ff9364ce96527a7c49f1f3188ac3b760400000000001976a9141395ba7d33546972341f28e6c953bdac103e126588ac00000000"
+        },
+        "epobc": {
+            "inputs": [{
+                "outindex": "1",
+                "txid": "00983ae91d3169a4e86754f277c57cf111593432820050d1430f06e6d9ef11f4"
+            }],
+            "targets": [{
+                "moniker" : "fabecoin",
+                "amount" : "50000",
+                "coloraddress" : "nghRxMdVmnrpK@mmubnLYxcPKABKSWVyFqvYEdzKoPZBH1gZ"
+            }],
+            "expected": "0100000001f411efd9e6060f43d150008232345911f17cc577f25467e8a469311de93a98000100000000330000000350c30000000000001976a914461932f048fd8a60daddc34323301781f216839a88acce250000000000001976a914fde53f69a72cac25cd4bdfe6a2a50cecdcf6050e88ac69130000000000001976a9141395ba7d33546972341f28e6c953bdac103e126588ac00000000"
+        },
+        "sign_epobc": {
+            "inputs": [{
+                "outindex": "1",
+                "txid": "00983ae91d3169a4e86754f277c57cf111593432820050d1430f06e6d9ef11f4"
+            }],
+            "targets": [{
+                "moniker" : "fabecoin",
+                "amount" : "50000",
+                "coloraddress" : "nghRxMdVmnrpK@mmubnLYxcPKABKSWVyFqvYEdzKoPZBH1gZ"
+            }],
+            "expected": "0100000001f411efd9e6060f43d150008232345911f17cc577f25467e8a469311de93a9800010000008b4830450221008937b4367e425cf3102bfcb7f31c2df8fb9fee703d1c21aa813fb43b4ea1b3c802205e168bdc1b1229c932d3b7513b726fdede211950c2a90797c17b5e9f91617722014104c55ba47261d6bca5aee2350a7e578f81e02ace331acb6bafdcfc956dffca9e02d59c32aaad764511db694e44e25313707c1749198e1c21146522ee42b74766a2330000000350c30000000000001976a914461932f048fd8a60daddc34323301781f216839a88acce250000000000001976a914fde53f69a72cac25cd4bdfe6a2a50cecdcf6050e88ac69130000000000001976a9141395ba7d33546972341f28e6c953bdac103e126588ac00000000"
+        },
+        "obc": {
+            "inputs": [{
+                "outindex": "1",
+                "txid": "646ec338b2920ba3e87c484122b0363c57cccccc9858ca8aa86b176279382d0f"
+            }],
+            "targets": [{
+                "moniker" : "bronze",
+                "amount" : "0.1",
+                "coloraddress" : "7TR9SB6nKw81cw@mh1yf4uNmedzaJLfLKkYWUyvHAeEo13rLG"
+            }],
+            "expected": "01000000020f2d387962176ba88aca5898cccccc573c36b02241487ce8a30b92b238c36e640100000000ffffffff0f2d387962176ba88aca5898cccccc573c36b02241487ce8a30b92b238c36e640100000000ffffffff0380969800000000001976a9141075536ca2044f7db00a563f58b5f5cde182b9c588ac70415805000000001976a914b4667b33dd89990702e4adbedc6d07e3a12c91b088ac92c3f005000000001976a9141395ba7d33546972341f28e6c953bdac103e126588ac00000000"
+        },
+        "sign_obc": {
+            "inputs": [{
+                "outindex": "1",
+                "txid": "646ec338b2920ba3e87c484122b0363c57cccccc9858ca8aa86b176279382d0f"
+            }],
+            "targets": [{
+                "moniker" : "bronze",
+                "amount" : "0.1",
+                "coloraddress" : "7TR9SB6nKw81cw@mh1yf4uNmedzaJLfLKkYWUyvHAeEo13rLG"
+            }],
+            "expected": "01000000020f2d387962176ba88aca5898cccccc573c36b02241487ce8a30b92b238c36e64010000008b483045022100ec044ff6908f39e9476ce88baa0ad2717831d03e99b7177e6dcceae6b78f7d4202200e3dacb787a7660315e961b4536e92d89d821b89b39e22e3b69f8586a77742c3014104a44feb7524b7a98ea7272c563bff183e455bf4f0ac5662533321505a01b4771ad41379c724d1f2133b4d543278cf8b9b6a47bc0c3c17bd0a0d24e2962c64fabbffffffff0f2d387962176ba88aca5898cccccc573c36b02241487ce8a30b92b238c36e64010000008a47304402204bb50de6e4814fbecd8c2209856ba3645a899ac0e73e1b387ff737ea82e46d8c022048c944dedf306f9bee9362105038e109521d148b7fecb7d1d1a737f806a2bcf5014104a44feb7524b7a98ea7272c563bff183e455bf4f0ac5662533321505a01b4771ad41379c724d1f2133b4d543278cf8b9b6a47bc0c3c17bd0a0d24e2962c64fabbffffffff0380969800000000001976a9141075536ca2044f7db00a563f58b5f5cde182b9c588ac70415805000000001976a914b4667b33dd89990702e4adbedc6d07e3a12c91b088ac92c3f005000000001976a9141395ba7d33546972341f28e6c953bdac103e126588ac00000000"
+        }
+    },
+    "txoutvalue": {
+        "uncolored": {
+            "txid": "2ba76265f8aa68103cd3ab4da057d435917045caedabcb4904c1b0b9b42e5bef",
+            "outindex": 2,
+            "moniker": "bitcoin",
+            "expected": { "bitcoin": "0.0129526" }
+        },
+        "obc": {
+            "txid": "646ec338b2920ba3e87c484122b0363c57cccccc9858ca8aa86b176279382d0f",
+            "outindex": 1,
+            "moniker": "bronze",
+            "expected": { "bronze": "0.9967" }
+        },
+        "zero_obc": {
+            "txid": "00983ae91d3169a4e86754f277c57cf111593432820050d1430f06e6d9ef11f4",
+            "outindex": 1,
+            "moniker": "bronze",
+            "expected": { "bronze": "0" }
+        },
+        "epobc": {
+            "txid": "00983ae91d3169a4e86754f277c57cf111593432820050d1430f06e6d9ef11f4",
+            "outindex": 1,
+            "moniker": "fabecoin",
+            "expected": { "fabecoin": "59678" }
+        },
+        "zero_epobc": {
+            "txid": "646ec338b2920ba3e87c484122b0363c57cccccc9858ca8aa86b176279382d0f",
+            "outindex": 1,
+            "moniker": "fabecoin",
+            "expected": { "fabecoin": "0" }
+        }
+    }
+}

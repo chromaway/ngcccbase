@@ -104,7 +104,7 @@ class PersistentWallet(object):
         for key in keys:
             branch = branch[key]
         return branch
-
+    
     def importprivkey(self, wif, asset):
         wam = self.wallet_model.get_address_manager()
 
