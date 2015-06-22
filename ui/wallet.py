@@ -15,22 +15,6 @@ import threading
 from decimal import Decimal
 
 
-class TimedAsyncTask(threading.Thread):
-    def __init__(self, task, sleep_time):
-        super(TimedAsyncTask, self).__init__()
-        self._stop = threading.Event()
-        self.sleep_time = sleep_time
-        self.task = task
-
-    def run(self):
-        while not self._stop.is_set():
-            self.task()
-            time.sleep(self.sleep_time)
-
-    def stop(self):
-      self._stop.set()
-
-
 class Wallet(object):
     thread_comm = None
 
@@ -149,6 +133,7 @@ class Wallet(object):
     def p2ptrade_stop(self):
         if self.thread_comm is not None:
             self.thread_comm.stop()
+            self.thread_comm.join()
 
     def p2ptrade_make_offer(self, we_sell, params):
         asset = self.get_asset_definition(params['moniker'])
@@ -170,6 +155,7 @@ class Wallet(object):
 
     def stop_all(self):
         self.async_utxo_fetcher.stop()
+        self.async_utxo_fetcher.join()
         self.p2ptrade_stop()
         self.wallet.disconnect()
         if hasattr(self.model.txdb, 'vbs'):

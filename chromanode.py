@@ -299,6 +299,7 @@ if __name__ == "__main__":
     def sigint_handler(signum, frame):
         print ('exit chunk thread')
         chunkThread.stop()
+        chunkThread.join()
         print ('done')
         sys.exit(1)
     signal.signal(signal.SIGINT, sigint_handler)

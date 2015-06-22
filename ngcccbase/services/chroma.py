@@ -61,6 +61,7 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
 
     def disconnect(self):
         self._thread.stop()
+        self._thread.join()
         self._thread = None
 
     def _query(self, url, data=None, exceptiononfail=True):

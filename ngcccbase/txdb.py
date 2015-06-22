@@ -217,6 +217,7 @@ class VerifiedTxDb(BaseTxDb):
     def __del__(self):
         if self.vbs:
             self.vbs.stop()
+            self.vbs.join()
 
     def _get_merkle_root(self, merkle_s, start_hash, pos):
         hash_decode = lambda x: x.decode('hex')[::-1]
