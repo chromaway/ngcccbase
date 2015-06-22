@@ -19,7 +19,8 @@ class ConfigKeyNotFound(Exception):
 
 class ConfigPathInUse(Exception):
     def __init__(self, key):
-        super(ConfigPathInUse, self).__init__("Key '%s' intersects value!" % key)
+        msg = "Key '%s' intersects value!" % key
+        super(ConfigPathInUse, self).__init__(msg)
 
 
 class PersistentWallet(object):
@@ -66,7 +67,7 @@ class PersistentWallet(object):
             self.wallet_model = None
 
     def initialize_new_wallet(self, testnet):
-        """New wallets are born in testnet mode until we have a version 
+        """New wallets are born in testnet mode until we have a version
         which is safe to be used on mainnet.
         """
         self.wallet_config['testnet'] = testnet
@@ -85,7 +86,7 @@ class PersistentWallet(object):
         branch = config
         while len(keys) > 1:
             if keys[0] not in branch:
-                branch[keys[0]] = { }
+                branch[keys[0]] = {}
             branch = branch[keys[0]]
             keys = keys[1:]
             if not isinstance(branch, dict):
@@ -104,7 +105,7 @@ class PersistentWallet(object):
         for key in keys:
             branch = branch[key]
         return branch
-    
+
     def importprivkey(self, wif, asset):
         wam = self.wallet_model.get_address_manager()
 
@@ -113,7 +114,7 @@ class PersistentWallet(object):
         if address:
             return address
 
-        addr_params = { 
+        addr_params = {
             'address_data': wif,
             'color_set': asset.get_color_set().get_data(),
         }
@@ -141,4 +142,3 @@ class PersistentWallet(object):
             wallet_config = self.wallet_config
             for key in config:
                 wallet_config[key] = config[key]
-

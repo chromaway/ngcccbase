@@ -13,11 +13,12 @@ Use this command in ubuntu to install:
 """
 
 from ngcccbase.logger import setup_logging
-import install_https
 from ui.qtui import QtUI
+
 
 def start_ui():
     QtUI()
+
 
 setup_logging()
 start_ui()

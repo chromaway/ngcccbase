@@ -1,5 +1,5 @@
-from coloredcoinlib import (ColorSet, IncompatibleTypesError, InvalidValueError,
-                            SimpleColorValue, ColorValue)
+from coloredcoinlib import (ColorSet, IncompatibleTypesError,
+                            InvalidValueError, SimpleColorValue, ColorValue)
 from coloredcoinlib.comparable import ComparableMixin
 from decimal import Decimal
 
@@ -95,7 +95,7 @@ class AssetDefinition(object):
         """
         return {
             "monikers": self.monikers,
-            "assetid" : self.get_color_set().get_color_hash(),
+            "assetid": self.get_color_set().get_color_hash(),
             "color_set": self.color_set.get_data(),
             "unit": self.unit
             }
@@ -187,7 +187,7 @@ class AdditiveAssetValue(AssetValue, ComparableMixin):
 
     @classmethod
     def sum(cls, items):
-        return reduce(lambda x,y:x + y, items)
+        return reduce(lambda x, y: x + y, items)
 
 
 class AssetTarget(object):
@@ -263,7 +263,7 @@ class AssetDefinitionManager(object):
             self.lookup_by_moniker[moniker] = assdef
         for aid in assdef.get_all_ids():
             if aid in self.lookup_by_id:
-                mgs = 'More than one asset definition have same id!'
+                msg = 'More than one asset definition have same id!'
                 raise Exception(msg)
             self.lookup_by_id[aid] = assdef
 
@@ -323,7 +323,6 @@ class AssetDefinitionManager(object):
         msg = "No asset has a color set with this : %s"
         raise Exception(msg % color_set_hash)
 
-
     def get_asset_by_color_id(self, colorid):
         colorset = ColorSet.from_color_ids(self.colormap, [colorid])
         asset = self.find_asset_by_color_set(colorset)
@@ -344,4 +343,3 @@ class AssetDefinitionManager(object):
             colorvalue.get_color_id(),
             colorvalue.get_value()
         )
-

@@ -1,17 +1,13 @@
 from time import time
-from urllib2 import HTTPError
 import threading
 import os
 
 from pycoin.encoding import double_sha256
 
 from coloredcoinlib.store import DataStore
-from coloredcoinlib.store import DataStoreConnection
-from coloredcoinlib.store import PersistentDictStore
 from coloredcoinlib.store import unwrap1
 from txcons import RawTxSpec
 from blockchain import VerifiedBlockchainState
-
 
 
 TX_STATUS_UNKNOWN = 0
@@ -28,6 +24,7 @@ CREATE TABLE tx_data (
     block_height INTEGER
 );
 """
+
 
 class TxDataStore(DataStore):
     def __init__(self, conn):
@@ -51,10 +48,10 @@ class TxDataStore(DataStore):
     def set_tx_status(self, txhash, status):
         self.execute("UPDATE tx_data SET status = ? WHERE txhash = ?",
                      (status, txhash))
-    
+
     def get_tx_status(self, txhash):
-        return unwrap1(self.execute("SELECT status FROM tx_data WHERE txhash = ?",
-                                    (txhash, )).fetchone())
+        querystr = "SELECT status FROM tx_data WHERE txhash = ?"
+        return unwrap1(self.execute(querystr, (txhash, )).fetchone())
 
     def get_tx_by_hash(self, txhash):
         return self.execute("SELECT * FROM tx_data WHERE txhash = ?",
@@ -72,6 +69,7 @@ class TxDataStore(DataStore):
         self.execute("UPDATE tx_data SET status = 0 \
 WHERE (block_height >= ?) OR (block_height IS NULL)",
                      (height,))
+
 
 class BaseTxDb(object):
     def __init__(self, model, config):
@@ -113,8 +111,8 @@ class BaseTxDb(object):
 
     def add_tx(self, txhash, txdata, raw_tx, status=None):
         entries = self.model.tx_history.entries
-        if (txhash not in entries or            # new transaction
-                not entries[txhash]['txtime']): # update unconfirmed
+        if (txhash not in entries or             # new transaction
+                not entries[txhash]['txtime']):  # update unconfirmed
             self.model.tx_history.add_entry_from_tx(raw_tx)
 
         if not self.store.get_tx_by_hash(txhash):
@@ -135,12 +133,13 @@ class BaseTxDb(object):
         self.store.set_tx_status(txhash, status)
         self.update_tx_block_height(txhash, status)
         return status
-   
+
     def maybe_recheck_tx_status(self, txhash, status):
         if status == TX_STATUS_CONFIRMED:
             # do not recheck those which are already confirmed
             return status
-        if (time() - self.last_status_check.get(txhash, 0)) < self.recheck_interval:
+        last_check = self.last_status_check.get(txhash, 0)
+        if (time() - last_check) < self.recheck_interval:
             return status
         status = self.recheck_tx_status(txhash)
         self.last_status_check[txhash] = time()
@@ -175,7 +174,7 @@ class NaiveTxDb(BaseTxDb):
 
 class TrustingTxDb(BaseTxDb):
     """TxDb which trusts confirmation data it gets from an external source"""
-    
+
     def __init__(self, model, config, get_tx_confirmations):
         super(TrustingTxDb, self).__init__(model, config)
         self.confirmed_txs = set()
@@ -260,7 +259,8 @@ class VerifiedTxDb(BaseTxDb):
 
     def drop_from_height(self, height):
         with self.lock:
-            self.verified_tx = {key: value for key, value in self.verified_tx.items() if value < height}
+            items = self.verified_tx.items()
+            self.verified_tx = {k: v for k, v in items if v < height}
 
     def get_confirmations(self, txhash):
         with self.lock:

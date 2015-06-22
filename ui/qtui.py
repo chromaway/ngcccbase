@@ -16,14 +16,17 @@ from historypage import HistoryPage
 
 from wallet import wallet
 
+
 try:
     main_file = os.path.abspath(sys.modules['__main__'].__file__)
 except AttributeError:
     main_file = sys.executable
 ui_path = os.path.join(os.path.dirname(main_file), 'ui', 'forms')
 
+
 def getUiPath(ui_name):
     return os.path.join(ui_path, ui_name)
+
 
 uic.getUiPath = getUiPath
 
@@ -90,15 +93,14 @@ class MainWindow(QtGui.QMainWindow):
             if got_updates:
                 self.currentPage.update()
             self.connectionStatus.updateStatus()
-        except httplib.CannotSendRequest: # bitcoind disconnected
+        except httplib.CannotSendRequest:  # bitcoind disconnected
             self.connectionStatus.setStatus(False)
-        except httplib.BadStatusLine: # bitcoind disconnected
+        except httplib.BadStatusLine:  # bitcoind disconnected
             self.connectionStatus.setStatus(False)
-        except socket.error: # bitcoind not started
+        except socket.error:  # bitcoind not started
             self.connectionStatus.setStatus(False)
-        except urllib2.HTTPError: # chromanode disconnected
+        except urllib2.HTTPError:  # chromanode disconnected
             self.connectionStatus.setStatus(False)
-
 
     def bindActions(self):
         self.actionExit.triggered.connect(
@@ -156,7 +158,9 @@ class MainWindow(QtGui.QMainWindow):
         self.actionP2PTrade.setChecked(True)
         self.setPage(self.tradepage)
 
+
 class QtUI(object):
+
     def __init__(self):
         global wallet
         app = Application()
@@ -165,7 +169,7 @@ class QtUI(object):
             center = QtGui.QApplication.desktop().screen().rect().center()
             window.move(center - window.rect().center())
             window.show()
-        else: # not connected
+        else:  # not connected
             msg = "Couldn't connect to server!"
             QtGui.QMessageBox.critical(None, '', msg, QtGui.QMessageBox.Ok)
             return
@@ -173,4 +177,3 @@ class QtUI(object):
         retcode = app.exec_()
         wallet.stop_all()
         sys.exit(retcode)
-

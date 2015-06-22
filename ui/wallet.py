@@ -1,17 +1,14 @@
 from ngcccbase.pwallet import PersistentWallet
 from ngcccbase.wallet_controller import WalletController
-from ngcccbase.asset import AssetDefinition
 
 from ngcccbase.p2ptrade.ewctrl import EWalletController
 from ngcccbase.p2ptrade.agent import EAgent
-from ngcccbase.p2ptrade.comm import HTTPComm, ThreadedComm
+from ngcccbase.p2ptrade.comm import ThreadedComm
 from ngcccbase.p2ptrade.protocol_objects import MyEOffer
 
 from ngcccbase.utxo_fetcher import AsyncUTXOFetcher
 
-import time
 import argparse
-import threading
 from decimal import Decimal
 
 
@@ -72,8 +69,8 @@ class Wallet(object):
             self.get_new_address(params['moniker'])
 
     def get_all_monikers(self):
-        monikers = [asset.get_monikers()[0] for asset in
-            self.model.get_asset_definition_manager().get_all_assets()]
+        adm = self.model.get_asset_definition_manager()
+        monikers = [asset.get_monikers()[0] for asset in adm.get_all_assets()]
         monikers.remove('bitcoin')
         monikers = ['bitcoin'] + monikers
         return monikers
@@ -91,8 +88,9 @@ class Wallet(object):
             self.get_asset_definition(color))
 
     def get_all_addresses(self, color):
-        return [addr.get_color_address() for addr in
-            self.controller.get_all_addresses(self.get_asset_definition(color))]
+        asset_def = self.get_asset_definition(color)
+        addrs = self.controller.get_all_addresses(asset_def)
+        return [addr.get_color_address() for addr in addrs]
 
     def get_received_by_address(self, color):
         asset = self.get_asset_definition(color)
@@ -105,8 +103,8 @@ class Wallet(object):
         return ar.get_color_address()
 
     def get_new_address(self, color):
-        return self.controller. \
-            get_new_address(self.get_asset_definition(color)).get_color_address()
+        asset_def = self.get_asset_definition(color)
+        return self.controller.get_new_address(asset_def).get_color_address()
 
     def scan(self):
         self.controller.scan_utxos()
@@ -115,11 +113,13 @@ class Wallet(object):
         if isinstance(items, dict):
             items = [items]
         for item in items:
-            self.controller.send_coins(
-                item['asset'] if 'asset' in item \
-                    else self.get_asset_definition(item['moniker']),
-                [item['address']],
-                [item['value']])
+            if 'asset' in item:
+                asset = item['asset']
+            else:
+                asset = self.get_asset_definition(item['moniker'])
+            address = item['address']
+            value = item['value']
+            self.controller.send_coins(asset, [address], [value])
 
     def p2ptrade_init(self):
         ewctrl = EWalletController(self.model, self.controller)

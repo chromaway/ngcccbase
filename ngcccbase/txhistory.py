@@ -121,6 +121,7 @@ class TxHistoryEntry_Trade(TxHistoryEntry):
 
 
 class TxHistory(object):
+
     def __init__(self, model):
         self.model = model
         self.entries = PersistentDictStore(

@@ -29,7 +29,7 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         try:
             self._update_height()
         except urllib2.URLError:
-            pass # surpress connection error, handled later
+            pass  # surpress connection error, handled later
         self.connect()
 
     def _update_height(self):

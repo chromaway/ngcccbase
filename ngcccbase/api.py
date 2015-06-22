@@ -78,9 +78,10 @@ class Ngccc(apigen.Definition):
         self.wallet.importconfig(path)
 
     @apigen.command()
-    def issueasset(self, moniker, quantity, unit=1, scheme="epobc"):  # TODO unittest
+    def issueasset(self, moniker, quantity, unit=1, scheme="epobc"):
         """ Issue <quantity> of asset with name <moniker> and <unit> atoms,
         based on <scheme (epobc|obc)>."""
+        # TODO unittest
 
         # sanitize inputs
         moniker = sanitize.moniker(moniker)
@@ -187,7 +188,7 @@ class Ngccc(apigen.Definition):
         return [ao.get_color_address() for ao in addressrecords]
 
     @apigen.command()
-    def send(self, moniker, coloraddress, amount): # TODO unittest
+    def send(self, moniker, coloraddress, amount):  # TODO unittest
         """Send <coloraddress> given <amount> of an asset."""
 
         # sanitize inputs
@@ -322,8 +323,9 @@ class Ngccc(apigen.Definition):
         return map(lambda ar: ar.get_private_key(), addressrecords)
 
     @apigen.command()
-    def p2porders(self, moniker="", sellonly=False, buyonly=False):  # TODO unittest
+    def p2porders(self, moniker="", sellonly=False, buyonly=False):
         """Show peer to peer trade orders"""
+        # TODO unittest
 
         # sanitize inputs
         sellonly = sanitize.flag(sellonly)
@@ -335,8 +337,9 @@ class Ngccc(apigen.Definition):
         return self.controller.p2porders(asset, sellonly, buyonly)
 
     @apigen.command()
-    def p2psell(self, moniker, assetamount, btcprice, wait=30):  # TODO unittest
+    def p2psell(self, moniker, assetamount, btcprice, wait=30):
         """Sell <assetamount> for <btcprice> via peer to peer trade."""
+        # TODO unittest
         self._p2ptrade_make_offer(True, moniker, assetamount, btcprice, wait)
 
     @apigen.command()
