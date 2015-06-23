@@ -252,10 +252,10 @@ The asset definition is now in your wallet. You got it back as JSON when issuing
 
 This will get you back JSON as such:
 
-    {u'assetid': u'Bf1aXLmTv41pc2',
-    u'color_set': [u'epobc:27da3337fb4a5bb8e2e5a537448e5ec9cfaa3c15628c3c333025d547bbcf9d71:0:361077'],
-    u'monikers': [u'foo_inc'],
-    u'unit': 1}
+    {assetid: "uBf1aXLmTv41pc2",
+    color_set: ["epobc:27da3337fb4a5bb8e2e5a537448e5ec9cfaa3c15628c3c333025d547bbcf9d71:0:361077"],
+    monikers: ["foo_inc"],
+    unit: 1}
 
 The JSON data is important since it defines your asset and without it your asset would be lost! The asset definition in JSON should therefore be backed up, and can also be used for _sharing_ the asset definition with other parties and exchanges that may want to trade your asset.
 
@@ -316,10 +316,10 @@ Now it is time to import the asset. Use your own JSON that you got when you issu
 Import your asset definition with the ```addassetjson``` command. With the pyjsonrpc client you actually use a native python dictionary, but it will be converted to JSON before being sent over the network:
 :
 
-    other_partys_client.addassetjson({u'assetid': u'Bf1aXLmTv41pc2',
-             u'color_set': [u'epobc:27da3337fb4a5bb8e2e5a537448e5ec9cfaa3c15628c3c333025d547bbcf9d71:0:361077'],
-             u'monikers': [u'foo_inc'],
-             u'unit': 1})
+    other_partys_client.addassetjson({'''{assetid: "Bf1aXLmTv41pc2",
+        color_set: ["epobc:27da3337fb4a5bb8e2e5a537448e5ec9cfaa3c15628c3c333025d547bbcf9d71:0:361077"],
+        monikers: ["foo_inc"],
+        unit: 1}''')
 
 Make sure the import worked by calling:
 
