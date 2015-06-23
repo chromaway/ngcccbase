@@ -138,11 +138,16 @@ class TxHistory(object):
             return None
 
     def _ensure_fee_saved_for_legacy_wallets(self):
-        bs = self.model.get_blockchain_state()
+        txdb = self.model.get_tx_db()
         for entry in self.entries.values():
-            if 'txfee' not in entry:
+            if ('txfee' not in entry) or (entry['txfee'] == -1):
                 txhash = entry['txhash']
-                entry['txfee'] = bs.get_tx(txhash).get_fee()
+                try:
+                    entry['txfee'] = txdb.get_tx_object(txhash).get_fee()
+                except Exception as e:
+                    print "cant", txhash
+                    print e
+                    entry['txfee'] = -1 # error
                 self.entries[txhash] = entry
 
     def get_all_entries(self):
