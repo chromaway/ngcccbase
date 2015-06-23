@@ -17,16 +17,19 @@ class AddressNotFound(Exception):
 class Ngccc(apigen.Definition):
     """Next-Generation Colored Coin Client interface."""
 
-    def __init__(self, wallet=None, testnet=False, use_naivetxdb=False):
+    def __init__(self, wallet=None, testnet=False,
+                 use_naivetxdb=False, dryrun=False):
 
         # sanitize inputs
         self.testnet = sanitize.flag(testnet)
+        self.dryrun = dryrun
 
         if not wallet:
             wallet = "%s.wallet" % ("testnet" if self.testnet else "mainnet")
 
         self.wallet = PersistentWallet(wallet, self.testnet,
-                                       use_naivetxdb=use_naivetxdb)
+                                       use_naivetxdb=use_naivetxdb,
+                                       dryrun=self.dryrun)
         self.model_is_initialized = False
 
     def __del__(self):
@@ -39,7 +42,7 @@ class Ngccc(apigen.Definition):
             if not self.model_is_initialized:
                 self.wallet.init_model()
                 model = self.wallet.get_model()
-                self.controller = WalletController(model)
+                self.controller = WalletController(model, dryrun=self.dryrun)
                 self.model = model
                 self.model_is_initialized = True
         return object.__getattribute__(self, name)
@@ -234,7 +237,7 @@ class Ngccc(apigen.Definition):
         self.controller.full_rescan()
 
     @apigen.command()
-    def history(self, moniker):  # TODO unittest
+    def history(self, moniker):
         """Show the history of transactions for given asset."""
 
         # sanitize inputs
@@ -436,4 +439,4 @@ class Ngccc(apigen.Definition):
         # sanitize inputs
         rawtx = sanitize.rawtx(rawtx)
 
-        return self.controller.publish_rawtx(rawtx)
+        return self.controller.publish_rawtx(rawtx, dryrun=self.dryrun)

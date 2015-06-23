@@ -41,11 +41,12 @@ class AssetMismatchError(Exception):
 class WalletController(object):
     """Controller for a wallet. Used for executing tasks related to the wallet.
     """
-    def __init__(self, model):
+    def __init__(self, model, dryrun=False):
         """Given a wallet model <model>, create a wallet controller.
         """
         self.model = model
         self.testing = False
+        self.dryrun = dryrun
 
     def _all_colorids_set(self):
         color_id_set = set()
@@ -128,7 +129,7 @@ class WalletController(object):
 
     def publish_rawtx(self, rawtx):
         blockchain_state = self.model.ccc.blockchain_state
-        return blockchain_state.publish_tx(rawtx)
+        return blockchain_state.publish_tx(rawtx, dryrun=self.dryrun)
 
     def publish_tx(self, signed_tx_spec):
         """Given a signed transaction <signed_tx_spec>, publish the transaction

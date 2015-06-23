@@ -28,12 +28,15 @@ class PersistentWallet(object):
     That is, it doesn't go away every time you run the program.
     """
 
-    def __init__(self, wallet_path, testnet, use_naivetxdb=False):
+    def __init__(self, wallet_path, testnet,
+                 use_naivetxdb=False, dryrun=False):
         """Create a persistent wallet. If a configuration is passed
         in, put that configuration into the db by overwriting
         the relevant data, never deleting. Otherwise, load with
         the configuration from the persistent data-store.
         """
+        self.dryrun = dryrun
+        # FIXME make wallet read only for dryrun
         if wallet_path is None:
             if testnet:
                 wallet_path = "testnet.wallet"
@@ -42,8 +45,13 @@ class PersistentWallet(object):
         new_wallet = not os.path.exists(wallet_path)
         self.store_conn = store.DataStoreConnection(wallet_path, True)
         self.store_conn.conn.row_factory = sqlite3.Row
-        self.wallet_config = store.PersistentDictStore(
-            self.store_conn.conn, "wallet")
+
+        if not self.dryrun:
+            conn = self.store_conn.conn
+            self.wallet_config = store.PersistentDictStore(conn, "wallet")
+        else:
+            self.wallet_config = {}
+
         if new_wallet:
             self.initialize_new_wallet(testnet)
         if testnet and not self.wallet_config['testnet']:
