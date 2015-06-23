@@ -6,9 +6,11 @@ from pycoin.encoding import double_sha256
 
 from coloredcoinlib.store import DataStore
 from coloredcoinlib.store import unwrap1
+from coloredcoinlib.blockchain import CTransaction
 from txcons import RawTxSpec
 from blockchain import VerifiedBlockchainState
 
+import bitcoin
 
 TX_STATUS_UNKNOWN = 0
 TX_STATUS_UNCONFIRMED = 1
@@ -87,6 +89,14 @@ class BaseTxDb(object):
 
     def get_tx_by_hash(self, txhash):
         return self.store.get_tx_by_hash(txhash)
+
+    def get_tx_object(self, txhash):
+        row = self.get_tx_by_hash(txhash)
+        if not row: return None
+        txhex = row['data']
+        txbin = bitcoin.core.x(txhex)
+        tx = bitcoin.core.CTransaction.deserialize(txbin)
+        return CTransaction.from_bitcoincore(txhash, tx, self.bs)        
 
     def update_tx_block_height(self, txhash, status):
         if status == TX_STATUS_CONFIRMED:

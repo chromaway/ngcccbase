@@ -45,7 +45,7 @@ class HistoryPage(QtGui.QWidget):
 
     def getSelected(self):
         index = self.tableView.selectedIndexes()[0]
-        return self.current_entries[index.row()]
+        return self.current_entry_rows[index.row()]
 
     def copyTxIdSlot(self):
         # TODO trigger copy txid on CTRL^C
@@ -59,8 +59,9 @@ class HistoryPage(QtGui.QWidget):
 
     def update(self):
         self.model.removeRows(0, self.model.rowCount()) # clear list
-        self.current_entries = wallet.model.tx_history.get_all_entries()
-        for ent in self.current_entries:
+        current_entries = wallet.model.tx_history.get_all_entries()
+        self.current_entry_rows = [] # TODO: use HistoryTableModel 
+        for ent in current_entries:
             if ent.txtime:
                 datetime = QtCore.QDateTime.fromTime_t(ent.txtime)
                 datetime_str = datetime.toString(QtCore.Qt.DefaultLocaleShortDate)
@@ -72,12 +73,14 @@ class HistoryPage(QtGui.QWidget):
                     moniker = asset.get_monikers()[0]
                     value_prefix = "-" if ent.txtype == 'send' else '+'
                     address = tgt.get_address() if tgt.get_address() else "fee"
+                    self.current_entry_rows.append(ent)
                     self.model.addRow([datetime_str, ent.txtype,
                                        value_prefix + tgt.get_formatted_value(),
                                        moniker, address])
 
             elif ent.txtype == 'complex':
                 for asset_value in ent.get_deltas():
+                    self.current_entry_rows.append(ent)
                     self.model.addRow([
                       datetime_str,
                       ent.txtype,
@@ -85,7 +88,6 @@ class HistoryPage(QtGui.QWidget):
                       asset_value.get_asset().get_monikers()[0],
                       ent.get_addresses()
                     ])
-
             elif ent.txtype == 'trade':
                 print ent.get_in_values()
                 print ent.get_out_values()
@@ -95,17 +97,17 @@ class HistoryPage(QtGui.QWidget):
                     print [datetime_str, ent.txtype,
                                        "+" + val.get_formatted_value(),
                                        moniker, '']
+                    self.current_entry_rows.append(ent)
                     self.model.addRow([datetime_str, ent.txtype,
                                        "+" + val.get_formatted_value(),
                                        moniker, ''])
                 for val in ent.get_out_values():
                     asset = val.get_asset()
                     moniker = asset.get_monikers()[0]
-                    print [datetime_str, ent.txtype,
-                                       "-" + val.get_formatted_value(),
-                                       moniker, '']
+                    self.current_entry_rows.append(ent)
                     self.model.addRow([datetime_str, ent.txtype,
                                        "-" + val.get_formatted_value(),
                                        moniker, ''])
             else:
+                self.current_entry_rows.append(ent)
                 self.model.addRow([datetime_str, ent.txtype, '', '', ''])
