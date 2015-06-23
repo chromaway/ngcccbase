@@ -63,7 +63,7 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         return rawtx
 
     def get_tx_blockhash(self, txid):
-        """ Return blockid for given txid. """
+        """ Return (blockid, in_mempool) for given txid. """
         url = "%s/v1/transactions/merkle?txid=%s" % (self.baseurl, txid)
         result = self._query(url, exceptiononfail=False)
         # errors
@@ -85,8 +85,9 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         return result["from"]
 
     def get_tx_height(self, txid):
-        blockid = self.get_tx_blockhash(txid)[0]
-        return self.get_block_height(blockid)
+        """Return blockheight if in blockchain otherwise None. """
+        blockid, in_mempool = self.get_tx_blockhash(txid)
+        return self.get_block_height(blockid) if blockid else None
 
     def get_header(self, blockheight):
         """ Return header for given blockheight.
@@ -125,10 +126,11 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         """ Return current block count. """
         return self.get_height()
 
-    def publish_tx(self, rawtx):
+    def publish_tx(self, rawtx, dryrun=False):
         """ Publish rawtx on bitcoin network and return txid. """
-        url = "%s/v1/transactions/send" % self.baseurl
-        self._query(url, {"rawtx": rawtx})
+        if not dryrun:
+            url = "%s/v1/transactions/send" % self.baseurl
+            self._query(url, {"rawtx": rawtx})
         return Tx.tx_from_hex(rawtx).id()
 
     def get_utxo(self, address):

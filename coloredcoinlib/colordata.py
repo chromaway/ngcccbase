@@ -118,6 +118,8 @@ class ThinColorData(StoredColorData):
         
         def maxdepthreached(txid):
             current_height = self.blockchain_state.get_tx_height(txid)
+            if not current_height:  # in_mempool or unbroadcasted
+                return False
             for color_id, color_def in color_def_map.items():
                 genesistxid = color_def.genesis["txhash"]
                 genesisheight = self.blockchain_state.get_tx_height(genesistxid)

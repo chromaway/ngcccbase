@@ -126,8 +126,9 @@ class BlockchainState(BlockchainStateBase):
         del self.bitcoind
         self.bitcoind = None
 
-    def publish_tx(self, txdata):
-        return self.bitcoind.sendrawtransaction(txdata)
+    def publish_tx(self, txdata, dryrun=False):
+        if not dryrun:
+            return self.bitcoind.sendrawtransaction(txdata)
 
     @classmethod
     def from_url(cls, url, testnet=False):

@@ -300,8 +300,8 @@ class AssetDefinitionManager(object):
     def update_config(self):
         """Write the current asset definitions to the persistent data-store
         """
-        self.config['asset_definitions'] = \
-            [assdef.get_data() for assdef in self.asset_definitions]
+        asset_definitions = [d.get_data() for d in self.asset_definitions]
+        self.config['asset_definitions'] = asset_definitions
 
     def get_all_assets(self):
         """Returns a list of all assets managed by this manager.
