@@ -132,5 +132,15 @@ class TestJSONAPIServer(unittest.TestCase):
         except:
             self.fail('Issueasset raised exception\n' + traceback.format_exc())
 
+    def test_addassetjson_with_string(self):
+        self.create_server()
+
+        json = '''{assetid: "Bf1aXLmTv41pc2", 
+                   color_set: ["epobc:27da3337fb4a5bb8e2e5a537448e5ec9cfaa3c15628c3c333025d547bbcf9d71:0:361077"], 
+                    monikers: ["foo_inc"],unit: 1}'''
+        res = self.client.addassetjson(json)
+        asset_name = self.client.getasset('foo_inc')
+        print asset_name
+
 if __name__ == '__main__':
     unittest.main()
