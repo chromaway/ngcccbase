@@ -1,21 +1,18 @@
 #!/usr/bin/env python
 
-import os
 import unittest
 
-from pycoin.tx.script import opcodes, tools
+from pycoin.tx.script import tools
 
 from coloredcoinlib import (OBColorDefinition, ColorSet,
                             SimpleColorValue, ColorTarget, InvalidColorIdError,
                             UNCOLORED_MARKER, ZeroSelectError)
 
 from ngcccbase.asset import AssetDefinition, AdditiveAssetValue, AssetTarget
-from ngcccbase.txcons import (InvalidTargetError, InvalidTransformationError, 
+from ngcccbase.txcons import (InvalidTargetError, InvalidTransformationError,
                               InsufficientFundsError, BasicTxSpec,
-                              SimpleOperationalTxSpec, RawTxSpec,
-                              TransactionSpecTransformer)
+                              RawTxSpec, TransactionSpecTransformer)
 from ngcccbase.pwallet import PersistentWallet
-
 
 
 class TestTxcons(unittest.TestCase):
@@ -24,7 +21,7 @@ class TestTxcons(unittest.TestCase):
         self.path = ":memory:"
         self.pwallet = PersistentWallet(self.path)
         self.config = {'dw_master_key': 'test', 'testnet': True, 'ccc': {
-                'colordb_path' : self.path}, 'bip0032': False }
+                       'colordb_path': self.path}, 'bip0032': False}
         self.pwallet.wallet_config = self.config
         self.pwallet.init_model()
         self.model = self.pwallet.get_model()
@@ -76,7 +73,8 @@ class TestTxcons(unittest.TestCase):
         self.assettarget2 = AssetTarget(self.addr0, self.assetvalue2)
         self.bassettarget = AssetTarget(self.baddr, self.bassetvalue)
 
-        self.atargets = [self.assettarget0, self.assettarget1, self.assettarget2]
+        self.atargets = [self.assettarget0, self.assettarget1,
+                         self.assettarget2]
 
         # add some targets
         self.colorvalue0 = SimpleColorValue(colordef=self.colordef0, value=5)
@@ -130,7 +128,6 @@ class TestTxcons(unittest.TestCase):
         self.model.ccc.metastore.set_as_scanned(self.colorid0, self.blockhash)
         self.model.ccc.cdstore.add(self.colorid0, self.txhash, 0, 100, '')
 
-
     def test_operational(self):
         self.basic.add_target(self.assettarget0)
         self.basic.add_target(self.assettarget1)
@@ -151,7 +148,6 @@ class TestTxcons(unittest.TestCase):
         self.assertRaises(InsufficientFundsError, op.select_coins, cv)
         self.add_coins()
         self.assertEqual(op.select_coins(cv)[1].get_value(), 100)
-
 
     def test_composed(self):
         self.basic.add_target(self.assettarget0)

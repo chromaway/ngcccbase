@@ -3,7 +3,6 @@
 import json
 import urllib2
 import time
-import threading
 from pycoin.tx.Tx import Tx
 from ngcccbase.blockchain import BaseStore
 from coloredcoinlib import BlockchainStateBase
@@ -22,43 +21,17 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
 
         # init caches
         self._cache_rawtx = {}  # txid -> rawtx
-        self._cache_currentheight = 0
         self._last_connected = 0
-        self._update_height_interval = 10
-        self._thread = None
-        self._update_height()
         self.connect()
 
-    def _update_height(self):
-        queryurl = "%s/v1/headers/latest" % self.baseurl
-        self._cache_currentheight = self._query(queryurl)["height"]
-
     def connect(self):
-        class _Thread(threading.Thread):
+        self.get_height()
 
-            def __init__(self, service):
-                threading.Thread.__init__(self)
-                self._stop = threading.Event()
-                self.service = service
-
-            def stop(self):
-                self._stop.set()
-
-            def run(self):
-                while not self._stop.is_set():
-                    self.service._update_height()
-                    time.sleep(self.service._update_height_interval)
-
-        self._thread = _Thread(self)
-        self._thread.start()
+    def disconnect(self): pass
 
     def connected(self):
         delta = time.time() - self._last_connected
-        return delta < (self._update_height_interval + 1)
-
-    def disconnect(self):
-        self._thread.stop()
-        self._thread = None
+        return delta < 10
 
     def _query(self, url, data=None, exceptiononfail=True):
         header = {'Content-Type': 'application/json'}
@@ -106,7 +79,7 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         return rawtx
 
     def get_tx_blockhash(self, txid):
-        """ Return blockid for given txid. """
+        """ Return (blockid, in_mempool) for given txid. """
         url = "%s/v1/transactions/merkle?txid=%s" % (self.baseurl, txid)
         result = self._query(url, exceptiononfail=False)
         # errors
@@ -129,8 +102,9 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         return result["from"]
 
     def get_tx_height(self, txid):
-        blockid = self.get_tx_blockhash(txid)[0]
-        return self.get_block_height(blockid)
+        """Return blockheight if in blockchain otherwise None. """
+        blockid, in_mempool = self.get_tx_blockhash(txid)
+        return self.get_block_height(blockid) if blockid else None
 
     def get_header(self, blockheight):
         """ Return header for given blockheight.
@@ -158,21 +132,22 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         url = "%s/v1/addresses/query?addresses=%s" % (self.baseurl, address)
         result = self._query(url)
         txids = [entry["txid"] for entry in result["transactions"]]
-        self._cache_currentheight = result['latest']['height']
         return txids
 
     def get_height(self):
         """ Return current blockchain height. """
-        return self._cache_currentheight
+        queryurl = "%s/v1/headers/latest" % self.baseurl
+        return self._query(queryurl)["height"]
 
     def get_block_count(self):
         """ Return current block count. """
         return self.get_height()
 
-    def publish_tx(self, rawtx):
+    def publish_tx(self, rawtx, dryrun=False):
         """ Publish rawtx on bitcoin network and return txid. """
-        url = "%s/v1/transactions/send" % self.baseurl
-        self._query(url, {"rawtx": rawtx})
+        if not dryrun:
+            url = "%s/v1/transactions/send" % self.baseurl
+            self._query(url, {"rawtx": rawtx})
         return Tx.tx_from_hex(rawtx).id()
 
     def get_utxo(self, address):
@@ -181,7 +156,6 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         url = "%s/v1/addresses/query?addresses=%s&status=unspent" % urlargs
         result = self._query(url)
         txids = [entry["txid"] for entry in result["transactions"]]
-        self._cache_currentheight = result['latest']['height']
         return txids
 
     def get_chunk(self, index, chunksize=2016):

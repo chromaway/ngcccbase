@@ -97,7 +97,7 @@ class AbeInterface(WebBlockchainInterface):
     def connected(self):
         try:
             urllib2.urlopen("http://abe.bitcontracts.org").read()
-            # FIXME get block count instead
+            # TODO get block count instead
             return True
         except:
             return False

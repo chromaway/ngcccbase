@@ -41,11 +41,12 @@ class AssetMismatchError(Exception):
 class WalletController(object):
     """Controller for a wallet. Used for executing tasks related to the wallet.
     """
-    def __init__(self, model):
+    def __init__(self, model, dryrun=False):
         """Given a wallet model <model>, create a wallet controller.
         """
         self.model = model
         self.testing = False
+        self.dryrun = dryrun
 
     def _all_colorids_set(self):
         color_id_set = set()
@@ -128,7 +129,7 @@ class WalletController(object):
 
     def publish_rawtx(self, rawtx):
         blockchain_state = self.model.ccc.blockchain_state
-        return blockchain_state.publish_tx(rawtx)
+        return blockchain_state.publish_tx(rawtx, dryrun=self.dryrun)
 
     def publish_tx(self, signed_tx_spec):
         """Given a signed transaction <signed_tx_spec>, publish the transaction
@@ -143,7 +144,6 @@ class WalletController(object):
 
         if signed_tx_spec.composed_tx_spec:
             self.model.txdb.add_raw_tx(signed_tx_spec)
-        # TODO add to history
         return txhash
 
     def full_rescan(self):
@@ -174,7 +174,10 @@ class WalletController(object):
         return sums
 
     def validate_sendmany_entries(self, entries):
-        # TODO check for max entries
+        if len(entries) > 1000: # actual limit is tx size of 100000 bytes
+            msg = "Maximum of 1000 sendmany entries exceeded!"
+            raise Exception(msg)
+
         sums = self.sendmany_sums(entries)
 
         # check if required asset amount available
@@ -292,16 +295,17 @@ class WalletController(object):
         signed_tx_spec = self.model.transform_tx_spec(tx_spec, 'signed')
         txid = self.publish_tx(signed_tx_spec)
 
-        # get fee
+        # add to history
+        fee = self._get_fee(txid, signed_tx_spec)
+        self.model.tx_history.add_send_entry(txid, asset, target_addrs,
+                                             raw_colorvalues, fee)
+        return txid
+
+    def _get_fee(self, txid, signed_tx_spec):
         txbin = signed_tx_spec.get_tx_data()
         bctx = bitcoin.core.CTransaction.deserialize(txbin)
         bs = self.model.get_blockchain_state()
-        txfee = CTransaction.from_bitcoincore(txid, bctx, bs).get_fee()
-
-        self.model.tx_history.add_send_entry(
-            txid, asset, target_addrs, raw_colorvalues, txfee
-        )
-        return txid
+        return CTransaction.from_bitcoincore(txid, bctx, bs).get_fee()
 
     def get_address_record(self, bitcoinaddress):
         wam = self.model.get_address_manager()

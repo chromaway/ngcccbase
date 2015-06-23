@@ -1,5 +1,5 @@
 import unittest
-import os, tempfile, shutil
+import os
 import time
 
 from ngcccbase.pwallet import PersistentWallet
@@ -14,7 +14,8 @@ class TestVerifierBlockchainState(unittest.TestCase):
         signal.signal(signal.SIGINT, signal.SIG_DFL)
         #cls.tempdir = tempfile.mkdtemp()
         cls.tempdir = '/path/to/folder'
-        cls.pwallet = PersistentWallet(os.path.join(cls.tempdir, 'testnet.wallet'), True)
+        path = os.path.join(cls.tempdir, 'testnet.wallet')
+        cls.pwallet = PersistentWallet(path, True)
         cls.pwallet.init_model()
         cls.vbs = VerifierBlockchainState(cls.tempdir, ChromaBlockchainState())
 

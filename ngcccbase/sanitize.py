@@ -48,11 +48,11 @@ def quantity(q):  # asset unknown
 
 def assetamount(asset, amount):
     amount = quantity(amount)
+    if not asset.validate_value(amount):
+        raise InvalidInput("Amount not a multiple of asset unit!")
     amount = asset.parse_value(amount)
     if amount < 0:
         raise InvalidInput("Amount must be > 0!")
-    if not asset.validate_value(amount):
-        raise InvalidInput("Amount not a multiple of asset unit!")
     return amount
 
 

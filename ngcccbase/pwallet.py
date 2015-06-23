@@ -17,17 +17,26 @@ class ConfigKeyNotFound(Exception):
         super(ConfigKeyNotFound, self).__init__("Key '%s' not found!" % key)
 
 
+class ConfigPathInUse(Exception):
+    def __init__(self, key):
+        msg = "Key '%s' intersects value!" % key
+        super(ConfigPathInUse, self).__init__(msg)
+
+
 class PersistentWallet(object):
     """Represents a wallet object that stays persistent.
     That is, it doesn't go away every time you run the program.
     """
 
-    def __init__(self, wallet_path, testnet, use_naivetxdb=False):
+    def __init__(self, wallet_path, testnet,
+                 use_naivetxdb=False, dryrun=False):
         """Create a persistent wallet. If a configuration is passed
         in, put that configuration into the db by overwriting
         the relevant data, never deleting. Otherwise, load with
         the configuration from the persistent data-store.
         """
+        self.dryrun = dryrun
+        # FIXME make wallet read only for dryrun
         if wallet_path is None:
             if testnet:
                 wallet_path = "testnet.wallet"
@@ -36,8 +45,13 @@ class PersistentWallet(object):
         new_wallet = not os.path.exists(wallet_path)
         self.store_conn = store.DataStoreConnection(wallet_path, True)
         self.store_conn.conn.row_factory = sqlite3.Row
-        self.wallet_config = store.PersistentDictStore(
-            self.store_conn.conn, "wallet")
+
+        if not self.dryrun:
+            conn = self.store_conn.conn
+            self.wallet_config = store.PersistentDictStore(conn, "wallet")
+        else:
+            self.wallet_config = {}
+
         if new_wallet:
             self.initialize_new_wallet(testnet)
         if testnet and not self.wallet_config['testnet']:
@@ -61,7 +75,7 @@ class PersistentWallet(object):
             self.wallet_model = None
 
     def initialize_new_wallet(self, testnet):
-        """New wallets are born in testnet mode until we have a version 
+        """New wallets are born in testnet mode until we have a version
         which is safe to be used on mainnet.
         """
         self.wallet_config['testnet'] = testnet
@@ -72,32 +86,33 @@ class PersistentWallet(object):
         """
         return self.wallet_model
 
-    def setconfigval(self, key, value): # FIXME behaviour ok?
-        kpath = key.split('.')
-        value = json.loads(value)
+    def setconfigval(self, keypath, value):
+        keys = keypath.split('.')
+        config = dict(self.wallet_config)
 
-        # traverse the path until we get to the value we need to set
-        if len(kpath) > 1:
-            branch = self.wallet_config[kpath[0]]
-            cdict = branch
-            for k in kpath[1:-1]:
-                cdict = cdict[k]
-            cdict[kpath[-1]] = value
-            value = branch
-        if kpath[0] in self.wallet_config:
-            self.wallet_config[kpath[0]] = value
-        else:
-            raise ConfigKeyNotFound(key)
+        # set in config copy
+        branch = config
+        while len(keys) > 1:
+            if keys[0] not in branch:
+                branch[keys[0]] = {}
+            branch = branch[keys[0]]
+            keys = keys[1:]
+            if not isinstance(branch, dict):
+                raise ConfigPathInUse(keypath)
+        branch[keys[0]] = value
 
-    def getconfigval(self, key):
-        if not key:
-            raise ConfigKeyNotFound(key)
-        keys = key.split('.')
-        config = self.wallet_config
-        # traverse the path until we get the value
+        # set wallet_config from copy
+        root_key = keypath.split('.')[0]
+        self.wallet_config[root_key] = config[root_key]
+
+    def getconfigval(self, keypath):
+        if not keypath:
+            raise ConfigKeyNotFound(keypath)
+        keys = keypath.split('.')
+        branch = self.wallet_config
         for key in keys:
-            config = config[key]
-        return config
+            branch = branch[key]
+        return branch
 
     def importprivkey(self, wif, asset):
         wam = self.wallet_model.get_address_manager()
@@ -107,7 +122,7 @@ class PersistentWallet(object):
         if address:
             return address
 
-        addr_params = { 
+        addr_params = {
             'address_data': wif,
             'color_set': asset.get_color_set().get_data(),
         }
@@ -124,10 +139,14 @@ class PersistentWallet(object):
         return dict(self.wallet_config.iteritems())
 
     def importconfig(self, path):
-        # FIXME what about subkeys and removed keys?
+
+        # remove previous entries
+        for key in self.wallet_config:
+            del self.wallet_config[key]
+
+        # add new entries
         with open(path, 'r') as fp:
             config = json.loads(fp.read())
             wallet_config = self.wallet_config
-            for k in config:
-                wallet_config[k] = config[k]
-
+            for key in config:
+                wallet_config[key] = config[key]

@@ -1,7 +1,6 @@
 
 
 import apigen
-import pyjsonrpc
 from time import sleep
 from ngcccbase import sanitize
 from collections import defaultdict
@@ -10,20 +9,20 @@ from ngcccbase.pwallet import PersistentWallet
 
 
 class AddressNotFound(Exception):
-
     def __init__(self, coloraddress):
         msg = "Address '%s' not found!" % coloraddress
         super(AddressNotFound, self).__init__(msg)
 
 
 class Ngccc(apigen.Definition):
-
     """Next-Generation Colored Coin Client interface."""
 
-    def __init__(self, wallet=None, testnet=False, use_naivetxdb=False):
+    def __init__(self, wallet=None, testnet=False,
+                 use_naivetxdb=False, dryrun=False):
 
         # sanitize inputs
         self.testnet = sanitize.flag(testnet)
+        self.dryrun = dryrun
 
         if not wallet:
             wallet = "%s.wallet" % ("testnet" if self.testnet else "mainnet")
@@ -84,6 +83,7 @@ class Ngccc(apigen.Definition):
     def issueasset(self, moniker, quantity, unit=1, scheme="epobc"):
         """ Issue <quantity> of asset with name <moniker> and <unit> atoms,
         based on <scheme (epobc|obc)>."""
+        # TODO unittest
 
         # sanitize inputs
         moniker = sanitize.moniker(moniker)
@@ -95,7 +95,7 @@ class Ngccc(apigen.Definition):
         return self.getasset(moniker)
 
     @apigen.command()
-    def addassetjson(self, data):
+    def addassetjson(self, data):  # TODO unittest
         """Add a json asset definition.
         Enables the use of colors/assets issued by others.
         """
@@ -107,7 +107,7 @@ class Ngccc(apigen.Definition):
         return self.getasset(data['monikers'][0])
 
     @apigen.command()
-    def addasset(self, moniker, color_description, unit=1):
+    def addasset(self, moniker, color_description, unit=1):  # TODO unittest
         """Add a asset definition.
         Enables the use of colors/assets issued by others.
         """
@@ -153,8 +153,7 @@ class Ngccc(apigen.Definition):
         unconfirmed = sanitize.flag(unconfirmed)
         available = sanitize.flag(available)
 
-        balance = dict([self._getbalance(asset, unconfirmed, available)])
-        return balance
+        return dict([self._getbalance(asset, unconfirmed, available)])
 
     @apigen.command()
     def getbalances(self, unconfirmed=False, available=False):
@@ -191,7 +190,7 @@ class Ngccc(apigen.Definition):
         return [ao.get_color_address() for ao in addressrecords]
 
     @apigen.command()
-    def send(self, moniker, coloraddress, amount):
+    def send(self, moniker, coloraddress, amount):  # TODO unittest
         """Send <coloraddress> given <amount> of an asset."""
 
         # sanitize inputs
@@ -203,7 +202,7 @@ class Ngccc(apigen.Definition):
         return txid
 
     @apigen.command()
-    def sendmanyjson(self, data):
+    def sendmanyjson(self, data):  # TODO unittest
         """Send amounts given in json fromatted data.
         Format [{'moniker':"val",'amount':"val",'coloraddress':"val"}]
         All entries must use the same color scheme.
@@ -215,7 +214,7 @@ class Ngccc(apigen.Definition):
         return self.controller.sendmany_coins(sendmany_entries)
 
     @apigen.command()
-    def sendmanycsv(self, path):
+    def sendmanycsv(self, path):  # TODO unittest
         """Send amounts in csv file with format 'moniker,coloraddress,amount'.
         All entries must use the same color scheme.
         """
@@ -226,19 +225,15 @@ class Ngccc(apigen.Definition):
         return self.controller.sendmany_coins(sendmany_entries)
 
     @apigen.command()
-    def scan(self):
+    def scan(self):  # TODO unittest
         """Update the database of transactions."""
         sleep(5)  # window to download headers
         self.controller.scan_utxos()
-        return "Scanning done"
 
     @apigen.command()
-    def fullrescan(self):
+    def fullrescan(self):  # TODO unittest
         """Rebuild database of wallet transactions."""
         self.controller.full_rescan()
-        return "Full rescan done"
-
-
 
     @apigen.command()
     def history(self, moniker):
@@ -266,7 +261,7 @@ class Ngccc(apigen.Definition):
         return dict(map(reformat, data))
 
     @apigen.command()
-    def coinlog(self):
+    def coinlog(self):  # TODO unittest
         """Returns the coin transaction log for this wallet."""
         log = defaultdict(list)
         for coin in self.controller.get_coinlog():
@@ -284,7 +279,7 @@ class Ngccc(apigen.Definition):
         return log
 
     @apigen.command()
-    def importprivkey(self, moniker, wif):
+    def importprivkey(self, moniker, wif):  # TODO unittest
         """Import private key for given asset."""
 
         # sanitize inputs
@@ -293,6 +288,17 @@ class Ngccc(apigen.Definition):
 
         addressrecord = self.wallet.importprivkey(wif, asset)
         return addressrecord.get_address()
+
+    @apigen.command()
+    def importprivkeys(self, moniker, wifs):  # TODO unittest
+        """Import private keys for given asset."""
+
+        # sanitize inputs
+        asset = sanitize.asset(self.model, moniker)
+        wifs = sanitize.wifs(self.testnet, wifs)
+
+        addrs = map(lambda wif: self.wallet.importprivkey(wif, asset), wifs)
+        return map(lambda ar: ar.get_address(), addrs)
 
     @apigen.command()
     def dumpprivkey(self, moniker, coloraddress):
@@ -321,6 +327,7 @@ class Ngccc(apigen.Definition):
     @apigen.command()
     def p2porders(self, moniker="", sellonly=False, buyonly=False):
         """Show peer to peer trade orders"""
+        # TODO unittest
 
         # sanitize inputs
         sellonly = sanitize.flag(sellonly)
@@ -334,10 +341,11 @@ class Ngccc(apigen.Definition):
     @apigen.command()
     def p2psell(self, moniker, assetamount, btcprice, wait=30):
         """Sell <assetamount> for <btcprice> via peer to peer trade."""
+        # TODO unittest
         self._p2ptrade_make_offer(True, moniker, assetamount, btcprice, wait)
 
     @apigen.command()
-    def p2pbuy(self, moniker, assetamount, btcprice, wait=30):
+    def p2pbuy(self, moniker, assetamount, btcprice, wait=30):  # TODO unittest
         """Buy <assetamount> for <btcprice> via peer to peer trade."""
         self._p2ptrade_make_offer(False, moniker, assetamount, btcprice, wait)
 
@@ -424,7 +432,7 @@ class Ngccc(apigen.Definition):
         return self.controller.sign_rawtx(rawtx)
 
     @apigen.command()
-    def sendrawtx(self, rawtx):
+    def sendrawtx(self, rawtx):  # TODO unittest
         """ Publish raw transaction to bitcoin network. """
 
         # sanitize inputs

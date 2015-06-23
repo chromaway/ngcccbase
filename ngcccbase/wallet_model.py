@@ -14,7 +14,7 @@ from pycoin.key.validate import is_address_valid
 from asset import AssetDefinitionManager
 from color import ColoredCoinContext
 from coloredcoinlib import ColorSet, toposorted
-from txdb import NaiveTxDb, TrustingTxDb, VerifiedTxDb
+from txdb import NaiveTxDb, VerifiedTxDb
 from txcons import TransactionSpecTransformer
 from coindb import CoinQuery, CoinManager
 from utxo_fetcher import SimpleUTXOFetcher
@@ -73,15 +73,17 @@ class WalletModel(object):
         self.tx_history = TxHistory(self)
 
     def init_wallet_address_manager(self, config):
+        colormap = self.ccc.colormap
         if config.get('bip0032'):
             from bip0032 import HDWalletAddressManager
-            self.address_man = HDWalletAddressManager(self.ccc.colormap, config)
+            self.address_man = HDWalletAddressManager(colormap, config)
         else:
             from deterministic import DWalletAddressManager
-            self.address_man = DWalletAddressManager(self.ccc.colormap, config)
+            self.address_man = DWalletAddressManager(colormap, config)
 
     def init_tx_db(self, config):
-        if config.get('use_naivetxdb') or self.use_naivetxdb:
+        use_naivetxdb = config.get('use_naivetxdb') or self.use_naivetxdb
+        if self._using_bitcoind(config) or use_naivetxdb:
             self.txdb = NaiveTxDb(self, config)
         else:
             self.txdb = VerifiedTxDb(self, config)
@@ -90,16 +92,19 @@ class WalletModel(object):
         self.utxo_fetcher = SimpleUTXOFetcher(
             self, config.get('utxo_fetcher', {}))
 
-    def init_blockchain_state(self, config):
+    def _using_bitcoind(self, config):
         thin = config.get('thin', True)
         use_bitcoind = config.get('use_bitcoind', False)
-        if thin and not use_bitcoind: # use chromanode api (headers only)
-            self.blockchain_state = ChromanodeInterface(None, self.testnet)
-        else: # use bitcoind api (full node)
-            self.blockchain_state = BlockchainState.from_url(None, self.testnet)
+        return not thin or use_bitcoind
+
+    def init_blockchain_state(self, config):
+        testnet = self.testnet
+        if self._using_bitcoind(config):  # use bitcoind api (full node)
+            self.blockchain_state = BlockchainState.from_url(None, testnet)
+        else:
+            self.blockchain_state = ChromanodeInterface(None, testnet)
 
     def disconnect(self):
-        # FIXME check instance is ChromanodeInterface
         self.blockchain_state.disconnect()
         self.utxo_fetcher.disconnect()
 
@@ -190,7 +195,6 @@ class WalletModel(object):
                         })
 
             # check the inputs
-            seen_hashes = {}
             for txhash, tup in transaction_lookup.items():
                 tx, height = tup
                 mempool = height == -1
@@ -245,12 +249,11 @@ class WalletModel(object):
                     dependent_txhashes.append(inp.prevout.hash)
             return dependent_txhashes
 
-        sorted_txhash_list = toposorted(transaction_lookup.keys(),
-                                                 dependent_txs)
-        txhash_position = {txhash:i for i, txhash
-                           in enumerate(sorted_txhash_list)}
+        keys = transaction_lookup.keys()
+        sorted_txhash_list = toposorted(keys, dependent_txs)
+        txhash_pos = {txhash: i for i, txhash in enumerate(sorted_txhash_list)}
 
-        def compare(a,b):
+        def compare(a, b):
             """order in which we get back the history
             #1 - whether or not it's a mempool transaction
             #2 - height of the block the transaction is in
@@ -258,16 +261,13 @@ class WalletModel(object):
             #4 - whether we're sending or receiving
             #4 - outindex within a transaction/inindex within a transaction
             """
-            return a['mempool'] - b['mempool'] \
-                or a['height'] - b['height'] \
-                or txhash_position[a['txhash']] - txhash_position[b['txhash']] \
-                or a['outindex'] - b['outindex'] \
-                or a['inindex'] - b['inindex']
+            return (a['mempool'] - b['mempool']
+                    or a['height'] - b['height']
+                    or txhash_pos[a['txhash']] - txhash_pos[b['txhash']]
+                    or a['outindex'] - b['outindex']
+                    or a['inindex'] - b['inindex'])
 
         return sorted(history, cmp=compare)
-
-    def get_coin_manager(self):
-        return self.coin_man
 
     def get_color_map(self):
         """Access method for ColoredCoinContext's colormap
@@ -280,4 +280,3 @@ class WalletModel(object):
     def validate_address(self, address):
         netcodes = ['XTN'] if self.testnet else ['BTC']
         return bool(is_address_valid(address, allowable_netcodes=netcodes))
-

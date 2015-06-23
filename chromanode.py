@@ -1,9 +1,10 @@
 #!/usr/bin/env python
-import os, sys
+import sys
 import json
 import hashlib
 import httplib
-import threading, time
+import threading
+import time
 from socket import error as SocketError
 from bitcoin.rpc import JSONRPCException
 
@@ -37,7 +38,7 @@ class ErrorThrowingRequestProcessor:
     def require(self, data, key, message):
         value = data.get(key, None)
         if value is None:
-            raise web.HTTPError("400 Bad request!", 
+            raise web.HTTPError("400 Bad request!",
                                 {"content-type": "text/plain"},
                                 message)
 
@@ -185,7 +186,7 @@ class ChunkThread(threading.Thread):
                 time.sleep(0.05)
                 continue
             run_time = time.time() + 1
-            
+
             try:
                 blockchainstate = BlockchainState.from_url(None, testnet)
                 height = blockchainstate.get_block_count()
@@ -210,13 +211,13 @@ class ChunkThread(threading.Thread):
                             self.headers = self.headers[:-80]
                 open(HEADERS_FILE, 'wb').write(self.headers)
             except httplib.BadStatusLine:
-                pass # bad connection, try again later
+                pass  # bad connection, try again later
             except SocketError:
-                pass # bad connection, try again later
+                pass  # bad connection, try again later
             except JSONRPCException as e:
                 if e.error["code"] != -28:
-                    raise # Not error we are looking for
-                pass # Loading block index... , try again later
+                    raise  # Not error we are looking for
+                pass  # Loading block index... , try again later
 
     @property
     def height(self):
@@ -231,16 +232,17 @@ class ChunkThread(threading.Thread):
         return self._rev_hex(s)
 
     def _header_to_string(self, h):
-        s = self._int_to_hex(h.get('version'),4) \
+        s = self._int_to_hex(h.get('version'), 4) \
             + self._rev_hex(h.get('previousblockhash', "0"*64)) \
             + self._rev_hex(h.get('merkleroot')) \
-            + self._int_to_hex(h.get('time'),4) \
+            + self._int_to_hex(h.get('time'), 4) \
             + self._rev_hex(h.get('bits')) \
-            + self._int_to_hex(h.get('nonce'),4)
+            + self._int_to_hex(h.get('nonce'), 4)
         return s.decode('hex')
 
     def _hash_header(self, raw_header):
-        return hashlib.sha256(hashlib.sha256(raw_header).digest()).digest()[::-1].encode('hex_codec')
+        digest = hashlib.sha256(hashlib.sha256(raw_header).digest()).digest()
+        return digest[::-1].encode('hex_codec')
 
 chunkThread = ChunkThread()
 
@@ -291,14 +293,19 @@ class Merkle(ErrorThrowingRequestProcessor):
                 merkle = merkle[2:]
             merkle = n
 
-        return json.dumps({"block_height": b.get('height'), "merkle": s, "pos": tx_pos})
+        return json.dumps({
+            "block_height": b.get('height'),
+            "merkle": s, "pos": tx_pos
+        })
 
 
 if __name__ == "__main__":
     import signal
+
     def sigint_handler(signum, frame):
         print ('exit chunk thread')
         chunkThread.stop()
+        chunkThread.join()
         print ('done')
         sys.exit(1)
     signal.signal(signal.SIGINT, sigint_handler)
@@ -307,4 +314,3 @@ if __name__ == "__main__":
 
     app = web.application(urls, globals())
     app.run()
-

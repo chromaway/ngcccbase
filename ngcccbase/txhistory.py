@@ -121,6 +121,7 @@ class TxHistoryEntry_Trade(TxHistoryEntry):
 
 
 class TxHistory(object):
+
     def __init__(self, model):
         self.model = model
         self.entries = PersistentDictStore(
@@ -137,11 +138,16 @@ class TxHistory(object):
             return None
 
     def _ensure_fee_saved_for_legacy_wallets(self):
-        bs = self.model.get_blockchain_state()
+        txdb = self.model.get_tx_db()
         for entry in self.entries.values():
-            if 'txfee' not in entry:
+            if ('txfee' not in entry) or (entry['txfee'] == -1):
                 txhash = entry['txhash']
-                entry['txfee'] = bs.get_tx(txhash).get_fee()
+                try:
+                    entry['txfee'] = txdb.get_tx_object(txhash).get_fee()
+                except Exception as e:
+                    print "cant", txhash
+                    print e
+                    entry['txfee'] = -1 # error
                 self.entries[txhash] = entry
 
     def get_all_entries(self):
@@ -253,7 +259,7 @@ class TxHistory(object):
         if len(cids) > 2 or (len(cids) == 2 and 0 not in cids):
             return False
 
-        return False  # FIXME disabled for now
+        return False  # disabled for now
 
     def create_send_entry(self, raw_tx, spent_coins, received_coins):
         pass  # TODO

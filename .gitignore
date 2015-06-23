@@ -3,6 +3,8 @@ mainnet.wallet*
 testnet.wallet*
 color.db
 mainnet.blockchain_headers
+testnet.blockchain_headers
+ngcccbase/tests/testnet.blockchain_headers
 headers.mainnet
 headers.testnet
 
