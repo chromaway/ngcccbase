@@ -83,6 +83,7 @@ class AsyncUTXOFetcher(BaseUTXOFetcher):  # TODO subscribe to addresses instead
         self.address_list = []
         self.running = False
         self.lock = threading.Lock()
+        self.stop_evt = threading.Event()
         self.thread = None
 
     def update(self):
@@ -109,6 +110,7 @@ class AsyncUTXOFetcher(BaseUTXOFetcher):  # TODO subscribe to addresses instead
         with self.lock:
             self.disconnect()
             self.running = False
+        self.stop_evt.set()
         self.thread.join()
 
     def is_running(self):
@@ -123,7 +125,9 @@ class AsyncUTXOFetcher(BaseUTXOFetcher):  # TODO subscribe to addresses instead
                 with self.lock:
                     address_list = self.address_list[:]
                 for address in address_list:  # TODO do in parallel!
+                    if not self.is_running():
+                        return
                     self.scan_address(address)
             except Exception as e:
                 print e
-            time.sleep(self.sleep_time)
+            self.stop_evt.wait(self.sleep_time)
