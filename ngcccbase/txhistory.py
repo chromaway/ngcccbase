@@ -141,14 +141,7 @@ class TxHistory(object):
         txdb = self.model.get_tx_db()
         for entry in self.entries.values():
             if ('txfee' not in entry) or (entry['txfee'] == -1):
-                txhash = entry['txhash']
-                try:
-                    entry['txfee'] = txdb.get_tx_object(txhash).get_fee()
-                except Exception as e:
-                    print "cant", txhash
-                    print e
-                    entry['txfee'] = -1 # error
-                self.entries[txhash] = entry
+                self._add_entry(entry)
 
     def get_all_entries(self):
         self._ensure_fee_saved_for_legacy_wallets()
@@ -168,8 +161,7 @@ class TxHistory(object):
     def get_tx_timestamp(self, txhash):  # TODO move to suitable file
         txtime = 0
         bs = self.model.get_blockchain_state()
-        result = bs.get_tx_blockhash(txhash)
-        blockhash, x = result
+        blockhash, in_mempool = bs.get_tx_blockhash(txhash)
         if blockhash:
             height = bs.get_block_height(blockhash)
             if height:
@@ -180,33 +172,38 @@ class TxHistory(object):
     def is_receive_entry(self, raw_tx, spent_coins, received_coins):
         return not spent_coins and received_coins
 
+    def _get_fee(self, txhash):
+        try:
+            return self.model.get_tx_db().get_tx_object(txhash).get_fee()
+        except Exception as e:
+            return -1 # error
+
     def create_receive_entry(self, raw_tx, received_coins):
         txhash = raw_tx.get_hex_txhash()
-        txtime = self.get_tx_timestamp(txhash)
         out_idxs = [coin.outindex for coin in received_coins]
-        self.entries[txhash] = {"txhash": txhash,
-                                "txtype": 'receive',
-                                "txtime": txtime,
-                                "out_idxs": out_idxs}
+        old_entry = self.entries.get(txhash)
+        self._add_entry({
+            "txhash": txhash,
+             "txtype": 'receive',
+             "out_idxs": out_idxs
+        })
 
     def add_trade_entry(self, txhash, in_colorvalue, out_colorvalue):
         adm = self.model.get_asset_definition_manager()
         in_assetvalue = adm.get_assetvalue_for_colorvalue(in_colorvalue)
         out_assetvalue = adm.get_assetvalue_for_colorvalue(out_colorvalue)
-        txtime = self.get_tx_timestamp(txhash)
-        self.entries[txhash] = {
+        self._add_entry({
             "txhash": txhash,
             "txtype": 'trade',
-            "txtime": txtime,
             "in_values": [asset_value_to_data(in_assetvalue)],
             "out_values": [asset_value_to_data(out_assetvalue)]
-        }
+        })
 
     def add_unknown_entry(self, txhash):
-        txtime = self.get_tx_timestamp(txhash)
-        self.entries[txhash] = {"txhash": txhash,
-                                "txtype": 'unknown',
-                                "txtime": txtime}
+        self._add_entry({
+            "txhash": txhash,
+            "txtype": 'unknown',
+        })
 
     def get_delta_color_values(self, spent_coins, received_coins):
         adm = self.model.get_asset_definition_manager()
@@ -226,7 +223,6 @@ class TxHistory(object):
     def create_complex_entry(self, raw_tx, spent_coins, received_coins):
         am = self.model.get_address_manager()
         txhash = raw_tx.get_hex_txhash()
-        txtime = self.get_tx_timestamp(txhash)
 
         # get addresses
         outputs = raw_tx.composed_tx_spec.txouts
@@ -235,13 +231,13 @@ class TxHistory(object):
         send_addrs = list(output_addrs.difference(wallet_addrs))
 
         deltas = self.get_delta_color_values(spent_coins, received_coins)
-        self.entries[txhash] = {
+        old_entry = self.entries.get(txhash)
+        self._add_entry({
             "txhash": txhash,
             "txtype": 'complex',
-            "txtime": txtime,
             "addresses": ["%s addresses" % len(send_addrs)],
             "deltas": deltas,
-        }
+        })
 
     def is_send_entry(self, raw_tx, spent_coins, received_coins):
         am = self.model.get_address_manager()
@@ -261,17 +257,36 @@ class TxHistory(object):
 
         return False  # disabled for now
 
+    def _add_entry(self, new_entry):
+        txhash = new_entry['txhash']
+
+        # ensure fee saved
+        if ('txfee' not in new_entry) or (new_entry['txfee'] == -1):
+            new_entry['txfee'] = self._get_fee(txhash)
+
+        # ensure time saved
+        if ('txtime' not in new_entry) or (not new_entry['txtime']):
+            new_entry['txtime'] = self.get_tx_timestamp(txhash)
+
+        # only save if change was made
+        old_entry = self.entries.get(txhash)
+        if old_entry != new_entry:
+            self.entries[txhash] = new_entry
+
     def create_send_entry(self, raw_tx, spent_coins, received_coins):
         pass  # TODO
 
     def add_send_entry(self, txhash, asset, target_addrs,
                        target_values, txfee):
-        self.entries[txhash] = {"txhash": txhash,
-                                "txtype": 'send',
-                                "txfee": txfee,
-                                "txtime": int(time.time()),
-                                "asset_id": asset.get_id(),
-                                "targets": zip(target_addrs, target_values)}
+        txtime = int(time.time())
+        self._add_entry({
+            "txhash": txhash,
+            "txtype": 'send',
+            "txfee": txfee,
+            "txtime": txtime,
+            "asset_id": asset.get_id(),
+            "targets": zip(target_addrs, target_values)
+        })
 
     def add_entry_from_tx(self, raw_tx):
         coindb = self.model.get_coin_manager()
