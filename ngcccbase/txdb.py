@@ -296,7 +296,7 @@ class VerifiedTxDb(BaseTxDb):
         if confirmations is None:
             verified = self._verify_merkle(txhash)
             if verified:
-                return self.identify_tx_status(txhash)
+                return TX_STATUS_CONFIRMED
             else:
                 return TX_STATUS_UNCONFIRMED
         if confirmations == 0:
