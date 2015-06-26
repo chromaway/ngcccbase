@@ -12,6 +12,8 @@ import pyjsonrpc
 from decimal import Decimal
 from pycoin.key.validate import is_address_valid
 
+SLEEP_TIME = 1  # Time to sleep after the json-rpc server has started
+
 
 class TestJSONAPIServer(unittest.TestCase):
 
@@ -47,7 +49,7 @@ class TestJSONAPIServer(unittest.TestCase):
 
         self.server = subprocess.Popen('python ngccc-server.py startserver --config_path=%s'
                                        % config_path, preexec_fn=os.setsid, shell=True)
-        time.sleep(4)
+        time.sleep(SLEEP_TIME)
 
     def test_default_config(self):
         """See to that server starts and pulls in a config.json file"""
@@ -121,7 +123,7 @@ class TestJSONAPIServer(unittest.TestCase):
     def test_issue_asset_not_throw_exception(self):
         """Needs funds on mainnet."""
         private_key = "5KAtWUcg45VDNB3QftP4V5cwcavBhLj9UWpJCtxsZBBqevGjhZN"
-        address = "12WarJccsEjzzf3Aoukh8YJXwxK58qpj8W" # listed for convenience
+        address = "12WarJccsEjzzf3Aoukh8YJXwxK58qpj8W"  # listed for convenience
         self.create_server()
         self.client.importprivkey('bitcoin', private_key)
         self.client.scan()
@@ -132,13 +134,21 @@ class TestJSONAPIServer(unittest.TestCase):
         except:
             self.fail('Issueasset raised exception\n' + traceback.format_exc())
 
-    def test_addassetjson_with_string(self):
+
+    def test_addassetjson(self):
         self.create_server()
 
-        json = '''{assetid: "Bf1aXLmTv41pc2", 
-                   color_set: ["epobc:27da3337fb4a5bb8e2e5a537448e5ec9cfaa3c15628c3c333025d547bbcf9d71:0:361077"], 
-                    monikers: ["foo_inc"],unit: 1}'''
-        res = self.client.addassetjson(json)
+        json_data = '''{
+    "assetid": "Bf1aXLmTv41pc2",
+    "color_set": [
+        "epobc:27da3337fb4a5bb8e2e5a537448e5ec9cfaa3c15628c3c333025d547bbcf9d71:0:361077"
+    ],
+    "monikers": [
+        "foo_inc"
+    ],
+    "unit": 1
+}'''
+        res = self.client.addassetjson(json.loads(json_data))
         asset_name = self.client.getasset('foo_inc')
         print asset_name
 
