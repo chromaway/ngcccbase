@@ -42,7 +42,7 @@ testnet - controls whether the wallet should be a testnet wallet, that is operat
 Running chromawallet as a service/daemon
 ---------------
 
-This step is optional, but íf you want to run the wallet as a service, you can use supervisord for this. 
+This step is optional, but íf you want to run the wallet as a service, you can use supervisord for this.
 
 Supervisord is a framework for running processes and keeping them alive. Supervisord runs on practically all systems except Windows. You can read more about supervisord here: http://supervisord.org . Supervisord runs processes that think they are running in the foreground, such as chromawallet-server but are in fact connected to supervisord. Supervisord can start, stop and restart chromawallet-server, without the need for pid files or other such things.
 
@@ -69,7 +69,7 @@ In this example the user it should run under is "a_user_name":
     user=a_user_name
 
 
-You may then re-start supervisord to load the new settings: 
+You may then re-start supervisord to load the new settings:
 
     sudo service supervisor restart
 
@@ -90,7 +90,7 @@ Follow the below two links if you are interested in running the chromawallet-ser
 
 JSON-RPC clients
 ---------------------
-For these example pyjsonrpc under python 2.7 will be used, but any JSON-RPC client in any language should work , such as node-json-rpc in javascript. 
+For these example pyjsonrpc under python 2.7 will be used, but any JSON-RPC client in any language should work , such as node-json-rpc in javascript.
 
 ## Error handling
 
@@ -112,6 +112,8 @@ Example in python with pyjsonrpc:
 
 pyjsonrpc can be found at  ( https://pypi.python.org/pypi/python-jsonrpc )
 
+In python, pysjonrpc will automatically convert to and from JSON and python's native data structures (e.g. dictionaries).
+
 Creating an asset
 -------------------
 In order to create an asset with colored coins, you must let the software make a genesis transaction in bitcoins. The genesis transaction marks the transacted coins as colored coins, representing your asset. First we must therefore transfer bitcoin into the wallet, so that the wallet has some bitcoin it can use to create a genesis transaction with.
@@ -119,7 +121,7 @@ In order to create an asset with colored coins, you must let the software make a
 Real bitcoins or testnet bitcoins?
 You can use either for this example. If using real bitcoins, you will lose a bit in transaction fees. If using testnet bitcoins, transactions may be a bit slow, and slow down your work through this tutorial. Make sure the server you have started is configured for real or testnet bitcoins, as per your preferences.
 
-The value of bitcoins in the transaction are not proportional to the value of your asset, you just need to put in enough bitcoin to represent your asset and it's parts. Let's say that we are issuing shares in the Foo company ("Foo, Inc.). The Foo company has 1000 ordinary shares. So we need to issue an asset that can be divided, and bought and sold in 1000 individual parts. 
+The value of bitcoins in the transaction are not proportional to the value of your asset, you just need to put in enough bitcoin to represent your asset and it's parts. Let's say that we are issuing shares in the Foo company ("Foo, Inc.). The Foo company has 1000 ordinary shares. So we need to issue an asset that can be divided, and bought and sold in 1000 individual parts.
 
 Make sure there is a bitcoin address
 -----------------------------------
@@ -170,7 +172,7 @@ You should now be able to issue an asset of 1000 shares in "Foo, Inc."
 
     client.issueasset('foo_inc', 1000)
 
-You have just created your first asset. 
+You have just created your first asset.
 
 The 'issueasset' command has the following parameters (in python syntax):
 
@@ -186,24 +188,31 @@ unit (optional) - how much each smallest quantity represents. Can be 1 for examp
 
 scheme (optional) - This has to do with how expressive we need the transactions to be. Default is "epobc", the most expressive color scheme (the other possible value is "obc").
 
-You should get something back like this:
+You should get something back like this, but with slightly different values for ```assetid``` and ```color_set```:
 
     {u'assetid': u'Bf1aXLmTv41pc2',
      u'color_set': [u'epobc:27da3337fb4a5bb8e2e5a537448e5ec9cfaa3c15628c3c333025d547bbcf9d71:0:361077'],
      u'monikers': [u'foo_inc'],
      u'unit': 1}
 
-This is in JSON format, and is the definition of your asset.
+If you are using javascript you should get back the same in JSON format:
 
-     In [29]: 
+    {assetid: "Bf1aXLmTv41pc2",
+     color_set: ["epobc:27da3337fb4a5bb8e2e5a537448e5ec9cfaa3c15628c3c333025d547bbcf9d71:0:361077"],
+     monikers: ["foo_inc"],
+     unit: 1}
+
+This JSON is the definition of your asset.
+
+     In [29]:
     client.issueasset('foo_ingc54', 1000)
-    Out[29]: 
+    Out[29]:
     {u'assetid': u'Bf1aXLmTv41pc2',
      u'color_set': [u'epobc:27da3337fb4a5bb8e2e5a537448e5ec9cfaa3c15628c3c333025d547bbcf9d71:0:361077'],
      u'monikers': [u'foo_ingc54'],
      u'unit': 1}
 
-This asset resides on a coloraddress. A coloraddress is simply a bitcoin address with some data added in front of an "@" sign. You can ask for the coloraddress if you want to with:
+The asset after it has been created resides on a coloraddress. A coloraddress is simply a bitcoin address with some data added in front of an "@" sign. You can ask for the coloraddress if you want to with:
 
     client.listaddresses('foo_inc')
 
@@ -213,7 +222,7 @@ If you botch some attempts at issuances, all you lose is some Bitcoin transfer f
 Issuing multiple assets
 ------------------------
 
-Issuing an asset is a bitcoin transaction, and when issuing an asset Chromawallet takes funds and uses a rather small amount to issue the asset and sends the rest of the output it's spending back to itself as _change_. This means that there are more coins on the move than what is used for issuing the asset. This is how all bitcoin transactions work. This means that if you have issued an asset, it may take some time before you can issue another one, even if you put in enough coins in your wallet to fund more issuances. The coins are simply in a round trip on their way back to your wallet, and they need to be stored under some blocks in the blockchain again before deemed confirmed by chromawallet. 
+Issuing an asset is a bitcoin transaction, and when issuing an asset Chromawallet takes funds and uses a rather small amount to issue the asset and sends the rest of the output it's spending back to itself as _change_. This means that there are more coins on the move than what is used for issuing the asset. This is how all bitcoin transactions work. This means that if you have issued an asset, it may take some time before you can issue another one, even if you put in enough coins in your wallet to fund more issuances. The coins are simply in a round trip on their way back to your wallet, and they need to be stored under some blocks in the blockchain again before deemed confirmed by chromawallet.
 
 For production use it is recommended to use one wallet and server per asset.
 
@@ -224,12 +233,19 @@ The asset definition is now in your wallet. You got it back as JSON when issuing
 
     client.getasset('foo_inc')
 
-This will get you back JSON as such:
+This will get you back data as such:
 
     {assetid: "uBf1aXLmTv41pc2",
     color_set: ["epobc:27da3337fb4a5bb8e2e5a537448e5ec9cfaa3c15628c3c333025d547bbcf9d71:0:361077"],
     monikers: ["foo_inc"],
     unit: 1}
+
+In JSON:
+
+    {assetid: "Bf1aXLmTv41pc2",
+     color_set: ["epobc:27da3337fb4a5bb8e2e5a537448e5ec9cfaa3c15628c3c333025d547bbcf9d71:0:361077"],
+     monikers: ["foo_inc"],
+     unit: 1}
 
 The JSON data is important since it defines your asset and without it your asset would be lost! The asset definition in JSON should therefore be backed up, and can also be used for _sharing_ the asset definition with other parties and exchanges that may want to trade your asset.
 
@@ -255,11 +271,11 @@ Ok, let's say you want to send 10 shares to another party. This could be a withd
 
 In order to transfer 10 shares of "Foo Inc." to someone else, they first need to:
 
-* Get the asset definition. 
+* Get the asset definition.
 
 After that they need to:
 
-* Generate an address for the asset. 
+* Generate an address for the asset.
 
 And finally *you* need to:
 
@@ -282,18 +298,27 @@ In every day use for e.g. an exchange it will be more common to import an asset 
 
 Yours should look pretty much the same, but with other values for assetid and color_set.
 
-For real-world use, if you got this JSON file from someone else, verify with the issuer what it is they're issuing and what legal framework governs its use and transfer. 
+
+For real-world use, if you got this JSON file from someone else, verify with the issuer what it is they're issuing and what legal framework governs its use and transfer.
 
 Now it is time to import the asset. Use your own JSON that you got when you issued your asset.
 
 
-Import your asset definition with the ```addassetjson``` command. With the pyjsonrpc client you actually use a native python dictionary, but it will be converted to JSON before being sent over the network:
+Import your asset definition with the ```addassetjson``` command. 
+
+With the pyjsonrpc client all data types should be in python, so you need to convert your JSON to a python dict, before making the RPC call. It will be converted to JSON before being sent over the network (see further down for how to do the addassetjson call in javascript):
 :
 
-    other_partys_client.addassetjson({'''{assetid: "Bf1aXLmTv41pc2",
-        color_set: ["epobc:27da3337fb4a5bb8e2e5a537448e5ec9cfaa3c15628c3c333025d547bbcf9d71:0:361077"],
-        monikers: ["foo_inc"],
-        unit: 1}''')
+    other_partys_client.addassetjson({'assetid': "Bf1aXLmTv41pc2",
+        'color_set': ["epobc:27da3337fb4a5bb8e2e5a537448e5ec9cfaa3c15628c3c333025d547bbcf9d71:0:361077"],
+        'monikers': ["foo_inc"],
+        'unit': 1})
+
+If you are loading from the file foo_inc.json it could look like this:
+
+    import json
+    foo_inc_dict = json.load('foo_inc.json')
+    other_partys_client.addassetjson(foo_inc_dict)
 
 Make sure the import worked by calling:
 
@@ -306,6 +331,39 @@ You can also verify that there is 0 of this asset in the wallet:
 This should return:
 
     {u'foo_inc': u'0'}
+
+In Javascript, you would need to put the asset's JSON under a "data" key, similar to this:
+
+    var rpc = require('node-json-rpc');
+    var client = new rpc.Client({
+      port: 8080,
+      host: '127.0.0.1',
+      path: '/',
+    });
+
+    client.call({
+        "jsonrpc": "2.0",
+        "method": "addassetjson",
+        "params": {
+          data: {
+            assetid: "Bf1aXLmTv41pc2",
+            color_set: ["epobc:27da3337fb4a5bb8e2e5a537448e5ec9cfaa3c15628c3c333025d547bbcf9d71:0:361077"],
+            monikers: ["foo_inc"],
+            unit: 1
+          },
+        },
+        "id": 0
+      },
+      function(err, res) {
+        if (err) {
+          console.log("Error addasset");
+          console.log(err);
+        } else {
+          console.log("Success addasset"); // but check for error key!
+          console.log(res);
+        }
+      }
+    );
 
 Generate an address for the asset
 ----------------------------------
@@ -326,6 +384,3 @@ Now go back to your server and send the 10 shares over. Use the address you got,
     client.send('foo_inc, 'Bf1aXLmTv41pc2@1Bto2AF2vmPYXfbcD5NHd2Sm1f58YFrXHe, 10)
 
 And now 10 shares of the Foo Inc. company have been sent to the other party, progressively confirmed by the Bitcoin block chain.
-
-
-
