@@ -125,7 +125,8 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         """ Return rawheader for given blockheight. """
         urlargs = (self.baseurl, blockheight)
         url = "%s/v1/headers/query?from=%s&count=1" % urlargs
-        return self._query(url)["headers"]
+        header = self._query(url)["headers"]
+        return header.decode('hex')
 
     def get_address_history(self, address):
         """ Return list of txids where address was used. """
