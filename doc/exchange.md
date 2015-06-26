@@ -332,7 +332,7 @@ This should return:
 
     {u'foo_inc': u'0'}
 
-In Javascript, you would need to put the asset's JSON under a "data" key, similar to this:
+In Javascript, for the addassetjson call, you need to put the asset's JSON under a "data" key, similar to this:
 
     var rpc = require('node-json-rpc');
     var client = new rpc.Client({
