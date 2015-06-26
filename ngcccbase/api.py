@@ -230,11 +230,13 @@ class Ngccc(apigen.Definition):
         """Update the database of transactions."""
         sleep(5)  # window to download headers
         self.controller.scan_utxos()
+        return "Scan concluded"
 
     @apigen.command()
     def fullrescan(self):  # TODO unittest
         """Rebuild database of wallet transactions."""
         self.controller.full_rescan()
+        return "Full rescan concluded"
 
     @apigen.command()
     def history(self, moniker):
