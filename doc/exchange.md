@@ -42,44 +42,12 @@ testnet - controls whether the wallet should be a testnet wallet, that is operat
 Running chromawallet as a service/daemon
 ---------------
 
-This step is optional, but íf you want to run the wallet as a service, you can use supervisord for this.
+If you want to run the wallet as a service/daemon, you can use supervisord for this. See:
 
-Supervisord is a framework for running processes and keeping them alive. Supervisord runs on practically all systems except Windows. You can read more about supervisord here: http://supervisord.org . Supervisord runs processes that think they are running in the foreground, such as chromawallet-server but are in fact connected to supervisord. Supervisord can start, stop and restart chromawallet-server, without the need for pid files or other such things.
-
-On Ubuntu, you can install supervisord easily; it is one of the packages in the usual repositories. It is named "supervisor":
-
-    sudo apt-get install supervisor
-
-After supervisord has been installed, it has an entry in the /etc/init.d directory, and in /etc/supervisor/conf.d directory you can add a file with directions for it to run chromawallet-server . On install supervisord is configured to start immediately and then re-start every time that the server boots.
-
-Below is an example entry in the /etc/supervisor/conf.d directory on a Ubuntu 14.04 LTS server for running chromawallet-server.
-
-The file could be called chromawallet.conf (as long as you put conf at the end you are good to go). In this setup example, the install directory for the chromawallet-server is:
-
-    /home/a_user_name/chromawallet
-
-In this example the user it should run under is "a_user_name":
-
-    [program:chromawallet]
-    command=/home/a_user_name/chromawallet/chromawallet-server startserver
-    process_name=%(program_name)s
-    numprocs=1
-    directory=/home/a_user_name/chromawallet
-    stopsignal=TERM
-    user=a_user_name
+* [Running chromawallet as a service/daemone](./service-daemon.md)
 
 
-You may then re-start supervisord to load the new settings:
-
-    sudo service supervisor restart
-
-At any time you can control the server with:
-
-    sudo supervisorctl
-
-...and issue start, stop, restart and status commands.
-
-Running chromawallet-server from source
+Running from source
 -----------------------------------------
 
 Follow the below two links if you are interested in running the chromawallet-server from source.
@@ -197,10 +165,10 @@ You should get something back like this, but with slightly different values for 
 
 If you are using javascript you should get back the same in JSON format:
 
-    {assetid: "Bf1aXLmTv41pc2",
-     color_set: ["epobc:27da3337fb4a5bb8e2e5a537448e5ec9cfaa3c15628c3c333025d547bbcf9d71:0:361077"],
-     monikers: ["foo_inc"],
-     unit: 1}
+    {"assetid": "Bf1aXLmTv41pc2",
+     "color_set": ["epobc:27da3337fb4a5bb8e2e5a537448e5ec9cfaa3c15628c3c333025d547bbcf9d71:0:361077"],
+     "monikers": ["foo_inc"],
+     "unit": 1}
 
 This JSON is the definition of your asset.
 
@@ -235,17 +203,17 @@ The asset definition is now in your wallet. You got it back as JSON when issuing
 
 This will get you back data as such:
 
-    {assetid: "uBf1aXLmTv41pc2",
-    color_set: ["epobc:27da3337fb4a5bb8e2e5a537448e5ec9cfaa3c15628c3c333025d547bbcf9d71:0:361077"],
-    monikers: ["foo_inc"],
-    unit: 1}
+    {"assetid": u"Bf1aXLmTv41pc2",
+    "color_set": [u"epobc:27da3337fb4a5bb8e2e5a537448e5ec9cfaa3c15628c3c333025d547bbcf9d71:0:361077"],
+    "monikers": [u"foo_inc"],
+    "unit": 1}
 
 In JSON:
 
-    {assetid: "Bf1aXLmTv41pc2",
-     color_set: ["epobc:27da3337fb4a5bb8e2e5a537448e5ec9cfaa3c15628c3c333025d547bbcf9d71:0:361077"],
-     monikers: ["foo_inc"],
-     unit: 1}
+    {"assetid": "Bf1aXLmTv41pc2",
+     "color_set": ["epobc:27da3337fb4a5bb8e2e5a537448e5ec9cfaa3c15628c3c333025d547bbcf9d71:0:361077"],
+     "monikers": ["foo_inc"],
+     "uni"t: 1}
 
 The JSON data is important since it defines your asset and without it your asset would be lost! The asset definition in JSON should therefore be backed up, and can also be used for _sharing_ the asset definition with other parties and exchanges that may want to trade your asset.
 
@@ -290,10 +258,10 @@ You need to use a completely separate instance of chromawallet for this, so make
 
 In every day use for e.g. an exchange it will be more common to import an asset than to create a new one. Assets are transferred in the JSON format. Here is an example of an asset in JSON format:
 
-    {assetid: "Bf1aXLmTv41pc2",
-    color_set: ["epobc:27da3337fb4a5bb8e2e5a537448e5ec9cfaa3c15628c3c333025d547bbcf9d71:0:361077"],
-    monikers: ["foo_inc"],
-    unit: 1}
+    {"assetid": "Bf1aXLmTv41pc2",
+    "color_set": ["epobc:27da3337fb4a5bb8e2e5a537448e5ec9cfaa3c15628c3c333025d547bbcf9d71:0:361077"],
+    "monikers": ["foo_inc"],
+    "unit": 1}
 
 
 Yours should look pretty much the same, but with other values for assetid and color_set.
