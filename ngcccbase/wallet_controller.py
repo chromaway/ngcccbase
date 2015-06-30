@@ -6,8 +6,6 @@ Executes high level tasks such as get balance
 """
 
 import time
-import bitcoin.core
-from coloredcoinlib.blockchain import CTransaction
 from collections import defaultdict
 from decimal import Decimal
 from asset import AssetTarget, AdditiveAssetValue
@@ -296,16 +294,10 @@ class WalletController(object):
         txid = self.publish_tx(signed_tx_spec)
 
         # add to history
-        fee = self._get_fee(txid, signed_tx_spec)
+        fee = signed_tx_spec.get_fee()
         self.model.tx_history.add_send_entry(txid, asset, target_addrs,
                                              raw_colorvalues, fee)
         return txid
-
-    def _get_fee(self, txid, signed_tx_spec):
-        txbin = signed_tx_spec.get_tx_data()
-        bctx = bitcoin.core.CTransaction.deserialize(txbin)
-        bs = self.model.get_blockchain_state()
-        return CTransaction.from_bitcoincore(txid, bctx, bs).get_fee()
 
     def get_address_record(self, bitcoinaddress):
         wam = self.model.get_address_manager()
@@ -345,8 +337,10 @@ class WalletController(object):
         wam.update_genesis_address(address, asset.get_color_set())
 
         # scan the tx so that the rest of the system knows
-        self.model.ccc.colordata.cdbuilder_manager.scan_txhash(
-            asset.color_set.color_id_set, genesis_tx_hash)
+        self.model.ccc.colordata.cdbuilder_manager.scan_tx(
+            asset.color_set.color_id_set,
+            genesis_tx.to_ctransaction()
+        )
 
     def get_new_address(self, asset):
         """Given an asset/color <asset>, create a new bitcoin address

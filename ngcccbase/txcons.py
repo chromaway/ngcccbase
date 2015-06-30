@@ -4,6 +4,7 @@ txcons.py
 Transaction Constructors for the blockchain.
 """
 
+import bitcoin.core
 from collections import defaultdict
 from asset import AssetTarget
 from coloredcoinlib import (ColorSet, ColorTarget, SimpleColorValue,
@@ -15,6 +16,7 @@ import pycoin_txcons
 
 import io
 import math
+from coloredcoinlib.blockchain import CTransaction
 
 
 class InsufficientFundsError(Exception):
@@ -227,6 +229,16 @@ class RawTxSpec(object):
         self.composed_tx_spec = composed_tx_spec
         self.update_tx_data()
         self.intent = None
+
+    def to_ctransaction(self):
+        txhash = self.get_hex_txhash()
+        txbin = self.get_tx_data()
+        bs = self.model.get_blockchain_state()
+        bctx = bitcoin.core.CTransaction.deserialize(txbin)
+        return CTransaction.from_bitcoincore(txhash, bctx, bs)
+
+    def get_fee(self):
+        return self.to_ctransaction().get_fee()
 
     def get_intent(self):
         return self.intent
