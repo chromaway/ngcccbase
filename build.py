@@ -1,4 +1,14 @@
 #!/usr/bin/env python
+###############################################################
+# NOTE: On Ubuntu 14.04 (and possibly other versions)
+# The cx_Freeze egg needs to be modified. In its setup.py,
+# replace:
+#     if not vars.get("Py_ENABLE_SHARED", 0):
+# with:
+#     if True:
+# And when you install you need to run "python setup.py install"
+# from within setup.py's directory
+################################################################
 
 import sys
 
@@ -11,6 +21,7 @@ base = None
 # if sys.platform == "win32":
 #    base = "Win32GUI"
 
+
 def ls(path):
     for name in os.listdir(path):
         yield os.path.join(path, name)
@@ -21,11 +32,12 @@ build_exe_options = {
     "include_files": list(itertools.chain(ls('ui/forms'), ls('ui/icons')))
 }
 
+
 def mangle_target_name(name):
-	if sys.platform == "win32":
-		return name + ".exe"
-	else:
-		return name
+    if sys.platform == "win32":
+        return name + ".exe"
+    else:
+        return name
 
 setup(
     name='ngcccbase',
@@ -36,9 +48,9 @@ setup(
     ],
     url='https://github.com/bitcoinx/ngcccbase',
     keywords='bitcoinx bitcoin coloredcoins',
-    packages=["ngcccbase", "ngcccbase.services", "ngcccbase.p2ptrade", "ecdsa", "coloredcoinlib", "ui"],
-    options = {"build_exe": build_exe_options},
-    executables = [
+    packages=["ngcccbase", "ngcccbase.services", "ngcccbase.p2ptrade", "coloredcoinlib", "ui"],
+    options={"build_exe": build_exe_options},
+    executables=[
         Executable("ngccc-gui.py", base=base, targetName=mangle_target_name("chromawallet")),
         Executable("ngccc-cli.py", base=base, targetName=mangle_target_name("cw-cli")),
     ]
