@@ -44,7 +44,7 @@ Running chromawallet as a service/daemon
 
 If you want to run the wallet as a service/daemon, you can use supervisord for this. See:
 
-* [Running chromawallet as a service/daemone](./service-daemon.md)
+* [Running chromawallet as a service/daemon](./service-daemon.md)
 
 
 Running from source
@@ -58,7 +58,9 @@ Follow the below two links if you are interested in running the chromawallet-ser
 
 JSON-RPC clients
 ---------------------
-For these example pyjsonrpc under python 2.7 will be used, but any JSON-RPC client in any language should work , such as node-json-rpc in javascript.
+For these example pyjsonrpc under python 2.7 will be used, but any JSON-RPC client in any language should work , such as [node-json-rpc](https://www.npmjs.com/package/node-json-rpc) in javascript. pyjsonrpc can be found at  ( https://pypi.python.org/pypi/python-jsonrpc )
+
+In python, pysjonrpc will automatically convert to and from JSON and python's native data structures (e.g. dictionaries).
 
 ## Error handling
 
@@ -77,10 +79,6 @@ Example in python with pyjsonrpc:
     client = pyjsonrpc.HttpClient(url = "http://localhost:8080")
 
     client.dumpconfig()
-
-pyjsonrpc can be found at  ( https://pypi.python.org/pypi/python-jsonrpc )
-
-In python, pysjonrpc will automatically convert to and from JSON and python's native data structures (e.g. dictionaries).
 
 Creating an asset
 -------------------

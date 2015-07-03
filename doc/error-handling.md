@@ -1,7 +1,7 @@
 Error handling
 -----------------------
 
-In case of errors when making JSON-RPC calls, there will be an "error" object in the response. pyjsonrpc will automatically convert the error response to an JSON-RPC exception which you can catch, and with some other libraries such as node-json-rpc you should check for the presence of an error object in the reponse.
+In case of errors when making JSON-RPC calls, there will be an "error" object in the response. pyjsonrpc will automatically convert the error response to an JSON-RPC exception which you can catch, and with some other libraries such as node-json-rpc you should check for the presence of an error object in the response.
 
 This is how to handle errors with pyjsonrpc, ```e.message``` is the one that may be most of interest:
 
@@ -21,7 +21,7 @@ This is how to handle errors with pyjsonrpc, ```e.message``` is the one that may
             print data["repr"]  # source exception repr string
             print data["traceback"]  # source exception traceback
 
-For other clients, this is what the JSON response may look like in case of an error. An error is indicated by the presence of an error object ```error.message``` being the one that may be of most interest:
+For other clients, this is what the JSON response may look like in case of an error. An error is indicated by the presence of an error object. ```error.message``` may be the attribute of most interest:
 
     { jsonrpc: '2.0',
       id: 0,
