@@ -1,6 +1,7 @@
 
 
 import apigen
+from decimal import Decimal
 from time import sleep
 from ngcccbase import sanitize
 from collections import defaultdict
@@ -91,6 +92,9 @@ class Ngccc(apigen.Definition):
         quantity = sanitize.quantity(quantity)
         unit = sanitize.unit(unit)
         scheme = sanitize.scheme(scheme)
+
+        if quantity == Decimal("0.0"):
+            raise Exception("Quantity must be greater then 0!")
 
         self.controller.issue_coins(moniker, scheme, quantity, unit)
         return self.getasset(moniker)

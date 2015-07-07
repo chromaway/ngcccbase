@@ -106,7 +106,7 @@ class BaseOperationalTxSpec(OperationalTxSpec):
     def _select_enough_coins(self, colordef, utxo_list, required_sum_fn):
         ssum = SimpleColorValue(colordef=colordef, value=0)
         selection = []
-        required_sum = None
+        required_sum = required_sum_fn(utxo_list)
         for utxo in utxo_list:
             colorvalues = utxo.get_colorvalues()
             colorvalues = filter(lambda cv: cv.get_colordef() == colordef, colorvalues)

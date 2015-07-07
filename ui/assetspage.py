@@ -89,6 +89,8 @@ class IssueCoinsDialog(QtGui.QDialog):
             self.lblTotalBTC.setText(text)
 
     def isValid(self):
+        valid = True
+
         moniker = self.edtMoniker.text()
         a = bool(moniker)
         if a and moniker in wallet.get_all_monikers():
@@ -99,20 +101,22 @@ class IssueCoinsDialog(QtGui.QDialog):
             a = False
         if not a:
             self.edtMoniker.setStyleSheet('background:#FF8080')
+            valid = False
 
         b = self.edtUnits.text().toInt()
-        if not b[1]:
+        if not b[1] or not b[0]:
             self.edtUnits.setStyleSheet('background:#FF8080')
+            valid = False
 
         c = self.edtAtoms.text().toInt()
-        if not c[1]:
+        if not c[1] or not c[0]:
             self.edtAtoms.setStyleSheet('background:#FF8080')
+            valid = False
 
-        d = False
-        if b[1] and c[1] and b[0]*c[0] <= self.availableBTC:
-            d = True
-
-        return all([a, b, c, d])
+        if not (b[1] and c[1] and b[0]*c[0] <= self.availableBTC):
+            valid = False
+        
+        return valid
 
     def accept(self):
         if self.isValid():
