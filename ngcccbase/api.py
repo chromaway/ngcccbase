@@ -136,38 +136,30 @@ class Ngccc(apigen.Definition):
         assets = self.controller.get_all_assets()
         return map(lambda asset: asset.get_data(), assets)
 
-    def _getbalance(self, asset, unconfirmed, available):
-        if unconfirmed:
-            balance = self.controller.get_unconfirmed_balance(asset)
-        elif available:
-            balance = self.controller.get_available_balance(asset)
-        else:
-            balance = self.controller.get_total_balance(asset)
-        return (asset.get_monikers()[0], asset.format_value(balance))
+    def _getbalance(self, asset):
+        unconfirmed = self.controller.get_unconfirmed_balance(asset)
+        available = self.controller.get_available_balance(asset)
+        #total = self.controller.get_total_balance(asset)
+        result = { 
+            'unconfirmed': asset.format_value(unconfirmed), 
+            'available': asset.format_value(available), 
+            'total': asset.format_value(unconfirmed + available), 
+        }
+        return (asset.get_monikers()[0], result)
 
     @apigen.command()
-    def getbalance(self, moniker, unconfirmed=False, available=False):
+    def getbalance(self, moniker):
         """Returns the balance for a particular asset."""
 
         # sanitize inputs
         asset = sanitize.asset(self.model, moniker)
-        unconfirmed = sanitize.flag(unconfirmed)
-        available = sanitize.flag(available)
-
-        return dict([self._getbalance(asset, unconfirmed, available)])
+        return self._getbalance(asset)[1]
 
     @apigen.command()
-    def getbalances(self, unconfirmed=False, available=False):
+    def getbalances(self):
         """Returns the balances for all assets/colors."""
-
-        # sanitize inputs
-        unconfirmed = sanitize.flag(unconfirmed)
-        available = sanitize.flag(available)
-
         assets = self.controller.get_all_assets()
-        func = lambda asset: self._getbalance(asset, unconfirmed, available)
-        balances = dict(map(func, assets))
-        return balances
+        return dict(map(lambda asset: self._getbalance(asset), assets))
 
     @apigen.command()
     def newaddress(self, moniker):

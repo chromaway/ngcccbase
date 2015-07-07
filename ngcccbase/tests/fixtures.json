@@ -403,28 +403,68 @@
     "getbalance": {
         "uncolored": {
             "moniker": "bitcoin",
-            "expected": { "bitcoin": "0.02617226" }
+            "expected": {
+                "available": "0.02617226",
+                "total": "0.02617226",
+                "unconfirmed": "0"
+            }
         },
         "epobc": {
             "moniker": "fabecoin",
-            "expected": { "fabecoin": "59678" }
+            "expected": {
+                "available": "59678",
+                "total": "59678",
+                "unconfirmed": "0"
+            }
         },
         "obc": {
             "moniker": "bronze",
-            "expected": { "bronze": "0.9967" }
+            "expected": {
+                "available": "0.9967",
+                "total": "0.9967",
+                "unconfirmed": "0"
+            }
         },
         "undefined": {
             "moniker": "undefined"
         },
         "all": {
             "expected": {
-                "copper": "0.098",
-                "testcoin": "1",
-                "wood": "0.0007",
-                "bitcoin": "0.02617226",
-                "diamond": "50000000",
-                "fabecoin": "59678",
-                "bronze": "0.9967"
+                "copper": {
+                    "available": "0.098",
+                    "total": "0.098",
+                    "unconfirmed": "0"
+                },
+                "testcoin": {
+                    "available": "1",
+                    "total": "1",
+                    "unconfirmed": "0"
+                },
+                "wood": {
+                    "available": "0.0007",
+                    "total": "0.0007",
+                    "unconfirmed": "0"
+                },
+                "bitcoin": {
+                    "available":"0.02617226" ,
+                    "total": "0.02617226",
+                    "unconfirmed": "0"
+                },
+                "diamond": {
+                    "available": "50000000",
+                    "total": "50000000",
+                    "unconfirmed": "0"
+                },
+                "fabecoin": {
+                    "available": "59678",
+                    "total": "59678",
+                    "unconfirmed": "0"
+                },
+                "bronze": {
+                    "available": "0.9967",
+                    "total": "0.9967",
+                    "unconfirmed": "0"
+                }
             }
         }
     },
