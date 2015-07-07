@@ -11,8 +11,11 @@ import json
 import pyjsonrpc
 from decimal import Decimal
 from pycoin.key.validate import is_address_valid
+from ngcccbase.sanitize import colordesc, InvalidInput
 
 SLEEP_TIME = 1  # Time to sleep after the json-rpc server has started
+EXECUTABLE = 'python ngccc-server.py'
+
 
 
 class TestJSONAPIServer(unittest.TestCase):
@@ -47,8 +50,8 @@ class TestJSONAPIServer(unittest.TestCase):
         with open(config_path, 'w') as fi:
             json.dump(config, fi)
 
-        self.server = subprocess.Popen('python ngccc-server.py startserver --config_path=%s'
-                                       % config_path, preexec_fn=os.setsid, shell=True)
+        self.server = subprocess.Popen('%s startserver --config_path=%s'
+                                       % (EXECUTABLE, config_path), preexec_fn=os.setsid, shell=True)
         time.sleep(SLEEP_TIME)
 
     def test_default_config(self):
@@ -134,23 +137,28 @@ class TestJSONAPIServer(unittest.TestCase):
         except:
             self.fail('Issueasset raised exception\n' + traceback.format_exc())
 
-
     def test_addassetjson(self):
         self.create_server()
 
         json_data = '''{
-    "assetid": "Bf1aXLmTv41pc2",
-    "color_set": [
-        "epobc:27da3337fb4a5bb8e2e5a537448e5ec9cfaa3c15628c3c333025d547bbcf9d71:0:361077"
-    ],
-    "monikers": [
-        "foo_inc"
-    ],
-    "unit": 1
-}'''
+                        "assetid": "Bf1aXLmTv41pc2",
+                        "color_set": [
+                            "epobc:27da3337fb4a5bb8e2e5a537448e5ec9cfaa3c15628c3c333025d547bbcf9d71:0:361077"
+                        ],
+                        "monikers": [
+                            "foo_inc"
+                        ],
+                        "unit": 1
+                        }'''
         res = self.client.addassetjson(json.loads(json_data))
-        asset_name = self.client.getasset('foo_inc')
-        print asset_name
+        color_set = self.client.getasset('foo_inc')['color_set']
+        self.assertEqual(color_set[0], u'epobc:27da3337fb4a5bb8e2e5a537448e5ec9cfaa3c15628c3c333025d547bbcf9d71:0:361077')
+        new_address = self.client.newaddress('foo_inc')
+        self.assertEqual(new_address, self.client.listaddresses('foo_inc')[0])
+        color_part, bitcoin_part = new_address.split('@')
+        self.assertTrue(is_address_valid(bitcoin_part))
+
 
 if __name__ == '__main__':
+    EXECUTABLE = './cw'
     unittest.main()
