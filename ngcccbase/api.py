@@ -442,6 +442,3 @@ class Ngccc(apigen.Definition):
 
         return self.controller.publish_rawtx(rawtx, dryrun=self.dryrun)
 
-    @apigen.command()
-    def version(self):
-        return __version__
