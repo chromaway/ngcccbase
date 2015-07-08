@@ -1,5 +1,5 @@
 
-
+import os
 import apigen
 from decimal import Decimal
 from time import sleep
@@ -7,6 +7,9 @@ from ngcccbase import sanitize
 from collections import defaultdict
 from ngcccbase.wallet_controller import WalletController
 from ngcccbase.pwallet import PersistentWallet
+
+_BASEDIR = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+__version__ = open(os.path.join(_BASEDIR, "version.txt")).readline().strip()
 
 
 class AddressNotFound(Exception):
@@ -438,3 +441,7 @@ class Ngccc(apigen.Definition):
         rawtx = sanitize.rawtx(rawtx)
 
         return self.controller.publish_rawtx(rawtx, dryrun=self.dryrun)
+
+    @apigen.command()
+    def version(self):
+        return __version__

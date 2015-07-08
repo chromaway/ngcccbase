@@ -9,6 +9,8 @@ here = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(here, 'README.md')) as f:
     README = f.read()
 
+VERSION = open("version.txt").readline().strip()
+
 requires = [
     'pycoin == 0.51',
     'bunch == 1.0.1',
@@ -29,7 +31,7 @@ dependency_links = [
 
 setup(
     name='ngcccbase',
-    version='0.0.10',
+    version=VERSION,
     description='A flexible and modular base for colored coin software.',
     long_description=README,
     classifiers=[
