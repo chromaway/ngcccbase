@@ -8,8 +8,9 @@ from collections import defaultdict
 from ngcccbase.wallet_controller import WalletController
 from ngcccbase.pwallet import PersistentWallet
 
+
 _BASEDIR = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
-__version__ = open(os.path.join(_BASEDIR, "version.txt")).readline().strip()
+__version__ = "".join(open(os.path.join(_BASEDIR, "version.txt")).readlines())
 
 
 class AddressNotFound(Exception):
