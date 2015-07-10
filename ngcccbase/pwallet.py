@@ -5,6 +5,7 @@ A colored-coin wallet implementation that uses a persistent
 data-store. The actual storage is in sqlite3 db's via coloredcoinlib
 """
 
+import bitcoin
 from wallet_model import WalletModel
 from coloredcoinlib import store
 import sqlite3
@@ -58,6 +59,11 @@ class PersistentWallet(object):
             raise Exception("Not a testnet wallet!")
         self.wallet_model = None
         self.use_naivetxdb = use_naivetxdb
+
+        if testnet:
+            bitcoin.SelectParams('testnet')
+        else:
+            bitcoin.SelectParams('mainnet')
 
     def getconfig(self):
         return self.wallet_config
