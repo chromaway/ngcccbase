@@ -14,9 +14,9 @@ VERSION = open("version.txt").readline().strip()
 requires = [
     'pycoin == 0.51',
     'bunch == 1.0.1',
-    'python-jsonrpc == 0.7.7',
+    'python-jsonrpc == 0.7.8',
     'python-bitcoinlib == 0.4.0',
-    'apigen == 1.3.2',
+    'apigen == 1.3.3',
     'web.py == 0.37',
     'six == 1.9.0',
     'requests == 2.7.0',
