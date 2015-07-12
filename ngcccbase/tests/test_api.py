@@ -54,6 +54,27 @@ class AbsTest(object):
         print ""
         """
 
+class TestScan(AbsTest, unittest.TestCase):
+    
+    def test(self):
+        output = self.rw_api.scan()
+        self.assertEquals(output, "Scan concluded")
+
+
+class TestFullrescan(AbsTest, unittest.TestCase):
+    
+    def test(self):
+        output = self.rw_api.fullrescan()
+        self.assertEquals(output, "Full rescan concluded")
+
+
+class TestCoinlog(AbsTest, unittest.TestCase):
+    
+    def test(self):
+        expected = fixtures["coinlog"]["expected"]
+        log = self.ro_api.coinlog()
+        self.assertEquals(log, expected)
+
 
 class TestHistory(AbsTest, unittest.TestCase):
 

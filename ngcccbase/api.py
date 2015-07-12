@@ -226,14 +226,14 @@ class Ngccc(apigen.Definition):
         return self.controller.sendmany_coins(sendmany_entries)
 
     @apigen.command()
-    def scan(self):  # TODO unittest
+    def scan(self):
         """Update the database of transactions."""
         sleep(5)  # window to download headers
         self.controller.scan_utxos()
         return "Scan concluded"
 
     @apigen.command()
-    def fullrescan(self):  # TODO unittest
+    def fullrescan(self):
         """Rebuild database of wallet transactions."""
         self.controller.full_rescan()
         return "Full rescan concluded"
@@ -264,7 +264,7 @@ class Ngccc(apigen.Definition):
         return dict(map(reformat, data))
 
     @apigen.command()
-    def coinlog(self):  # TODO unittest
+    def coinlog(self):
         """Returns the coin transaction log for this wallet."""
         log = defaultdict(list)
         for coin in self.controller.get_coinlog():

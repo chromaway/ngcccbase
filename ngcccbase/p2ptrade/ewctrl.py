@@ -1,12 +1,9 @@
 from collections import defaultdict
 
 from coloredcoinlib import (ColorSet, ColorTarget, UNCOLORED_MARKER,
-                            InvalidColorIdError, ZeroSelectError,
                             SimpleColorValue, CTransaction)
 from protocol_objects import ETxSpec
-from ngcccbase.asset import AdditiveAssetValue
-from ngcccbase.txcons import (BaseOperationalTxSpec,
-                              SimpleOperationalTxSpec, InsufficientFundsError)
+from ngcccbase.txcons import (SimpleOperationalTxSpec, InsufficientFundsError)
 from ngcccbase.coindb import UTXO
 
 import bitcoin.core
@@ -66,14 +63,13 @@ class OperationalETxSpec(SimpleOperationalTxSpec):
         self.targets = []
         for address, color_spec, value in etx_spec.targets:
             colordef = self.ewctrl.resolve_color_spec(color_spec)
-            self.targets.append(ColorTarget(address,
-                                       SimpleColorValue(colordef=colordef,
-                                                        value=value)))
+            color_value = SimpleColorValue(colordef=colordef, value=value)
+            self.targets.append(ColorTarget(address, color_value))
         wam = self.model.get_address_manager()
         colormap = self.model.get_color_map()
         their_colordef = self.ewctrl.resolve_color_spec(their['color_spec'])
-        their_color_set = ColorSet.from_color_ids(self.model.get_color_map(),
-                                                  [their_colordef.get_color_id()])
+        color_ids = [their_colordef.get_color_id()]
+        their_color_set = ColorSet.from_color_ids(colormap, color_ids)
         ct = ColorTarget(wam.get_change_address(their_color_set).get_address(),
                          SimpleColorValue(colordef=their_colordef,
                                           value=their['value']))
@@ -92,8 +88,7 @@ class OperationalETxSpec(SimpleOperationalTxSpec):
             total = SimpleColorValue.sum([cv_u[0]
                                           for cv_u in self.inputs[color_id]])
             needed -= total
-            selected_inputs += [cv_u[1]
-                               for cv_u in self.inputs[color_id]]
+            selected_inputs += [cv_u[1] for cv_u in self.inputs[color_id]]
             selected_value += total
         if needed > 0:
             value_limit = SimpleColorValue(colordef=UNCOLORED_MARKER,
@@ -132,6 +127,7 @@ class OperationalETxSpec(SimpleOperationalTxSpec):
 
 
 class EWalletController(object):
+
     def __init__(self, model, wctrl):
         self.model = model
         self.wctrl = wctrl
@@ -143,7 +139,6 @@ class EWalletController(object):
             self.offer_side_to_colorvalue(my_offer.B),
             self.offer_side_to_colorvalue(my_offer.A))
         self.wctrl.publish_tx(raw_tx)
-
 
     def check_tx(self, raw_tx, etx_spec):
         """check if raw tx satisfies spec's targets"""
@@ -178,8 +173,8 @@ class EWalletController(object):
                             continue
                         raw_address, tgt_color_id, value = target
                         if ((tgt_color_id == color_id) and
-                            (value == out_colorvalues[oi].get_value()) and
-                            (raw_address == ctx.outputs[oi].raw_address)):
+                           (value == out_colorvalues[oi].get_value()) and
+                           (raw_address == ctx.outputs[oi].raw_address)):
                                 satisfied_targets.add(target)
                                 used_outputs.add(oi)
         for target in targets:
@@ -191,7 +186,7 @@ class EWalletController(object):
                     if oi in used_outputs:
                         continue
                     if ((value == ctx.outputs[oi].value) and
-                        (raw_address == ctx.outputs[oi].raw_address)):
+                       (raw_address == ctx.outputs[oi].raw_address)):
                         satisfied_targets.add(target)
                         used_outputs.add(oi)
         return len(targets) == len(satisfied_targets)
@@ -209,12 +204,13 @@ class EWalletController(object):
         op_tx_spec = SimpleOperationalTxSpec(self.model, None)
         if colorvalue.is_uncolored():
             composed_tx_spec = op_tx_spec.make_composed_tx_spec()
-            selection, total = op_tx_spec.select_coins(colorvalue, composed_tx_spec)
-            change = total - colorvalue - \
-                composed_tx_spec.estimate_required_fee(extra_txins=len(selection))
+            selection, total = op_tx_spec.select_coins(colorvalue,
+                                                       composed_tx_spec)
+            extra = len(selection)
+            fee = composed_tx_spec.estimate_required_fee(extra_txins=extra)
+            change = total - colorvalue - fee
             if change < op_tx_spec.get_dust_threshold():
-                change = SimpleColorValue(colordef=UNCOLORED_MARKER,
-                                          value=0)
+                change = SimpleColorValue(colordef=UNCOLORED_MARKER, value=0)
             return selection, change
         else:
             selection, total = op_tx_spec.select_coins(colorvalue)
@@ -223,11 +219,13 @@ class EWalletController(object):
 
     def make_etx_spec(self, our, their):
         our_color_def = self.resolve_color_spec(our['color_spec'])
+        our_color_ids = [our_color_def.get_color_id()]
         our_color_set = ColorSet.from_color_ids(self.model.get_color_map(),
-                                                  [our_color_def.get_color_id()])
+                                                our_color_ids)
         their_color_def = self.resolve_color_spec(their['color_spec'])
+        their_color_ids = [their_color_def.get_color_id()]
         their_color_set = ColorSet.from_color_ids(self.model.get_color_map(),
-                                                  [their_color_def.get_color_id()])
+                                                  their_color_ids)
         extra_value = 0
         if our_color_def == UNCOLORED_MARKER:
             # pay fee + padding for one colored outputs
