@@ -115,6 +115,16 @@ class BlockchainStateBase(object):
 
         return toposorted(block_txs.values(), get_dependent_txs)
 
+    def get_tx_timestamp(self, txhash):
+        txtime = 0
+        blockhash, in_mempool = self.get_tx_blockhash(txhash)
+        if blockhash:
+            height = self.get_block_height(blockhash)
+            if height:
+                header = self.get_header(height)
+                txtime = header.get('timestamp', txtime)
+        return txtime
+
 
 class BlockchainState(BlockchainStateBase):
     """ Represents a blockchain state, using bitcoin-RPC to
