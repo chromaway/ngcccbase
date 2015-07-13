@@ -160,5 +160,5 @@ class TestJSONAPIServer(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    EXECUTABLE = './cw'
+    # EXECUTABLE = './cw'
     unittest.main()
