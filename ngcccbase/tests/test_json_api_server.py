@@ -107,7 +107,7 @@ class TestJSONAPIServer(unittest.TestCase):
         private_key = '5JTuHqTdknhZSnk5pBZaqWDaSuhz6xmJEc9fH9UXgvpZbdRNsLq'
         self.client.importprivkey('bitcoin', private_key)
         self.client.scan()
-        res = self.client.getbalance('available')
+        res = self.client.getbalance('bitcoin')
         self.assertEqual(res['available'], '0.00060519')
 
     def test_no_dup_importprivkey(self):
