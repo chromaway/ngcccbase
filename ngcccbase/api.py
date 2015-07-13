@@ -236,9 +236,20 @@ class Ngccc(apigen.Definition):
         return self.controller.sendmany_coins(sendmany_entries)
 
     def _syncheaders(self):
+        # TODO add timeout 5min
         if not self.wallet.use_naivetxdb:
             while not self.model.txdb.vbs.is_synced():
                 sleep(5)
+
+    @apigen.command()
+    def scanstatus(self):
+        if not self.wallet.use_naivetxdb:
+            blockchain = self.model.get_blockchain_state().get_block_count()
+            local = self.model.txdb.vbs.height
+            return { "curren_height": local, "blockchain_height": blockchain }
+        else:
+            blockchain = self.model.get_blockchain_state().get_block_count()
+            return { "curren_height": 0, "blockchain_height": blockchain }
 
     @apigen.command()
     def scan(self):
