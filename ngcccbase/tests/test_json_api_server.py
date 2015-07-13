@@ -124,7 +124,7 @@ class TestJSONAPIServer(unittest.TestCase):
         self.assertEqual(balances['bitcoin'], '0.00060519')
 
     def test_issue_asset_not_throw_exception(self):
-        """Needs funds on mainnet."""
+        """Needs funds on mainnet, and they should stay stable at the amount that is tested for."""
         private_key = "5KAtWUcg45VDNB3QftP4V5cwcavBhLj9UWpJCtxsZBBqevGjhZN"
         address = "12WarJccsEjzzf3Aoukh8YJXwxK58qpj8W"  # listed for convenience
         self.create_server()
