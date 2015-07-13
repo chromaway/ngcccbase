@@ -1,6 +1,5 @@
 import time
 
-from coloredcoinlib import IncompatibleTypesError
 from ngcccbase.txcons import RawTxSpec
 
 from utils import make_random_id
@@ -106,10 +105,11 @@ class MyEProposal(EProposal):
 
 
 class MyReplyEProposal(EProposal):
+
     def __init__(self, ewctrl, foreign_ep, my_offer):
         super(MyReplyEProposal, self).__init__(foreign_ep.pid,
-                                             ewctrl,
-                                             foreign_ep.offer)
+                                               ewctrl,
+                                               foreign_ep.offer)
         self.my_offer = my_offer
         self.tx = self.ewctrl.make_reply_tx(foreign_ep.etx_spec,
                                             my_offer.A,
@@ -119,6 +119,11 @@ class MyReplyEProposal(EProposal):
         data = super(MyReplyEProposal, self).get_data()
         data['etx_data'] = self.tx.get_hex_tx_data()
         return data
+
+    def process_reply(self, reply_ep):
+        rtxs = RawTxSpec.from_tx_data(self.ewctrl.model,
+                                      reply_ep.etx_data.decode('hex'))
+        self.ewctrl.publish_tx(rtxs, self.my_offer)
 
 
 class ForeignEProposal(EProposal):

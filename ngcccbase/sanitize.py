@@ -58,7 +58,7 @@ def assetamount(asset, amount):
 
 def unit(u):
     u = int(u)
-    if u < 0:
+    if u <= 0:
         raise InvalidInput("unit must be > 0!")
     return u
 

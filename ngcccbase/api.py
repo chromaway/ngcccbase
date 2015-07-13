@@ -1,6 +1,7 @@
 
-
+import os
 import apigen
+from decimal import Decimal
 from time import sleep
 from ngcccbase import sanitize
 from collections import defaultdict
@@ -8,13 +9,19 @@ from ngcccbase.wallet_controller import WalletController
 from ngcccbase.pwallet import PersistentWallet
 
 
+_BASEDIR = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+__version__ = "".join(open(os.path.join(_BASEDIR, "version.txt")).readlines())
+
+
 class AddressNotFound(Exception):
+
     def __init__(self, coloraddress):
         msg = "Address '%s' not found!" % coloraddress
         super(AddressNotFound, self).__init__(msg)
 
 
 class Ngccc(apigen.Definition):
+
     """Next-Generation Colored Coin Client interface."""
 
     def __init__(self, wallet=None, testnet=False,
@@ -91,6 +98,9 @@ class Ngccc(apigen.Definition):
         unit = sanitize.unit(unit)
         scheme = sanitize.scheme(scheme)
 
+        if quantity == Decimal("0.0"):
+            raise Exception("Quantity must be greater then 0!")
+
         self.controller.issue_coins(moniker, scheme, quantity, unit)
         return self.getasset(moniker)
 
@@ -135,38 +145,30 @@ class Ngccc(apigen.Definition):
         assets = self.controller.get_all_assets()
         return map(lambda asset: asset.get_data(), assets)
 
-    def _getbalance(self, asset, unconfirmed, available):
-        if unconfirmed:
-            balance = self.controller.get_unconfirmed_balance(asset)
-        elif available:
-            balance = self.controller.get_available_balance(asset)
-        else:
-            balance = self.controller.get_total_balance(asset)
-        return (asset.get_monikers()[0], asset.format_value(balance))
+    def _getbalance(self, asset):
+        unconfirmed = self.controller.get_unconfirmed_balance(asset)
+        available = self.controller.get_available_balance(asset)
+        #total = self.controller.get_total_balance(asset)
+        result = {
+            'unconfirmed': asset.format_value(unconfirmed),
+            'available': asset.format_value(available),
+            'total': asset.format_value(unconfirmed + available),
+        }
+        return (asset.get_monikers()[0], result)
 
     @apigen.command()
-    def getbalance(self, moniker, unconfirmed=False, available=False):
+    def getbalance(self, moniker):
         """Returns the balance for a particular asset."""
 
         # sanitize inputs
         asset = sanitize.asset(self.model, moniker)
-        unconfirmed = sanitize.flag(unconfirmed)
-        available = sanitize.flag(available)
-
-        return dict([self._getbalance(asset, unconfirmed, available)])
+        return self._getbalance(asset)[1]
 
     @apigen.command()
-    def getbalances(self, unconfirmed=False, available=False):
+    def getbalances(self):
         """Returns the balances for all assets/colors."""
-
-        # sanitize inputs
-        unconfirmed = sanitize.flag(unconfirmed)
-        available = sanitize.flag(available)
-
         assets = self.controller.get_all_assets()
-        func = lambda asset: self._getbalance(asset, unconfirmed, available)
-        balances = dict(map(func, assets))
-        return balances
+        return dict(map(lambda asset: self._getbalance(asset), assets))
 
     @apigen.command()
     def newaddress(self, moniker):
@@ -225,14 +227,14 @@ class Ngccc(apigen.Definition):
         return self.controller.sendmany_coins(sendmany_entries)
 
     @apigen.command()
-    def scan(self):  # TODO unittest
+    def scan(self):
         """Update the database of transactions."""
         sleep(5)  # window to download headers
         self.controller.scan_utxos()
         return "Scan concluded"
 
     @apigen.command()
-    def fullrescan(self):  # TODO unittest
+    def fullrescan(self):
         """Rebuild database of wallet transactions."""
         self.controller.full_rescan()
         return "Full rescan concluded"
@@ -263,7 +265,7 @@ class Ngccc(apigen.Definition):
         return dict(map(reformat, data))
 
     @apigen.command()
-    def coinlog(self):  # TODO unittest
+    def coinlog(self):
         """Returns the coin transaction log for this wallet."""
         log = defaultdict(list)
         for coin in self.controller.get_coinlog():
@@ -440,4 +442,4 @@ class Ngccc(apigen.Definition):
         # sanitize inputs
         rawtx = sanitize.rawtx(rawtx)
 
-        return self.controller.publish_rawtx(rawtx)
+        return self.controller.publish_rawtx(rawtx, dryrun=self.dryrun)
