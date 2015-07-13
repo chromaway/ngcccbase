@@ -1,0 +1,6 @@
+{
+    "testnet": true,
+    "port": 8080,
+    "hostname": "localhost",
+    "wallet_path": "testnet.wallet"
+}
