@@ -107,8 +107,8 @@ class TestJSONAPIServer(unittest.TestCase):
         private_key = '5JTuHqTdknhZSnk5pBZaqWDaSuhz6xmJEc9fH9UXgvpZbdRNsLq'
         self.client.importprivkey('bitcoin', private_key)
         self.client.scan()
-        res = self.client.getbalance('bitcoin')
-        self.assertEqual(res['bitcoin'], '0.00060519')
+        res = self.client.getbalance('available')
+        self.assertEqual(res['available'], '0.00060519')
 
     def test_no_dup_importprivkey(self):
         """Test that duplicate imports don't change balance or address count"""
@@ -117,11 +117,11 @@ class TestJSONAPIServer(unittest.TestCase):
         self.client.importprivkey('bitcoin', private_key)
         self.client.scan()
         balances = self.client.getbalance('bitcoin')
-        self.assertEqual(balances['bitcoin'], '0.00060519')
+        self.assertEqual(balances['available'], '0.00060519')
         res = self.client.importprivkey('bitcoin', private_key)
         self.client.scan()
         self.assertEqual(len(self.client.listaddresses('bitcoin')), 1)
-        self.assertEqual(balances['bitcoin'], '0.00060519')
+        self.assertEqual(balances['available'], '0.00060519')
 
     def test_issue_asset_not_throw_exception(self):
         """Needs funds on mainnet, and they should stay stable at the amount that is tested for."""
@@ -131,7 +131,7 @@ class TestJSONAPIServer(unittest.TestCase):
         self.client.importprivkey('bitcoin', private_key)
         self.client.scan()
         res = self.client.getbalance('bitcoin')
-        self.assertTrue(Decimal(res['bitcoin']) > Decimal('0.00006'))
+        self.assertTrue(Decimal(res['available']) > Decimal('0.00006'))
         try:
             res = self.client.issueasset('foo_inc', 1000)
         except:
