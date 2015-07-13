@@ -14,12 +14,14 @@ __version__ = "".join(open(os.path.join(_BASEDIR, "version.txt")).readlines())
 
 
 class AddressNotFound(Exception):
+
     def __init__(self, coloraddress):
         msg = "Address '%s' not found!" % coloraddress
         super(AddressNotFound, self).__init__(msg)
 
 
 class Ngccc(apigen.Definition):
+
     """Next-Generation Colored Coin Client interface."""
 
     def __init__(self, wallet=None, testnet=False,
@@ -42,14 +44,17 @@ class Ngccc(apigen.Definition):
             self.wallet.disconnect()
             self.wallet = None
 
+    def bootstrap(self):
+        if not self.model_is_initialized:
+            self.wallet.init_model()
+            model = self.wallet.get_model()
+            self.controller = WalletController(model)
+            self.model = model
+            self.model_is_initialized = True
+
     def __getattribute__(self, name):
         if name in ['controller', 'model']:
-            if not self.model_is_initialized:
-                self.wallet.init_model()
-                model = self.wallet.get_model()
-                self.controller = WalletController(model, dryrun=self.dryrun)
-                self.model = model
-                self.model_is_initialized = True
+            self.bootstrap()
         return object.__getattribute__(self, name)
 
     @apigen.command(rpc=False)
@@ -247,10 +252,10 @@ class Ngccc(apigen.Definition):
         if not self.wallet.use_naivetxdb:
             blockchain = self.model.get_blockchain_state().get_block_count()
             local = self.model.txdb.vbs.height
-            return { "curren_height": local, "blockchain_height": blockchain }
+            return {"curren_height": local, "blockchain_height": blockchain}
         else:
             blockchain = self.model.get_blockchain_state().get_block_count()
-            return { "curren_height": 0, "blockchain_height": blockchain }
+            return {"curren_height": 0, "blockchain_height": blockchain}
 
     @apigen.command()
     def scan(self):
