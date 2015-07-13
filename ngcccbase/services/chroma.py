@@ -25,13 +25,16 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         self.connect()
 
     def connect(self):
-        self.get_height()
+        pass
 
-    def disconnect(self): pass
+    def disconnect(self):
+        pass
 
     def connected(self):
         delta = time.time() - self._last_connected
-        return delta < 10
+        if delta < 10:
+            return True
+        return bool(self.get_height())
 
     def _query(self, url, data=None, exceptiononfail=True):
         header = {'Content-Type': 'application/json'}
