@@ -53,6 +53,22 @@ class Ngccc(apigen.Definition):
         return object.__getattribute__(self, name)
 
     @apigen.command()
+    def syncheaders(self):
+        if not self.wallet.use_naivetxdb:
+            while not self.model.txdb.vbs.is_synced():
+                sleep(5)
+
+    @apigen.command(rpc=False)
+    def startserver(self, hostname="localhost", port=8080, daemon=False,
+                    nosync=False):
+
+        if not nosync:
+            self.syncheaders()
+
+        super(Ngccc, self).startserver(hostname=hostname, port=port,
+                                       daemon=daemon)
+
+    @apigen.command()
     def setconfigval(self, key, value):
         """Sets a value in the configuration.
         Key is expressed as: key.subkey.subsubkey
@@ -148,10 +164,10 @@ class Ngccc(apigen.Definition):
         unconfirmed = self.controller.get_unconfirmed_balance(asset)
         available = self.controller.get_available_balance(asset)
         #total = self.controller.get_total_balance(asset)
-        result = { 
-            'unconfirmed': asset.format_value(unconfirmed), 
-            'available': asset.format_value(available), 
-            'total': asset.format_value(unconfirmed + available), 
+        result = {
+            'unconfirmed': asset.format_value(unconfirmed),
+            'available': asset.format_value(available),
+            'total': asset.format_value(unconfirmed + available),
         }
         return (asset.get_monikers()[0], result)
 
@@ -442,4 +458,3 @@ class Ngccc(apigen.Definition):
         rawtx = sanitize.rawtx(rawtx)
 
         return self.controller.publish_rawtx(rawtx, dryrun=self.dryrun)
-
