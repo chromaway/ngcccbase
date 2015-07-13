@@ -57,29 +57,31 @@ class WalletModel(object):
     def __init__(self, config, store_conn, use_naivetxdb=False):
         """Creates a new wallet given a configuration <config>
         """
+        self.address_man_initialized = False
+        self._config = config
         self.use_naivetxdb = use_naivetxdb
         self.store_conn = store_conn  # hackish!
         self.testnet = config.get('testnet', False)
         self.init_blockchain_state(config)
         self.init_tx_db(config)
         self.init_utxo_fetcher(config)
-        self.ccc = ColoredCoinContext(config,
-                                      self.blockchain_state)
+        self.ccc = ColoredCoinContext(config, self.blockchain_state)
         self.ass_def_man = AssetDefinitionManager(self.ccc.colormap, config)
-        self.init_wallet_address_manager(config)
         self.coin_query_factory = CoinQueryFactory(self, config)
         self.coin_man = CoinManager(self, config)
         self.tx_spec_transformer = TransactionSpecTransformer(self, config)
         self.tx_history = TxHistory(self)
 
-    def init_wallet_address_manager(self, config):
-        colormap = self.ccc.colormap
-        if config.get('bip0032'):
-            from bip0032 import HDWalletAddressManager
-            self.address_man = HDWalletAddressManager(colormap, config)
-        else:
-            from deterministic import DWalletAddressManager
-            self.address_man = DWalletAddressManager(colormap, config)
+    def init_wallet_address_manager(self):
+        if not self.address_man_initialized:
+            colormap = self.ccc.colormap
+            if self._config.get('bip0032'):
+                from bip0032 import HDWalletAddressManager
+                self.address_man = HDWalletAddressManager(colormap, self._config)
+            else:
+                from deterministic import DWalletAddressManager
+                self.address_man = DWalletAddressManager(colormap, self._config)
+            self.address_man_initialized = True
 
     def init_tx_db(self, config):
         use_naivetxdb = config.get('use_naivetxdb') or self.use_naivetxdb
@@ -87,6 +89,11 @@ class WalletModel(object):
             self.txdb = NaiveTxDb(self, config)
         else:
             self.txdb = VerifiedTxDb(self, config)
+
+    def __getattribute__(self, name):
+        if name == 'address_man':
+            self.init_wallet_address_manager()
+        return object.__getattribute__(self, name)
 
     def init_utxo_fetcher(self, config):
         self.utxo_fetcher = SimpleUTXOFetcher(
