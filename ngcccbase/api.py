@@ -52,18 +52,12 @@ class Ngccc(apigen.Definition):
                 self.model_is_initialized = True
         return object.__getattribute__(self, name)
 
-    @apigen.command()
-    def syncheaders(self):
-        if not self.wallet.use_naivetxdb:
-            while not self.model.txdb.vbs.is_synced():
-                sleep(5)
-
     @apigen.command(rpc=False)
     def startserver(self, hostname="localhost", port=8080, daemon=False,
-                    nosync=False):
+                    noscan=False):
 
-        if not nosync:
-            self.syncheaders()
+        if not noscan:
+            self.scan()
 
         super(Ngccc, self).startserver(hostname=hostname, port=port,
                                        daemon=daemon)
@@ -241,16 +235,22 @@ class Ngccc(apigen.Definition):
 
         return self.controller.sendmany_coins(sendmany_entries)
 
+    def _syncheaders(self):
+        if not self.wallet.use_naivetxdb:
+            while not self.model.txdb.vbs.is_synced():
+                sleep(5)
+
     @apigen.command()
     def scan(self):
         """Update the database of transactions."""
-        sleep(5)  # window to download headers
+        self._syncheaders()
         self.controller.scan_utxos()
         return "Scan concluded"
 
     @apigen.command()
     def fullrescan(self):
         """Rebuild database of wallet transactions."""
+        self._syncheaders()
         self.controller.full_rescan()
         return "Full rescan concluded"
 
