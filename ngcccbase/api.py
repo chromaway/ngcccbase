@@ -243,6 +243,7 @@ class Ngccc(apigen.Definition):
 
     @apigen.command()
     def scanstatus(self):
+        """Return the current blockchain synchronisation status."""
         if not self.wallet.use_naivetxdb:
             blockchain = self.model.get_blockchain_state().get_block_count()
             local = self.model.txdb.vbs.height
