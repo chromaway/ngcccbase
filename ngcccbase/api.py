@@ -252,10 +252,10 @@ class Ngccc(apigen.Definition):
         if not self.wallet.use_naivetxdb:
             blockchain = self.model.get_blockchain_state().get_block_count()
             local = self.model.txdb.vbs.height
-            return {"curren_height": local, "blockchain_height": blockchain}
+            return {"current_height": local, "blockchain_height": blockchain}
         else:
             blockchain = self.model.get_blockchain_state().get_block_count()
-            return {"curren_height": 0, "blockchain_height": blockchain}
+            return {"current_height": 0, "blockchain_height": blockchain}
 
     @apigen.command()
     def scan(self):
