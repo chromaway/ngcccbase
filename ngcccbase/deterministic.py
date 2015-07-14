@@ -22,23 +22,40 @@ class DeterministicAddressRecord(AddressRecord):
         will be the same every time, hence "deterministic".
         """
         super(DeterministicAddressRecord, self).__init__(**kwargs)
-
         if len(self.color_set.get_data()) == 0:
             color_string = "genesis block"
         else:
             color_string = self.color_set.get_hash_string()
-
         self.index = kwargs.get('index')
-        h = hmac.new(str(kwargs['master_key']),
-                     "%s|%s" % (color_string, self.index), hashlib.sha256)
-        string = h.digest()
-        self.rawPrivKey = from_bytes_32(string)
-        self.publicPoint = BasePoint * self.rawPrivKey
-        self.address = public_pair_to_bitcoin_address(
-            self.publicPoint.pair(),
-            compressed=False,
-            address_prefix=self.addressprefix
-        )
+        self.hmac = hmac.new(str(kwargs['master_key']),
+                             "%s|%s" % (color_string, self.index),
+                             hashlib.sha256)
+        self._rawPrivKey = None
+        self._publicPoint = None
+        self._address = None
+
+    @property
+    def rawPrivKey(self):
+        if self._rawPrivKey is None:
+            self._rawPrivKey = from_bytes_32(self.hmac.digest())
+        return self._rawPrivKey
+    
+    @property
+    def publicPoint(self):
+        if self._publicPoint is None:
+            self._publicPoint = BasePoint * self.rawPrivKey
+        return self._publicPoint
+
+    @property
+    def address(self):
+        if self._address is None:
+            self._address = public_pair_to_bitcoin_address(
+                self.publicPoint.pair(),
+                compressed=False,
+                address_prefix=self.addressprefix
+            )
+        return self._address
+
 
 class DWalletAddressManager(object):
     """This class manages the creation of new AddressRecords.
@@ -52,30 +69,31 @@ class DWalletAddressManager(object):
         Note address manager configuration is in the key "dwam".
         """
         self.config = config
-        self.testnet = config.get('testnet', False)
+        self.testnet = self.config.get('testnet', False)
         self.colormap = colormap
         self.addresses = set()
 
         # initialize the wallet manager if this is the first time
         #  this will generate a master key.
-        params = config.get('dwam', None)
+        params = self.config.get('dwam', None)
         if params is None:
             params = self.init_new_wallet()
 
         # master key is stored in a separate config entry
-        self.master_key = config['dw_master_key']
+        self.master_key = self.config['dw_master_key']
 
         self.genesis_color_sets = params['genesis_color_sets']
         self.color_set_states = params['color_set_states']
 
-        # import the genesis addresses
-        for i, color_desc_list in enumerate(self.genesis_color_sets):
-            addr = self.get_genesis_address(i)
-            addr.color_set = ColorSet(self.colormap,
-                                      color_desc_list)
-            self.addresses.add(addr)
+        # import addresses
+        self._import_genesis_addresses()
+        self._import_specific_color_addresses()
+        self._import_one_off_addresses_from_config()
 
-        # now import the specific color addresses
+    def _import_one_off_addresses_from_config(self):
+        map(self.add_loose_address, self.config.get('addresses', []))
+
+    def _import_specific_color_addresses(self):
         for color_set_st in self.color_set_states:
             color_desc_list = color_set_st['color_set']
             max_index = color_set_st['max_index']
@@ -84,13 +102,17 @@ class DWalletAddressManager(object):
                 'testnet': self.testnet,
                 'master_key': self.master_key,
                 'color_set': color_set
-                }
+            }
             for index in xrange(max_index + 1):
                 params['index'] = index
                 self.addresses.add(DeterministicAddressRecord(**params))
 
-        # import the one-off addresses from the config
-        map(self.add_loose_address, config.get('addresses', []))
+    def _import_genesis_addresses(self):
+        for i, color_desc_list in enumerate(self.genesis_color_sets):
+            addr = self.get_genesis_address(i)
+            addr.color_set = ColorSet(self.colormap,
+                                      color_desc_list)
+            self.addresses.add(addr)
 
     def add_loose_address(self, addr_params):
         addr_params['testnet'] = self.testnet
@@ -99,7 +121,7 @@ class DWalletAddressManager(object):
         address = LooseAddressRecord(**addr_params)
         self.addresses.add(address)
         return address
-    
+
     def find_address_by_wif(self, wif):
         for address in list(self.addresses):
             data = address.get_data()

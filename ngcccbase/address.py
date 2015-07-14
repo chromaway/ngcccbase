@@ -27,6 +27,7 @@ class AddressRecord(object):
         self.addressprefix = b'\x6f' if self.testnet else b"\0"
         self.wifprefix = b'\xef' if self.testnet else b"\x80"
         self.netcode = 'XTN' if self.testnet else 'BTC'
+        self._data = None
 
     def rawPubkey(self):
         return public_pair_to_hash160_sec(self.publicPoint.pair(), False)
@@ -47,9 +48,13 @@ class AddressRecord(object):
         """Get this object as a JSON/Storage compatible dict.
         Useful for storage and persistence.
         """
-        raw = self.wifprefix + to_bytes_32(self.rawPrivKey)
-        return {"color_set": self.color_set.get_data(),
-                "address_data": b2a_hashed_base58(raw)}
+        if self._data is None:
+            raw = self.wifprefix + to_bytes_32(self.rawPrivKey)
+            self._data = {
+                "color_set": self.color_set.get_data(),
+                "address_data": b2a_hashed_base58(raw)
+            }
+        return self._data
 
     def get_private_key(self):
         return secret_exponent_to_wif(self.rawPrivKey, False, self.wifprefix)

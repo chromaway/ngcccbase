@@ -44,3 +44,5 @@ rescan_all:
 # DEBUGGING
 # pip install pudb # install debugger
 # import pudb; pu.db # set break point
+# python -m cProfile -s cumtime ngccc-cli.py command | vim -
+# time python ngccc-cli.py command | vim -
