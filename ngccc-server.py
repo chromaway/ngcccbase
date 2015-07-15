@@ -14,4 +14,5 @@ if __name__ == "__main__":
     with open(args.config_path, 'r') as fo:
         config = json.load(fo)
         api = Ngccc(wallet=config["wallet_path"], testnet=config["testnet"])
+        api.bootstrap()
         api.startserver(hostname=config["hostname"], port=config["port"])

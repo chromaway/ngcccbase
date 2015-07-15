@@ -43,15 +43,28 @@ class Ngccc(apigen.Definition):
             self.wallet.disconnect()
             self.wallet = None
 
+    def bootstrap(self):
+        if not self.model_is_initialized:
+            self.wallet.init_model()
+            model = self.wallet.get_model()
+            self.controller = WalletController(model)
+            self.model = model
+            self.model_is_initialized = True
+
     def __getattribute__(self, name):
         if name in ['controller', 'model']:
-            if not self.model_is_initialized:
-                self.wallet.init_model()
-                model = self.wallet.get_model()
-                self.controller = WalletController(model)
-                self.model = model
-                self.model_is_initialized = True
+            self.bootstrap()
         return object.__getattribute__(self, name)
+
+    @apigen.command(rpc=False)
+    def startserver(self, hostname="localhost", port=8080, daemon=False,
+                    noscan=False):
+
+        if not noscan:
+            self.scan()
+
+        super(Ngccc, self).startserver(hostname=hostname, port=port,
+                                       daemon=daemon)
 
     @apigen.command()
     def setconfigval(self, key, value):
@@ -226,16 +239,34 @@ class Ngccc(apigen.Definition):
 
         return self.controller.sendmany_coins(sendmany_entries)
 
+    def _syncheaders(self):
+        # TODO add timeout 5min
+        if not self.wallet.use_naivetxdb:
+            while not self.model.txdb.vbs.is_synced():
+                sleep(5)
+
+    @apigen.command()
+    def scanstatus(self):
+        """Return the current blockchain synchronisation status."""
+        if not self.wallet.use_naivetxdb:
+            blockchain = self.model.get_blockchain_state().get_block_count()
+            local = self.model.txdb.vbs.height
+            return {"current_height": local, "blockchain_height": blockchain}
+        else:
+            blockchain = self.model.get_blockchain_state().get_block_count()
+            return {"current_height": 0, "blockchain_height": blockchain}
+
     @apigen.command()
     def scan(self):
         """Update the database of transactions."""
-        sleep(5)  # window to download headers
+        self._syncheaders()
         self.controller.scan_utxos()
         return "Scan concluded"
 
     @apigen.command()
     def fullrescan(self):
         """Rebuild database of wallet transactions."""
+        self._syncheaders()
         self.controller.full_rescan()
         return "Full rescan concluded"
 

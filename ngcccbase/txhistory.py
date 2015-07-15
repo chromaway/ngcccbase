@@ -158,17 +158,6 @@ class TxHistory(object):
                                                 tx_data.decode('hex'))
                 self.add_entry_from_tx(raw_tx)
 
-    def get_tx_timestamp(self, txhash):  # TODO move to suitable file
-        txtime = 0
-        bs = self.model.get_blockchain_state()
-        blockhash, in_mempool = bs.get_tx_blockhash(txhash)
-        if blockhash:
-            height = bs.get_block_height(blockhash)
-            if height:
-                header = bs.get_header(height)
-                txtime = header.get('timestamp', txtime)
-        return txtime
-
     def is_receive_entry(self, raw_tx, spent_coins, received_coins):
         return not spent_coins and received_coins
 
@@ -266,7 +255,8 @@ class TxHistory(object):
 
         # ensure time saved
         if ('txtime' not in new_entry) or (not new_entry['txtime']):
-            new_entry['txtime'] = self.get_tx_timestamp(txhash)
+            bs = self.model.get_blockchain_state()
+            new_entry['txtime'] = bs.get_tx_timestamp(txhash)
 
         # only save if change was made
         old_entry = self.entries.get(txhash)
