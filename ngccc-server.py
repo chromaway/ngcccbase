@@ -6,7 +6,6 @@ from ngcccbase.api import Ngccc
 
 parser = argparse.ArgumentParser(description='Chromawallet JSON-RPC server')
 parser.add_argument('--config_path', default='config.json')
-parser.add_argument('start_server')
 
 args = parser.parse_args()
 
