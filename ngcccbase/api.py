@@ -257,16 +257,18 @@ class Ngccc(apigen.Definition):
             return {"current_height": 0, "blockchain_height": blockchain}
 
     @apigen.command()
-    def scan(self):
+    def scan(self, block=False):
         """Update the database of transactions."""
-        self._syncheaders()
+        if block:
+            self._syncheaders()
         self.controller.scan_utxos()
         return "Scan concluded"
 
     @apigen.command()
-    def fullrescan(self):
+    def fullrescan(self, block=False):
         """Rebuild database of wallet transactions."""
-        self._syncheaders()
+        if block:
+            self._syncheaders()
         self.controller.full_rescan()
         return "Full rescan concluded"
 
