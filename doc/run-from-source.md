@@ -17,4 +17,4 @@ Checking out chromawallet-server from source
 The chromawallet-server can be run both from the command line and as a background server. For running from the command line:
 
     cd ngcccbase
-    python ngccc-server.py startserver
+    python ngccc-server.py

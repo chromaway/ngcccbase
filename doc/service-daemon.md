@@ -20,7 +20,7 @@ The file could be called chromawallet.conf (as long as you put conf at the end y
 In this example the user it should run under is "a_user_name":
 
     [program:chromawallet]
-    command=/home/a_user_name/chromawallet/chromawallet-server startserver
+    command=/home/a_user_name/chromawallet/chromawallet-server
     process_name=%(program_name)s
     numprocs=1
     directory=/home/a_user_name/chromawallet

@@ -20,7 +20,7 @@ and the chromawallet script in
 The file is called chromawallet.conf in this example and the user it should run under is "a_user_name":
 
     [program:chromawallet]
-    command=/home/a_user_name/chromawallet_virtual_env/bin/python ngccc-server.py startserver
+    command=/home/a_user_name/chromawallet_virtual_env/bin/python ngccc-server.py
     process_name=%(program_name)s
     numprocs=1
     directory=/home/a_user/chromawallet_virtual_env/ngcccbase

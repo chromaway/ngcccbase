@@ -9,7 +9,7 @@ Starting and stopping chromawallet from the command line
 ---------------
 The chromawallet can be run both from the command line and as a background server. For running it from the command line, type:
 
-    ./chromawallet-server startserver
+    ./chromawallet-server
 
 The server will start with configuration parameters found in ```config.json```. If you want to start the server with another config file, add the ```config_path``` switch when starting:
 
