@@ -59,9 +59,9 @@ class Ngccc(apigen.Definition):
 
     @apigen.command(rpc=False)
     def startserver(self, hostname="localhost", port=8080, daemon=False,
-                    noscan=False):
+                    scan=True):
 
-        if not noscan:
+        if scan:
             self.scan()
 
         super(Ngccc, self).startserver(hostname=hostname, port=port,
