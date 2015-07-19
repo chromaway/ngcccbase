@@ -253,7 +253,6 @@ class BlockHashingAlgorithm(object):
         return new_bits, new_target
 
     def verify_chunk(self, index, chunk):
-        height = index*2016
         num = len(chunk)/80
 
         if index == 0:  
