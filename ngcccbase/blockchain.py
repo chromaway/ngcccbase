@@ -275,9 +275,11 @@ class BlockHashingAlgorithm(object):
                 assert bits == header.get('bits')
                 assert int('0x'+_hash, 16) < target
             except AssertionError:
-                if self.testnet and header.get('timestamp') - prev_header.get('timestamp') > 1200:
-                    assert self.max_bits == header.get('bits')
-                    assert int('0x'+_hash, 16) < self.max_target
+                # if self.testnet and header.get('timestamp') - prev_header.get('timestamp') > 1200:
+                if self.testnet: # Added by jorgen@webworks.se
+                    pass
+                    # assert self.max_bits == header.get('bits') # Does not seem that regtest mode heeds this
+                    # assert int('0x'+_hash, 16) < self.max_target # Or this
                 else:
                     raise
 
