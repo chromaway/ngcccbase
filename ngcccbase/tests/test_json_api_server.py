@@ -16,6 +16,8 @@ from ngcccbase.sanitize import colordesc, InvalidInput
 SLEEP_TIME = 10  # Time to sleep after the json-rpc server has started
 EXECUTABLE = 'python ngccc-server.py'
 
+START_DIR = os.getcwd()
+EXECUTABLE = 'python %s/ngccc-server.py' % START_DIR
 
 
 class TestJSONAPIServer(unittest.TestCase):
@@ -49,9 +51,11 @@ class TestJSONAPIServer(unittest.TestCase):
         }
         with open(config_path, 'w') as fi:
             json.dump(config, fi)
+        os.chdir(working_dir)
 
         self.server = subprocess.Popen('%s --config_path=%s'
                                        % (EXECUTABLE, config_path), preexec_fn=os.setsid, shell=True)
+        os.chdir(START_DIR)
         time.sleep(SLEEP_TIME)
 
     def test_default_config(self):
