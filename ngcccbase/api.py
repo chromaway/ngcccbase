@@ -104,7 +104,7 @@ class Ngccc(apigen.Definition):
     def issueasset(self, moniker, quantity, unit=1, scheme="epobc"):
         """ Issue <quantity> of asset with name <moniker> and <unit> atoms,
         based on <scheme (epobc|obc)>."""
-        # TODO unittest
+        # TODO unittest (manually tested 2015-07-14 via rpc)
 
         # sanitize inputs
         moniker = sanitize.moniker(moniker)
@@ -119,10 +119,11 @@ class Ngccc(apigen.Definition):
         return self.getasset(moniker)
 
     @apigen.command()
-    def addassetjson(self, data):  # TODO unittest
+    def addassetjson(self, data):
         """Add a json asset definition.
         Enables the use of colors/assets issued by others.
         """
+        # TODO unittest (manually tested 2015-07-14 via rpc)
 
         # sanitize inputs
         data = sanitize.jsonasset(data)
@@ -131,10 +132,11 @@ class Ngccc(apigen.Definition):
         return self.getasset(data['monikers'][0])
 
     @apigen.command()
-    def addasset(self, moniker, color_description, unit=1):  # TODO unittest
+    def addasset(self, moniker, color_description, unit=1):
         """Add a asset definition.
         Enables the use of colors/assets issued by others.
         """
+        # TODO unittest (manually tested 2015-07-14 via rpc)
 
         # sanitize inputs
         moniker = sanitize.moniker(moniker)
@@ -206,8 +208,9 @@ class Ngccc(apigen.Definition):
         return [ao.get_color_address() for ao in addressrecords]
 
     @apigen.command()
-    def send(self, moniker, coloraddress, amount):  # TODO unittest
+    def send(self, moniker, coloraddress, amount):
         """Send <coloraddress> given <amount> of an asset."""
+        # TODO unittest (manually tested 2015-07-14 via rpc)
 
         # sanitize inputs
         asset = sanitize.asset(self.model, moniker)
