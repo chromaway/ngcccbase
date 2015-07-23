@@ -59,9 +59,9 @@ class Ngccc(apigen.Definition):
 
     @apigen.command(rpc=False)
     def startserver(self, hostname="localhost", port=8080, daemon=False,
-                    noscan=False):
+                    scan=True):
 
-        if not noscan:
+        if scan:
             self.scan()
 
         super(Ngccc, self).startserver(hostname=hostname, port=port,
@@ -261,16 +261,18 @@ class Ngccc(apigen.Definition):
             return {"current_height": 0, "blockchain_height": blockchain}
 
     @apigen.command()
-    def scan(self):
+    def scan(self, blocking=False):
         """Update the database of transactions."""
-        self._syncheaders()
+        if blocking:
+            self._syncheaders()
         self.controller.scan_utxos()
         return "Scan concluded"
 
     @apigen.command()
-    def fullrescan(self):
+    def fullrescan(self, blocking=False):
         """Rebuild database of wallet transactions."""
-        self._syncheaders()
+        if blocking:
+            self._syncheaders()
         self.controller.full_rescan()
         return "Full rescan concluded"
 
