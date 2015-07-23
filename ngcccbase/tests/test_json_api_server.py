@@ -177,6 +177,27 @@ class TestJSONAPIServer(unittest.TestCase):
         self.assertTrue(is_address_valid(bitcoin_part, allowable_netcodes=['BTC', 'XTN']))
 
 
+    def test_send(self):
+        regtest_server = 'http://chromanode-regtest.webworks.se'
+        private_key = '92tYMSp7wkq1UjGDQothg8dh6Mu2cQB87aBG3NXzL44qAyqSEBU'
+        self.create_server(testnet = True, regtest_server = regtest_server)
+        self.client.importprivkey('bitcoin', private_key)
+        self.client.issueasset('foo_inc', 1000)
+        exported_asset_json = json.dumps(self.client.getasset('foo_inc'))
+        self.create_server(secondary = True, port=8081, testnet = True, regtest_server = regtest_server)
+        self.secondary_client.addassetjson(json.loads(exported_asset_json))
+        color_address = self.secondary_client.newaddress('foo_inc')
+        self.client.send('foo_inc', color_address, 10)
+        regtest_control = pyjsonrpc.HttpClient(url="regtest_server + '/regtest'")
+        regtest_control.add_confirmations(1)
+        balance = self.secondary_client.getbalance('foo_inc')
+        print balance
+
+
+
+
+
+
 if __name__ == '__main__':
     # EXECUTABLE = './cw'
     unittest.main()
