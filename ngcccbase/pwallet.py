@@ -14,17 +14,20 @@ import json
 
 
 class ConfigKeyNotFound(Exception):
+
     def __init__(self, key):
         super(ConfigKeyNotFound, self).__init__("Key '%s' not found!" % key)
 
 
 class ConfigPathInUse(Exception):
+
     def __init__(self, key):
         msg = "Key '%s' intersects value!" % key
         super(ConfigPathInUse, self).__init__(msg)
 
 
 class PersistentWallet(object):
+
     """Represents a wallet object that stays persistent.
     That is, it doesn't go away every time you run the program.
     """
