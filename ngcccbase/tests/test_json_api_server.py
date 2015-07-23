@@ -71,17 +71,17 @@ class TestJSONAPIServer(unittest.TestCase):
             setattr(self, 'working_dir', working_dir)
         time.sleep(SLEEP_TIME)
 
-    def test_default_config(self):
-        """See to that server starts and pulls in a config.json file"""
-        self.server = subprocess.Popen('python ngccc-server.py',
-                                       preexec_fn=os.setsid, shell=True)
-        time.sleep(SLEEP_TIME)
-        self.assertTrue(self.client.dumpconfig().has_key('testnet'))
+    # def test_default_config(self):
+    #     """See to that server starts and pulls in a config.json file"""
+    #     self.server = subprocess.Popen('python ngccc-server.py',
+    #                                    preexec_fn=os.setsid, shell=True)
+    #     time.sleep(SLEEP_TIME)
+    #     self.assertTrue(self.client.dumpconfig().has_key('testnet'))
 
-    # def test_load_config_realnet(self):
-    #     """Start server with custom config on realnet"""
-    #     self.create_server()
-    #     self.assertFalse(self.client.dumpconfig()['testnet'])
+    def test_load_config_realnet(self):
+        """Start server with custom config on realnet"""
+        self.create_server()
+        self.assertFalse(self.client.dumpconfig()['testnet'])
 
     def test_load_config_testnet(self):
         """Start server with custom config on testnet"""
