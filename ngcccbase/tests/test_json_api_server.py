@@ -86,13 +86,14 @@ class TestJSONAPIServer(unittest.TestCase):
     def test_load_config_testnet(self):
         """Start server with custom config on testnet"""
         self.create_server(testnet=True)
+        
         self.assertTrue(self.client.dumpconfig()['testnet'])
 
     def test_get_new_bitcoin_address(self):
         """Generate a new bitcoin address"""
         self.create_server()
         address = self.client.newaddress('bitcoin')
-        netcodes = ['BTC','XTN']
+        netcodes = ['BTC', 'XTN']
         self.assertTrue(bool(is_address_valid(address, allowable_netcodes=netcodes)))
 
     def test_scan_does_not_throw_exception(self):
