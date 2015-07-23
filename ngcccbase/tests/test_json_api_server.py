@@ -14,8 +14,6 @@ from pycoin.key.validate import is_address_valid
 from ngcccbase.sanitize import colordesc, InvalidInput
 
 SLEEP_TIME = 10  # Time to sleep after the json-rpc server has started
-EXECUTABLE = 'python ngccc-server.py'
-
 START_DIR = os.getcwd()
 EXECUTABLE = 'python %s/ngccc-server.py' % START_DIR
 
@@ -25,37 +23,52 @@ class TestJSONAPIServer(unittest.TestCase):
     def setUp(self):
         self.reset_status()
         self.client = pyjsonrpc.HttpClient(url="http://localhost:8080")
+        self.secondary_client = pyjsonrpc.HttpClient(url="http://localhost:8081")
 
     def reset_status(self):
         self.server = None
         self.working_dir = None
+        self.secondary_server = None
+        self.secondary_working_dir = None
 
     def tearDown(self):
         if self.server:
             os.killpg(os.getpgid(self.server.pid), signal.SIGTERM)
+        if self.secondary_server:
+            os.killpg(os.getpgid(self.secondary_server.pid), signal.SIGTERM)
         if self.working_dir:
             shutil.rmtree(self.working_dir)
+        if self.secondary_working_dir:
+            shutil.rmtree(self.secondary_working_dir)
         self.reset_status()
 
-    def create_server(self, testnet=False, wallet_path=None, port=8080):
-        self.working_dir = tempfile.mkdtemp()
-        # print "WORKING DIR", self.working_dir
-        config_path = self.working_dir + '/config.json'
+    def create_server(self, testnet=False, wallet_path=None, port=8080, regtest_server=None, secondary=False):
+        working_dir = tempfile.mkdtemp()
+        print "WORKING DIR", working_dir
+        config_path = working_dir + '/config.json'
         if wallet_path is None:
-            wallet_path = self.working_dir + "/coloredcoins.wallet"
+            wallet_path = working_dir + "/coloredcoins.wallet"
         config = {
             "testnet": testnet,
             "port": port,
             "hostname": "localhost",
-            "wallet_path": wallet_path
+            "wallet_path": wallet_path,
+            "regtest_server": regtest_server
         }
+        print config
         with open(config_path, 'w') as fi:
             json.dump(config, fi)
         os.chdir(working_dir)
 
-        self.server = subprocess.Popen('%s --config_path=%s'
-                                       % (EXECUTABLE, config_path), preexec_fn=os.setsid, shell=True)
+        server = subprocess.Popen('%s --config_path=%s'
+                                  % (EXECUTABLE, config_path), preexec_fn=os.setsid, shell=True)
         os.chdir(START_DIR)
+        if secondary:
+            setattr(self, 'secondary_server', server)
+            setattr(self, 'secondary_working_dir', working_dir)
+        else:
+            setattr(self, 'server', server)
+            setattr(self, 'working_dir', working_dir)
         time.sleep(SLEEP_TIME)
 
     def test_default_config(self):
