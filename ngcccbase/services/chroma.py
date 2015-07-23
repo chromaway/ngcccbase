@@ -5,6 +5,7 @@ import urllib2
 import time
 from pycoin.tx.Tx import Tx
 from ngcccbase.blockchain import BaseStore
+from ngcccbase import testing_config
 from coloredcoinlib import BlockchainStateBase
 
 
@@ -14,7 +15,10 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
 
         # Chromanode api documentation.
         # https://github.com/chromaway/chromanode/blob/master/docs/API_v1.md
-        testnet_baseurl = "http://chromanode-regtest.webworks.se"
+        if testing_config.regtest_server:
+            testnet_baseurl = "http://chromanode-regtest.webworks.se"
+        else:
+            testnet_baseurl = "http://v1.testnet.bitcoin.chromanode.net"
         mainnet_baseurl = "http://v1.livenet.bitcoin.chromanode.net"
         default_baseurl = testnet_baseurl if testnet else mainnet_baseurl
         self.baseurl = baseurl if baseurl else default_baseurl
