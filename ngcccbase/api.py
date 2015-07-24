@@ -7,6 +7,7 @@ from ngcccbase import sanitize
 from collections import defaultdict
 from ngcccbase.wallet_controller import WalletController
 from ngcccbase.pwallet import PersistentWallet
+from ngcccbase.utxo_fetcher import ServerUTXOFetcher
 
 
 _BASEDIR = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
@@ -60,12 +61,21 @@ class Ngccc(apigen.Definition):
     @apigen.command(rpc=False)
     def startserver(self, hostname="localhost", port=8080, daemon=False,
                     scan=True):
+        """Start json-rpc service."""
 
         if scan:
             self.scan()
 
+        # start utxo fetcher
+        params = self.wallet.wallet_config.get('utxo_fetcher', {})
+        self.async_utxo_fetcher = ServerUTXOFetcher(self.model, params)
+        self.async_utxo_fetcher.start_thread()
+
         super(Ngccc, self).startserver(hostname=hostname, port=port,
                                        daemon=daemon)
+
+    def on_stop_server(self):
+        self.async_utxo_fetcher.stop()
 
     @apigen.command()
     def setconfigval(self, key, value):

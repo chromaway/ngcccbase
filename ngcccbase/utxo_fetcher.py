@@ -11,7 +11,6 @@ from ngcccbase.services.electrum import ElectrumInterface
 from ngcccbase.services.helloblock import HelloBlockInterface
 from ngcccbase.services.chroma import ChromanodeInterface
 
-import time
 import Queue
 import threading
 
@@ -130,4 +129,23 @@ class AsyncUTXOFetcher(BaseUTXOFetcher):  # TODO subscribe to addresses instead
                     self.scan_address(address)
             except Exception as e:
                 print e
+            self.stop_evt.wait(self.sleep_time)
+
+
+class ServerUTXOFetcher(AsyncUTXOFetcher):
+
+    def thread_loop(self):
+        with self.lock:
+            self.running = True
+        while self.is_running():
+            try:
+                with self.lock:
+                    address_list = self.address_list[:]
+                for address in address_list:  # TODO do in parallel!
+                    if not self.is_running():
+                        return
+                    self.scan_address(address)
+            except Exception as e:
+                print e
+            self.update()
             self.stop_evt.wait(self.sleep_time)
