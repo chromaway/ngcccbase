@@ -125,7 +125,7 @@ class WalletController(object):
 
         return offers
 
-    def publish_rawtx(self, rawtx):
+    def publish_rawtx(self, rawtx, dryrun=False):
         blockchain_state = self.model.ccc.blockchain_state
         return blockchain_state.publish_tx(rawtx, dryrun=self.dryrun)
 
