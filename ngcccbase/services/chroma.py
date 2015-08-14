@@ -16,7 +16,7 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         # Chromanode api documentation.
         # https://github.com/chromaway/chromanode/blob/master/docs/API_v1.md
         if testing_config.regtest_server:
-            testnet_baseurl = "http://chromanode-regtest.webworks.se"
+            testnet_baseurl = testing_config.regtest_server
         else:
             testnet_baseurl = "http://v1.testnet.bitcoin.chromanode.net"
         mainnet_baseurl = "http://v1.livenet.bitcoin.chromanode.net"
