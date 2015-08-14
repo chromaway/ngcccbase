@@ -1,12 +1,14 @@
 
 import os
 import apigen
+import datetime
 from decimal import Decimal
 from time import sleep
 from ngcccbase import sanitize
 from collections import defaultdict
 from ngcccbase.wallet_controller import WalletController
 from ngcccbase.pwallet import PersistentWallet
+from ngcccbase.utxo_fetcher import ServerUTXOFetcher
 
 
 _BASEDIR = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
@@ -58,13 +60,21 @@ class Ngccc(apigen.Definition):
 
     @apigen.command(rpc=False)
     def startserver(self, hostname="localhost", port=8080, daemon=False,
-                    scan=True):
+                    force_synced_headers=False):
+        """Start json-rpc service."""
 
-        if scan:
-            self.scan()
+        self.scan(force_synced_headers=force_synced_headers)
+
+        # start utxo fetcher
+        params = self.wallet.wallet_config.get('utxo_fetcher', {})
+        self.async_utxo_fetcher = ServerUTXOFetcher(self.model, params)
+        self.async_utxo_fetcher.start_thread()
 
         super(Ngccc, self).startserver(hostname=hostname, port=port,
                                        daemon=daemon)
+
+    def on_stop_server(self):
+        self.async_utxo_fetcher.stop()
 
     @apigen.command()
     def setconfigval(self, key, value):
@@ -103,7 +113,7 @@ class Ngccc(apigen.Definition):
     def issueasset(self, moniker, quantity, unit=1, scheme="epobc"):
         """ Issue <quantity> of asset with name <moniker> and <unit> atoms,
         based on <scheme (epobc|obc)>."""
-        # TODO unittest
+        # TODO unittest (manually tested 2015-07-14 via rpc)
 
         # sanitize inputs
         moniker = sanitize.moniker(moniker)
@@ -118,10 +128,11 @@ class Ngccc(apigen.Definition):
         return self.getasset(moniker)
 
     @apigen.command()
-    def addassetjson(self, data):  # TODO unittest
+    def addassetjson(self, data):
         """Add a json asset definition.
         Enables the use of colors/assets issued by others.
         """
+        # TODO unittest (manually tested 2015-07-14 via rpc)
 
         # sanitize inputs
         data = sanitize.jsonasset(data)
@@ -130,10 +141,11 @@ class Ngccc(apigen.Definition):
         return self.getasset(data['monikers'][0])
 
     @apigen.command()
-    def addasset(self, moniker, color_description, unit=1):  # TODO unittest
+    def addasset(self, moniker, color_description, unit=1):
         """Add a asset definition.
         Enables the use of colors/assets issued by others.
         """
+        # TODO unittest (manually tested 2015-07-14 via rpc)
 
         # sanitize inputs
         moniker = sanitize.moniker(moniker)
@@ -205,8 +217,9 @@ class Ngccc(apigen.Definition):
         return [ao.get_color_address() for ao in addressrecords]
 
     @apigen.command()
-    def send(self, moniker, coloraddress, amount):  # TODO unittest
+    def send(self, moniker, coloraddress, amount):
         """Send <coloraddress> given <amount> of an asset."""
+        # TODO unittest (manually tested 2015-07-14 via rpc)
 
         # sanitize inputs
         asset = sanitize.asset(self.model, moniker)
@@ -217,11 +230,12 @@ class Ngccc(apigen.Definition):
         return txid
 
     @apigen.command()
-    def sendmanyjson(self, data):  # TODO unittest
+    def sendmanyjson(self, data):
         """Send amounts given in json fromatted data.
         Format [{'moniker':"val",'amount':"val",'coloraddress':"val"}]
         All entries must use the same color scheme.
         """
+        # TODO unittest (manually tested 2015-07-25 via rpc)
 
         # sanitize inputs
         sendmany_entries = sanitize.sendmanyjson(self.model, data)
@@ -229,20 +243,23 @@ class Ngccc(apigen.Definition):
         return self.controller.sendmany_coins(sendmany_entries)
 
     @apigen.command()
-    def sendmanycsv(self, path):  # TODO unittest
+    def sendmanycsv(self, path):
         """Send amounts in csv file with format 'moniker,coloraddress,amount'.
         All entries must use the same color scheme.
         """
+        # TODO unittest (manually tested 2015-07-25 via rpc)
 
         # sanitize inputs
         sendmany_entries = sanitize.sendmanycsv(self.model, path)
 
         return self.controller.sendmany_coins(sendmany_entries)
 
-    def _syncheaders(self):
-        # TODO add timeout 5min
+    def _wait_until_headers_synced(self):
+        time_limit = datetime.datetime.now() + datetime.timedelta(minutes=5)
         if not self.wallet.use_naivetxdb:
             while not self.model.txdb.vbs.is_synced():
+                if datetime.datetime.now() > time_limit:
+                    raise Exception("Timeout while syncing headers.")
                 sleep(5)
 
     @apigen.command()
@@ -257,18 +274,18 @@ class Ngccc(apigen.Definition):
             return {"current_height": 0, "blockchain_height": blockchain}
 
     @apigen.command()
-    def scan(self, blocking=False):
+    def scan(self, force_synced_headers=False):
         """Update the database of transactions."""
-        if blocking:
-            self._syncheaders()
+        if force_synced_headers:
+            self._wait_until_headers_synced()
         self.controller.scan_utxos()
         return "Scan concluded"
 
     @apigen.command()
-    def fullrescan(self, blocking=False):
+    def fullrescan(self, force_synced_headers=False):
         """Rebuild database of wallet transactions."""
-        if blocking:
-            self._syncheaders()
+        if force_synced_headers:
+            self._wait_until_headers_synced()
         self.controller.full_rescan()
         return "Full rescan concluded"
 
@@ -316,26 +333,28 @@ class Ngccc(apigen.Definition):
         return log
 
     @apigen.command()
-    def importprivkey(self, moniker, wif):  # TODO unittest
+    def importprivkey(self, moniker, wif):
         """Import private key for given asset."""
+        # TODO unittest (manually tested 2015-07-25 via rpc)
 
         # sanitize inputs
         asset = sanitize.asset(self.model, moniker)
         wif = sanitize.wif(self.testnet, wif)
 
         addressrecord = self.wallet.importprivkey(wif, asset)
-        return addressrecord.get_address()
+        return addressrecord.get_color_address()
 
     @apigen.command()
-    def importprivkeys(self, moniker, wifs):  # TODO unittest
+    def importprivkeys(self, moniker, wifs):
         """Import private keys for given asset."""
+        # TODO unittest (manually tested 2015-07-25 via rpc)
 
         # sanitize inputs
         asset = sanitize.asset(self.model, moniker)
         wifs = sanitize.wifs(self.testnet, wifs)
 
         addrs = map(lambda wif: self.wallet.importprivkey(wif, asset), wifs)
-        return map(lambda ar: ar.get_address(), addrs)
+        return map(lambda ar: ar.get_color_address(), addrs)
 
     @apigen.command()
     def dumpprivkey(self, moniker, coloraddress):
@@ -364,7 +383,7 @@ class Ngccc(apigen.Definition):
     @apigen.command()
     def p2porders(self, moniker="", sellonly=False, buyonly=False):
         """Show peer to peer trade orders"""
-        # TODO unittest
+        # FIXME test
 
         # sanitize inputs
         sellonly = sanitize.flag(sellonly)
@@ -378,11 +397,11 @@ class Ngccc(apigen.Definition):
     @apigen.command()
     def p2psell(self, moniker, assetamount, btcprice, wait=30):
         """Sell <assetamount> for <btcprice> via peer to peer trade."""
-        # TODO unittest
+        # FIXME test
         self._p2ptrade_make_offer(True, moniker, assetamount, btcprice, wait)
 
     @apigen.command()
-    def p2pbuy(self, moniker, assetamount, btcprice, wait=30):  # TODO unittest
+    def p2pbuy(self, moniker, assetamount, btcprice, wait=30):  # FIXME test
         """Buy <assetamount> for <btcprice> via peer to peer trade."""
         self._p2ptrade_make_offer(False, moniker, assetamount, btcprice, wait)
 
@@ -469,8 +488,9 @@ class Ngccc(apigen.Definition):
         return self.controller.sign_rawtx(rawtx)
 
     @apigen.command()
-    def sendrawtx(self, rawtx):  # TODO unittest
+    def sendrawtx(self, rawtx):
         """ Publish raw transaction to bitcoin network. """
+        # TODO unittest (manually tested 2015-07-25 via rpc)
 
         # sanitize inputs
         rawtx = sanitize.rawtx(rawtx)
