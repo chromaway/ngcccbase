@@ -64,11 +64,11 @@ class TestJSONAPIServer(unittest.TestCase):
                                   % (EXECUTABLE, config_path), preexec_fn=os.setsid, shell=True)
         os.chdir(START_DIR)
         if secondary:
-            setattr(self, 'secondary_server', server)
-            setattr(self, 'secondary_working_dir', working_dir)
+            self.secondary_server = server
+            self.secondary_working_dir = working_dir
         else:
-            setattr(self, 'server', server)
-            setattr(self, 'working_dir', working_dir)
+            self.server = server
+            self.working_dir = working_dir
         time.sleep(SLEEP_TIME)
 
     # def test_default_config(self):
