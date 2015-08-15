@@ -85,14 +85,13 @@ class TestJSONAPIServer(unittest.TestCase):
     def test_load_config_testnet(self):
         """Starts server with a custom config on testnet"""
         self.create_server(testnet=True)
-        
         self.assertTrue(self.client.dumpconfig()['testnet'])
 
     def test_get_new_bitcoin_address(self):
         """Generates a new bitcoin address"""
         self.create_server()
         address = self.client.newaddress('bitcoin')
-        netcodes = ['BTC', 'XTN']
+        netcodes = ['BTC', ]
         self.assertTrue(bool(is_address_valid(address, allowable_netcodes=netcodes)))
 
     def test_scan_does_not_throw_exception(self):
@@ -120,23 +119,23 @@ class TestJSONAPIServer(unittest.TestCase):
     def test_get_balance(self):
         """ Tests to see if a non zero balance cam be retrieved from mainnet"""
         self.create_server()
-        # Should be funded with 0.1 mbtc
         private_key = '5JTuHqTdknhZSnk5pBZaqWDaSuhz6xmJEc9fH9UXgvpZbdRNsLq'
         self.client.importprivkey('bitcoin', private_key)
-        self.client.scan()
+        self.client.scan(force_synced_headers=True)
         res = self.client.getbalance('bitcoin')
-        self.assertEqual(res['available'], '0.00060519')
+        self.assertEqual(res['available'], '0.0002')
 
     def test_no_dup_importprivkey(self):
         """Tests that duplicate imports don't change balance or address count"""
         private_key = '5JTuHqTdknhZSnk5pBZaqWDaSuhz6xmJEc9fH9UXgvpZbdRNsLq'
         self.create_server()
         self.client.importprivkey('bitcoin', private_key)
-        self.client.scan()
+        self.client.scan(force_synced_headers=True)
         balances = self.client.getbalance('bitcoin')
+#0.00060519
         self.assertEqual(balances['available'], '0.00060519')
         res = self.client.importprivkey('bitcoin', private_key)
-        self.client.scan()
+        self.client.scan(force_synced_headers=True)
         self.assertEqual(len(self.client.listaddresses('bitcoin')), 1)
         self.assertEqual(balances['available'], '0.00060519')
 
@@ -146,9 +145,9 @@ class TestJSONAPIServer(unittest.TestCase):
         address = "12WarJccsEjzzf3Aoukh8YJXwxK58qpj8W"  # listed for convenience
         self.create_server()
         self.client.importprivkey('bitcoin', private_key)
-        self.client.scan()
+        self.client.scan(force_synced_headers=True)
         res = self.client.getbalance('bitcoin')
-        self.assertTrue(Decimal(res['available']) > Decimal('0.00006'))
+        self.assertTrue(Decimal(res['available']) > Decimal('0.0002'))
         try:
             res = self.client.issueasset('foo_inc', 1000)
         except:
@@ -175,13 +174,12 @@ class TestJSONAPIServer(unittest.TestCase):
         color_part, bitcoin_part = new_address.split('@')
         self.assertTrue(is_address_valid(bitcoin_part, allowable_netcodes=['BTC', 'XTN']))
 
-
     def test_send(self):
         '''Tests that an asset can be issued and parts of it transferred to
            another party'''
         regtest_server = 'http://chromanode-regtest.webworks.se'
         private_key = '92tYMSp7wkq1UjGDQothg8dh6Mu2cQB87aBG3NXzL44qAyqSEBU'
-        self.create_server(testnet = True, regtest_server = regtest_server)
+
         # Server that will issue the asset:
         self.create_server(testnet=True, regtest_server=regtest_server)
         self.client.importprivkey('bitcoin', private_key)
@@ -193,17 +191,15 @@ class TestJSONAPIServer(unittest.TestCase):
         self.create_server(secondary=True, port=8081, testnet=True, regtest_server=regtest_server)
         self.secondary_client.addassetjson(json.loads(exported_asset_json))
         color_address = self.secondary_client.newaddress('foo_inc')
+
         # Send the asset over
         self.client.send('foo_inc', color_address, 10)
         regtest_control = pyjsonrpc.HttpClient(url="regtest_server + '/regtest'")
         regtest_control.add_confirmations(1)
+
         # Check that is has arrived
         balance = self.secondary_client.getbalance('foo_inc')
         print balance
-
-
-
-
 
 
 if __name__ == '__main__':
