@@ -80,8 +80,32 @@ Example in python with pyjsonrpc:
 
     client.dumpconfig()
 
+Syncing with the blockchain
+----------------------------
+
+Chromawallet-server double-checks that the information it gets from the bitcoin network is linked together in the correct way with what is called SPV. The first time you start the chromawallet-server, it will download the blockchain headers to a file called ```mainnet.blockchain_headers``` and verify them. If you are on testnet the file is called ```testnet.blockchain_headers```. This initial download can take a minute or two. Chromawallet-server continues to download, verify and reorganize whenever it's running and has an Internet connection.
+
+You can check that chromawallet-server has updated by issuing the ```scanstatus``` command. When it returns the same value for ```blockchain_height``` and ```current_height```, then chromawallet-server is in sync.
+
+  client.scanstatus()
+
+Should return something like:
+
+  {u'blockchain_height': 369856, u'current_height': 369856}
+
+
+Another option, if you issue the ```scan``` command with ```force_synced_headers=True``` (python) ```"force_synced_headers:true``` (JSON), then that command will _block_ and wait until the chromawallet-server is in sync with the bitcoin blockchain:
+
+  client.scan(force_synced_headers=True)
+
+A number of commands in chromawallet-server benefit from the synchronization being up-to-date, such as checking for balances, that is how much you have of a certain asset or of bitcoins. 
+
+If you are using a JSON-RPC client that times out quickly, you may prefer to use ```scanstatus``` repeatedly in a timed loop instead of using ```scan```. 
+
+
 Creating an asset
 -------------------
+
 In order to create an asset with colored coins, you must let the software make a genesis transaction in bitcoins. The genesis transaction marks the transacted coins as colored coins, representing your asset. First we must therefore transfer bitcoin into the wallet, so that the wallet has some bitcoin it can use to create a genesis transaction with.
 
 Real bitcoins or testnet bitcoins?
@@ -109,11 +133,7 @@ to see what bitcoin addresses are available for funding.
 Fund the bitcoin address
 -------------------------
 
-Now transfer the needed amount, which should be above 0.001 btc, (also called 1mBTC or 1000 bits). Make sure to add a transfer fee on top of that so that the full 1mBTC actually does arrive in the wallet. You can use any bitcoin wallet to send bitcoin to the wallet.
-
-Currently, you must ask the server to check the state of the blockchain, and update its records:
-
-    client.scan()
+Now transfer the needed amount, which should be above 0.001 btc, (also called 1mBTC or 1000 bits). Make sure to add a transfer fee on top of that so that the full 1mBTC actually does arrive in the wallet. You can use any bitcoin wallet to send bitcoin.
 
 After a while the getbalance command should return the new balance. This may take ten minutes, so it might be a good time for a break, and then try again:
 
