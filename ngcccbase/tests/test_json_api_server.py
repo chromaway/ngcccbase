@@ -13,7 +13,7 @@ from decimal import Decimal
 from pycoin.key.validate import is_address_valid
 from ngcccbase.sanitize import colordesc, InvalidInput
 
-SLEEP_TIME = 10  # Time to sleep after the json-rpc server has started
+SLEEP_TIME = 10  # Time to sleep after the json-rpc server starts
 START_DIR = os.getcwd()
 EXECUTABLE = 'python %s/ngccc-server.py' % START_DIR
 
@@ -43,8 +43,8 @@ class TestJSONAPIServer(unittest.TestCase):
         self.reset_status()
 
     def create_server(self, testnet=False, wallet_path=None, port=8080, regtest_server=None, secondary=False):
+        '''Flexible server creator, used by the tests'''
         working_dir = tempfile.mkdtemp()
-        print "WORKING DIR", working_dir
         config_path = working_dir + '/config.json'
         if wallet_path is None:
             wallet_path = working_dir + "/coloredcoins.wallet"
@@ -55,7 +55,6 @@ class TestJSONAPIServer(unittest.TestCase):
             "wallet_path": wallet_path,
             "regtest_server": regtest_server
         }
-        print config
         with open(config_path, 'w') as fi:
             json.dump(config, fi)
         os.chdir(working_dir)
@@ -79,26 +78,26 @@ class TestJSONAPIServer(unittest.TestCase):
     #     self.assertTrue(self.client.dumpconfig().has_key('testnet'))
 
     def test_load_config_realnet(self):
-        """Start server with custom config on realnet"""
+        """Starts server with custom config on mainnet"""
         self.create_server()
         self.assertFalse(self.client.dumpconfig()['testnet'])
 
     def test_load_config_testnet(self):
-        """Start server with custom config on testnet"""
+        """Starts server with a custom config on testnet"""
         self.create_server(testnet=True)
         
         self.assertTrue(self.client.dumpconfig()['testnet'])
 
     def test_get_new_bitcoin_address(self):
-        """Generate a new bitcoin address"""
+        """Generates a new bitcoin address"""
         self.create_server()
         address = self.client.newaddress('bitcoin')
         netcodes = ['BTC', 'XTN']
         self.assertTrue(bool(is_address_valid(address, allowable_netcodes=netcodes)))
 
     def test_scan_does_not_throw_exception(self):
-        """Make sure that scan and fullrescan return JSON and not
-           something that causes an exception in pyjsonrpc"""
+        """Makes sure that scan and fullrescan return JSON and not
+           something that causes an exception in pyjsonrpc server-side"""
         self.create_server()
         try:
             res = self.client.scan()
@@ -110,7 +109,7 @@ class TestJSONAPIServer(unittest.TestCase):
             self.fail('Fullrescan raised exception\n' + traceback.format_exc())
 
     def test_importprivkey(self):
-        """Test of importing private keys"""
+        """Tests importing a private key"""
         private_key = '5JTuHqTdknhZSnk5pBZaqWDaSuhz6xmJEc9fH9UXgvpZbdRNsLq'
         bitcoin_address = '1Jtkin4FsUcPW3VwcpNsYLmP82wC1ybv1Z'
         self.create_server()
@@ -119,7 +118,7 @@ class TestJSONAPIServer(unittest.TestCase):
         self.assertTrue(bitcoin_address in addresses)
 
     def test_get_balance(self):
-        """ Test to see if a non zero balance cam be retrieved from mainnet"""
+        """ Tests to see if a non zero balance cam be retrieved from mainnet"""
         self.create_server()
         # Should be funded with 0.1 mbtc
         private_key = '5JTuHqTdknhZSnk5pBZaqWDaSuhz6xmJEc9fH9UXgvpZbdRNsLq'
@@ -129,7 +128,7 @@ class TestJSONAPIServer(unittest.TestCase):
         self.assertEqual(res['available'], '0.00060519')
 
     def test_no_dup_importprivkey(self):
-        """Test that duplicate imports don't change balance or address count"""
+        """Tests that duplicate imports don't change balance or address count"""
         private_key = '5JTuHqTdknhZSnk5pBZaqWDaSuhz6xmJEc9fH9UXgvpZbdRNsLq'
         self.create_server()
         self.client.importprivkey('bitcoin', private_key)
@@ -178,18 +177,27 @@ class TestJSONAPIServer(unittest.TestCase):
 
 
     def test_send(self):
+        '''Tests that an asset can be issued and parts of it transferred to
+           another party'''
         regtest_server = 'http://chromanode-regtest.webworks.se'
         private_key = '92tYMSp7wkq1UjGDQothg8dh6Mu2cQB87aBG3NXzL44qAyqSEBU'
         self.create_server(testnet = True, regtest_server = regtest_server)
+        # Server that will issue the asset:
+        self.create_server(testnet=True, regtest_server=regtest_server)
         self.client.importprivkey('bitcoin', private_key)
         self.client.issueasset('foo_inc', 1000)
         exported_asset_json = json.dumps(self.client.getasset('foo_inc'))
-        self.create_server(secondary = True, port=8081, testnet = True, regtest_server = regtest_server)
+
+        # Server that will import the asset definition
+        # and receive the asset transfer
+        self.create_server(secondary=True, port=8081, testnet=True, regtest_server=regtest_server)
         self.secondary_client.addassetjson(json.loads(exported_asset_json))
         color_address = self.secondary_client.newaddress('foo_inc')
+        # Send the asset over
         self.client.send('foo_inc', color_address, 10)
         regtest_control = pyjsonrpc.HttpClient(url="regtest_server + '/regtest'")
         regtest_control.add_confirmations(1)
+        # Check that is has arrived
         balance = self.secondary_client.getbalance('foo_inc')
         print balance
 
