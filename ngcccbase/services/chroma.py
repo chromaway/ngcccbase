@@ -4,10 +4,14 @@ import json
 import urllib2
 import time
 from pycoin.tx.Tx import Tx
+import logging
 from ngcccbase.blockchain import BaseStore
 from ngcccbase import testing_config
 from coloredcoinlib import BlockchainStateBase
 
+logger = logging.getLogger('ngcccbase')
+logger.setLevel(logging.DEBUG)
+logger.addHandler(logging.StreamHandler())
 
 class ChromanodeInterface(BlockchainStateBase, BaseStore):
 
@@ -47,22 +51,22 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         payload = json.loads(fp.read())
         fp.close()
         self._last_connected = time.time()
-        print "********** url coming *********"
-        print url
-        if '/v1/transactions/send' in url:
-            print "*** This is a send transaction ***"
-            print "*************** Data coming *********"
-            print data
-            print "********** Payload coming ********"
-            print payload
-            print "********** end payload  ********"
-        elif '/v1/transactions/merkle' in url:
-            print "*** This is a merkle query  ***"
-            print "*************** Data coming *********"
-            print data
-            print "********** Payload coming ********"
-            print payload
-            print "********** end payload  ********"
+        # logger.debug( "********** url coming *********")
+        # logger.debug( url)
+        # if '/v1/transactions/send' in url:
+        #     logger.debug( "*** This is a send transaction ***")
+        #     logger.debug( "*************** Data coming *********")
+        #     logger.debug( data)
+        #     logger.debug( "********** Payload coming ********")
+        #     logger.debug( payload)
+        #     logger.debug( "********** end payload  ********")
+        # elif '/v1/transactions/merkle' in url:
+        #     logger.debug( "*** This is a merkle query  ***")
+        #     logger.debug( "*************** Data coming *********")
+        #     logger.debug( data)
+        #     logger.debug( "********** Payload coming ********")
+        #     logger.debug( payload)
+        #     logger.debug( "********** end payload  ********")
         if payload["status"] == "fail" and exceptiononfail:
             raise Exception("Chromanode error: %s!" % payload['data']['type'])
         return payload.get("data")
