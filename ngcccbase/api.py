@@ -37,7 +37,8 @@ class Ngccc(apigen.Definition):
             wallet = "%s.wallet" % ("testnet" if self.testnet else "mainnet")
 
         self.wallet = PersistentWallet(wallet, self.testnet,
-                                       use_naivetxdb=use_naivetxdb)
+                                       use_naivetxdb=use_naivetxdb,
+                                       dryrun=self.dryrun)
         self.model_is_initialized = False
 
     def __del__(self):
