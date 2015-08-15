@@ -17,4 +17,4 @@ if __name__ == "__main__":
         testing_config.regtest_server = config.get('regtest_server', None)
         api = Ngccc(wallet=config["wallet_path"], testnet=config["testnet"])
         api.bootstrap()
-        api.startserver(hostname=config["hostname"], port=config["port"], scan=False)
+        api.startserver(hostname=config["hostname"], port=config["port"])
