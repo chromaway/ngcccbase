@@ -10,6 +10,9 @@ from ngcccbase.wallet_controller import WalletController
 from ngcccbase.pwallet import PersistentWallet
 from ngcccbase.utxo_fetcher import ServerUTXOFetcher
 
+from ngcccbase import logger
+logger.setup_logging()
+
 
 _BASEDIR = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 __version__ = "".join(open(os.path.join(_BASEDIR, "version.txt")).readlines())

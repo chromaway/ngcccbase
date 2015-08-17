@@ -10,9 +10,16 @@ import tempfile
 import json
 import pyjsonrpc
 import inspect
+import logging
 from decimal import Decimal
 from pycoin.key.validate import is_address_valid
 from ngcccbase.sanitize import colordesc, InvalidInput
+from ngcccbase import logger
+
+logger.setup_logging()
+logger = logging.getLogger('ngcccbase')
+logger.info(__file__ + ' loaded\n****************************************************')
+
 
 SLEEP_TIME = 5  # Time to sleep after the json-rpc server starts
 START_DIR = os.getcwd()
@@ -90,7 +97,7 @@ class TestJSONAPIServer(unittest.TestCase):
         '''Flexible server creator, used by the tests'''
         if use_cached_blockchain:
             self._initialize_blockchain_headers_cache()
-        print "Create server called from %s" % inspect.stack()[1][3]
+        logger.info( "Create server called from %s" % inspect.stack()[1][3])
         working_dir = working_dir if working_dir else tempfile.mkdtemp()
         config_path = working_dir + '/config.json'
         if wallet_path is None:
@@ -234,10 +241,13 @@ class TestJSONAPIServer(unittest.TestCase):
            another party'''
         regtest_server = 'http://chromanode-regtest.webworks.se'
         private_key = '92tYMSp7wkq1UjGDQothg8dh6Mu2cQB87aBG3NXzL44qAyqSEBU'
+        regtest_control = pyjsonrpc.HttpClient(url=regtest_server + '/regtest')
+        regtest_control.add_confirmations(1)
 
         # Server that will issue the asset:
         self.create_server(testnet=True, regtest_server=regtest_server)
         self.client.importprivkey('bitcoin', private_key)
+        # import pdb;pdb.set_trace()
         self.client.issueasset('foo_inc', 1000)
         exported_asset_json = json.dumps(self.client.getasset('foo_inc'))
 
@@ -249,12 +259,11 @@ class TestJSONAPIServer(unittest.TestCase):
 
         # Send the asset over
         self.client.send('foo_inc', color_address, 10)
-        regtest_control = pyjsonrpc.HttpClient(url="regtest_server + '/regtest'")
         regtest_control.add_confirmations(1)
 
         # Check that is has arrived
         balance = self.secondary_client.getbalance('foo_inc')
-        print balance
+        logger.info( balance)
 
 
 if __name__ == '__main__':

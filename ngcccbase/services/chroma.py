@@ -10,8 +10,6 @@ from ngcccbase import testing_config
 from coloredcoinlib import BlockchainStateBase
 
 logger = logging.getLogger('ngcccbase')
-logger.setLevel(logging.DEBUG)
-logger.addHandler(logging.StreamHandler())
 
 class ChromanodeInterface(BlockchainStateBase, BaseStore):
 
