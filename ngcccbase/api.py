@@ -256,7 +256,7 @@ class Ngccc(apigen.Definition):
         return self.controller.sendmany_coins(sendmany_entries)
 
     def _wait_until_headers_synced(self):
-        time_limit = datetime.datetime.now() + datetime.timedelta(minutes=5)
+        time_limit = datetime.datetime.now() + datetime.timedelta(minutes=15)
         if not self.wallet.use_naivetxdb:
             while not self.model.txdb.vbs.is_synced():
                 if datetime.datetime.now() > time_limit:
