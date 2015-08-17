@@ -132,7 +132,7 @@ class TestJSONAPIServer(unittest.TestCase):
         self.client.importprivkey('bitcoin', private_key)
         self.client.scan(force_synced_headers=True)
         balances = self.client.getbalance('bitcoin')
-#0.00060519
+        # import pdb;pdb.set_trace()
         self.assertEqual(balances['available'], '0.00060519')
         res = self.client.importprivkey('bitcoin', private_key)
         self.client.scan(force_synced_headers=True)
