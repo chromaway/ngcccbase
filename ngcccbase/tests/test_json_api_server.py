@@ -192,19 +192,21 @@ class TestJSONAPIServer(unittest.TestCase):
         self.assertEqual(len(self.client.listaddresses('bitcoin')), 1)
         self.assertEqual(balances['available'], '0.00060519')
 
-    def test_issue_asset_not_throw_exception(self):
-        """Needs funds on mainnet, and they should stay stable at the amount that is tested for."""
-        private_key = "5KAtWUcg45VDNB3QftP4V5cwcavBhLj9UWpJCtxsZBBqevGjhZN"
-        address = "12WarJccsEjzzf3Aoukh8YJXwxK58qpj8W"  # listed for convenience
-        self.create_server()
-        self.client.importprivkey('bitcoin', private_key)
-        self.client.scan(force_synced_headers=True)
-        res = self.client.getbalance('bitcoin')
-        self.assertTrue(Decimal(res['available']) > Decimal('0.0002'))
-        try:
-            res = self.client.issueasset('foo_inc', 1000)
-        except:
-            self.fail('Issueasset raised exception\n' + traceback.format_exc())
+    # def test_issue_asset_not_throw_exception(self):
+    #     """Needs funds on mainnet, and they should stay stable at the amount that is tested for."""
+    #     private_key = "5KAtWUcg45VDNB3QftP4V5cwcavBhLj9UWpJCtxsZBBqevGjhZN"
+    # address = "12WarJccsEjzzf3Aoukh8YJXwxK58qpj8W"  # listed for convenience
+    #     self.create_server()
+    #     self.client.importprivkey('bitcoin', private_key)
+    #     self.client.scan(force_synced_headers=True)
+    # self.client.scan() # FIXME waiting for bug to be resolved, should then be deleted
+
+    #     res = self.client.getbalance('bitcoin')
+    #     self.assertTrue(Decimal(res['available']) > Decimal('0.0002'))
+    #     try:
+    #         res = self.client.issueasset('foo_inc', 1000)
+    #     except:
+    #         self.fail('Issueasset raised exception\n' + traceback.format_exc())
 
     def test_addassetjson(self):
         self.create_server()
