@@ -9,6 +9,7 @@ import shutil
 import tempfile
 import json
 import pyjsonrpc
+import inspect
 from decimal import Decimal
 from pycoin.key.validate import is_address_valid
 from ngcccbase.sanitize import colordesc, InvalidInput
@@ -20,18 +21,27 @@ EXECUTABLE = 'python %s/ngccc-server.py' % START_DIR
 
 class TestJSONAPIServer(unittest.TestCase):
 
-    def setUp(self):
+    def setup(self):
+        self._setup()
+
+    def _setUp(self):
+        '''Broken out of setUp() so it can also  be called outside of 
+           the standard test framework workflow'''
         self.reset_status()
         self.client = pyjsonrpc.HttpClient(url="http://localhost:8080")
         self.secondary_client = pyjsonrpc.HttpClient(url="http://localhost:8081")
+        #
 
-    def reset_status(self):
-        self.server = None
-        self.working_dir = None
-        self.secondary_server = None
-        self.secondary_working_dir = None
+    @classmethod
+    def setUpClass(cls):
+        pass
 
     def tearDown(self):
+        self._tearDown()
+
+    def _tearDown(self):
+        '''Broken out of tearDown() so it can also be called outside of
+           the standard test framework workflow'''
         if self.server:
             os.killpg(os.getpgid(self.server.pid), signal.SIGTERM)
         if self.secondary_server:
@@ -42,8 +52,42 @@ class TestJSONAPIServer(unittest.TestCase):
             shutil.rmtree(self.secondary_working_dir)
         self.reset_status()
 
-    def create_server(self, testnet=False, wallet_path=None, port=8080, regtest_server=None, secondary=False):
+    def reset_status(self):
+        self.server = None
+        self.working_dir = None
+        self.secondary_server = None
+        self.secondary_working_dir = None
+
+    def _produce_blockchain_headers(self):
+        """Produces blockchain headers for mainnet and testnet"""
+        self._setUp()
+        self.create_server(use_cached_blockchain=False)
+        self.client.scan(force_synced_headers=True)
+        self.create_server(testnet=True, secondary=True, port=8081, use_cached_blockchain=False)
+        self.secondary_client.scan(force_synced_headers=True)
+
+    def _initialize_blockchain_headers_cache(self):
+        if not hasattr(self, 'blockchain_headers_cache'):
+            self._produce_blockchain_headers()
+            cache_dir = tempfile.mkdtemp()
+            shutil.copy(self.working_dir + '/mainnet.blockchain_headers', cache_dir + '/mainnet.blockchain_headers')
+            shutil.copy(self.secondary_working_dir + '/testnet.blockchain_headers', cache_dir + '/testnet.blockchain_headers')
+            self.blockchain_headers_cache = {'mainnet': cache_dir + '/mainnet.blockchain_headers', 'testnet': cache_dir + 'testnet.blockchain_headers', 'cache_dir': cache_dir}
+            import pdb; pdb.set_trace()
+            self._tearDown()
+
+    def copy_in_blockchain_file(self, target_dir, testnet=False):
+        '''Supplies a ready made blockchain file'''
+        if testnet:
+            prefix = 'testnet' if testnet else 'mainnet'
+        destination = "%s/%s.blockchain_headers" % (target_dir, prefix)
+        shutil.copy(self.blockchain_headers_cache[prefix], destination)
+
+    def create_server(self, testnet=False, wallet_path=None, port=8080, regtest_server=None, secondary=False, use_cached_blockchain=True):
         '''Flexible server creator, used by the tests'''
+        if use_cached_blockchain:
+            self._initialize_blockchain_headers_cache()
+        print "Create server called from %s" % inspect.stack()[1][3]
         working_dir = tempfile.mkdtemp()
         config_path = working_dir + '/config.json'
         if wallet_path is None:
@@ -58,7 +102,8 @@ class TestJSONAPIServer(unittest.TestCase):
         with open(config_path, 'w') as fi:
             json.dump(config, fi)
         os.chdir(working_dir)
-
+        if use_cached_blockchain:
+            self.copy_in_blockchain_file(target_dir=working_dir, testnet=testnet)
         server = subprocess.Popen('%s --config_path=%s'
                                   % (EXECUTABLE, config_path), preexec_fn=os.setsid, shell=True)
         os.chdir(START_DIR)
@@ -132,7 +177,7 @@ class TestJSONAPIServer(unittest.TestCase):
         self.client.importprivkey('bitcoin', private_key)
         self.client.scan(force_synced_headers=True)
         balances = self.client.getbalance('bitcoin')
-        # import pdb;pdb.set_trace()
+# 0.00060519
         self.assertEqual(balances['available'], '0.00060519')
         res = self.client.importprivkey('bitcoin', private_key)
         self.client.scan(force_synced_headers=True)
