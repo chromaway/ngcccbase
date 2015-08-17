@@ -170,6 +170,7 @@ class TestJSONAPIServer(unittest.TestCase):
         private_key = '5JTuHqTdknhZSnk5pBZaqWDaSuhz6xmJEc9fH9UXgvpZbdRNsLq'
         self.client.importprivkey('bitcoin', private_key)
         self.client.scan(force_synced_headers=True)
+        self.client.scan()  # FIXME waiting for bug to be resolved, should then be deleted
         res = self.client.getbalance('bitcoin')
         self.assertEqual(res['available'], '0.00060519')
 
@@ -179,6 +180,7 @@ class TestJSONAPIServer(unittest.TestCase):
         self.create_server()
         self.client.importprivkey('bitcoin', private_key)
         self.client.scan(force_synced_headers=True)
+        self.client.scan()  # FIXME waiting for bug to be resolved, should then be deleted
 
         balances = self.client.getbalance('bitcoin')
 # 0.00060519
