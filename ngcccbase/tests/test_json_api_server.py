@@ -14,34 +14,21 @@ from decimal import Decimal
 from pycoin.key.validate import is_address_valid
 from ngcccbase.sanitize import colordesc, InvalidInput
 
-SLEEP_TIME = 10  # Time to sleep after the json-rpc server starts
+SLEEP_TIME = 5  # Time to sleep after the json-rpc server starts
 START_DIR = os.getcwd()
 EXECUTABLE = 'python %s/ngccc-server.py' % START_DIR
+BLOCKCHAIN_HEADERS_CACHE = os.path.dirname(os.path.realpath(__file__))
+cache_initialized = False
 
 
 class TestJSONAPIServer(unittest.TestCase):
 
-    def setup(self):
-        self._setup()
-
-    def _setUp(self):
-        '''Broken out of setUp() so it can also  be called outside of 
-           the standard test framework workflow'''
+    def setUp(self):
         self.reset_status()
         self.client = pyjsonrpc.HttpClient(url="http://localhost:8080")
         self.secondary_client = pyjsonrpc.HttpClient(url="http://localhost:8081")
-        #
-
-    @classmethod
-    def setUpClass(cls):
-        pass
 
     def tearDown(self):
-        self._tearDown()
-
-    def _tearDown(self):
-        '''Broken out of tearDown() so it can also be called outside of
-           the standard test framework workflow'''
         if self.server:
             os.killpg(os.getpgid(self.server.pid), signal.SIGTERM)
         if self.secondary_server:
@@ -58,37 +45,53 @@ class TestJSONAPIServer(unittest.TestCase):
         self.secondary_server = None
         self.secondary_working_dir = None
 
-    def _produce_blockchain_headers(self):
-        """Produces blockchain headers for mainnet and testnet"""
-        self._setUp()
-        self.create_server(use_cached_blockchain=False)
-        self.client.scan(force_synced_headers=True)
-        self.create_server(testnet=True, secondary=True, port=8081, use_cached_blockchain=False)
-        self.secondary_client.scan(force_synced_headers=True)
-
     def _initialize_blockchain_headers_cache(self):
-        if not hasattr(self, 'blockchain_headers_cache'):
-            self._produce_blockchain_headers()
-            cache_dir = tempfile.mkdtemp()
-            shutil.copy(self.working_dir + '/mainnet.blockchain_headers', cache_dir + '/mainnet.blockchain_headers')
-            shutil.copy(self.secondary_working_dir + '/testnet.blockchain_headers', cache_dir + '/testnet.blockchain_headers')
-            self.blockchain_headers_cache = {'mainnet': cache_dir + '/mainnet.blockchain_headers', 'testnet': cache_dir + 'testnet.blockchain_headers', 'cache_dir': cache_dir}
-            import pdb; pdb.set_trace()
-            self._tearDown()
+        """Produces/updates the cached blockchain headers files for mainnet and testnet"""
+        global cache_initialized
+        # import pdb;pdb.set_trace()
+
+        if not cache_initialized:
+            self.setUp()
+            working_dir = tempfile.mkdtemp()
+            secondary_working_dir = tempfile.mkdtemp()
+
+            mainnet_cache = "%s/mainnet.blockchain_headers" % BLOCKCHAIN_HEADERS_CACHE
+            testnet_cache = "%s/testnet.blockchain_headers" % BLOCKCHAIN_HEADERS_CACHE
+
+            mainnet_updated = "%s/mainnet.blockchain_headers" % working_dir
+            testnet_updated = "%s/testnet.blockchain_headers" % secondary_working_dir
+
+            if os.path.exists(mainnet_cache):
+                shutil.copy(mainnet_cache, mainnet_updated)
+
+            if os.path.exists(testnet_cache):
+                shutil.copy(testnet_cache, testnet_updated)
+
+            self.create_server(use_cached_blockchain=False, working_dir=working_dir)
+            self.client.scan(force_synced_headers=True)
+
+            self.create_server(testnet=True, secondary=True, port=8081, use_cached_blockchain=False, working_dir=secondary_working_dir)
+            self.secondary_client.scan(force_synced_headers=True)
+
+            shutil.copy(mainnet_updated, mainnet_cache)
+            shutil.copy(testnet_updated, testnet_cache)
+
+            self.tearDown()
+            cache_initialized = True
 
     def copy_in_blockchain_file(self, target_dir, testnet=False):
         '''Supplies a ready made blockchain file'''
-        if testnet:
-            prefix = 'testnet' if testnet else 'mainnet'
+        prefix = 'testnet' if testnet else 'mainnet'
+        source = "%s/%s.blockchain_headers" % (BLOCKCHAIN_HEADERS_CACHE, prefix)
         destination = "%s/%s.blockchain_headers" % (target_dir, prefix)
-        shutil.copy(self.blockchain_headers_cache[prefix], destination)
+        shutil.copy(source, destination)
 
-    def create_server(self, testnet=False, wallet_path=None, port=8080, regtest_server=None, secondary=False, use_cached_blockchain=True):
+    def create_server(self, testnet=False, wallet_path=None, port=8080, regtest_server=None, secondary=False, use_cached_blockchain=True, working_dir=None):
         '''Flexible server creator, used by the tests'''
         if use_cached_blockchain:
             self._initialize_blockchain_headers_cache()
         print "Create server called from %s" % inspect.stack()[1][3]
-        working_dir = tempfile.mkdtemp()
+        working_dir = working_dir if working_dir else tempfile.mkdtemp()
         config_path = working_dir + '/config.json'
         if wallet_path is None:
             wallet_path = working_dir + "/coloredcoins.wallet"
@@ -162,13 +165,13 @@ class TestJSONAPIServer(unittest.TestCase):
         self.assertTrue(bitcoin_address in addresses)
 
     def test_get_balance(self):
-        """ Tests to see if a non zero balance cam be retrieved from mainnet"""
+        """ Tests to see if a non zero balance can be retrieved from mainnet"""
         self.create_server()
         private_key = '5JTuHqTdknhZSnk5pBZaqWDaSuhz6xmJEc9fH9UXgvpZbdRNsLq'
         self.client.importprivkey('bitcoin', private_key)
         self.client.scan(force_synced_headers=True)
         res = self.client.getbalance('bitcoin')
-        self.assertEqual(res['available'], '0.0002')
+        self.assertEqual(res['available'], '0.00060519')
 
     def test_no_dup_importprivkey(self):
         """Tests that duplicate imports don't change balance or address count"""
@@ -176,11 +179,14 @@ class TestJSONAPIServer(unittest.TestCase):
         self.create_server()
         self.client.importprivkey('bitcoin', private_key)
         self.client.scan(force_synced_headers=True)
+
         balances = self.client.getbalance('bitcoin')
 # 0.00060519
         self.assertEqual(balances['available'], '0.00060519')
         res = self.client.importprivkey('bitcoin', private_key)
         self.client.scan(force_synced_headers=True)
+        self.client.scan()  # FIXME waiting for bug to be resolved, should then be deleted
+
         self.assertEqual(len(self.client.listaddresses('bitcoin')), 1)
         self.assertEqual(balances['available'], '0.00060519')
 
