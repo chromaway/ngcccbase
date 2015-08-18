@@ -11,6 +11,7 @@ import json
 import pyjsonrpc
 import inspect
 import logging
+import time
 from decimal import Decimal
 from pycoin.key.validate import is_address_valid
 from ngcccbase.sanitize import colordesc, InvalidInput
@@ -242,12 +243,19 @@ class TestJSONAPIServer(unittest.TestCase):
         regtest_server = 'http://chromanode-regtest.webworks.se'
         private_key = '92tYMSp7wkq1UjGDQothg8dh6Mu2cQB87aBG3NXzL44qAyqSEBU'
         regtest_control = pyjsonrpc.HttpClient(url=regtest_server + '/regtest')
-        regtest_control.add_confirmations(1)
+        result = regtest_control.add_confirmations(1)
+        logger.info('Result from adding one block: %s' % result)
 
         # Server that will issue the asset:
         self.create_server(testnet=True, regtest_server=regtest_server)
+
+        logger.debug('Working dir is %s' % self.working_dir)
+
         self.client.importprivkey('bitcoin', private_key)
         # import pdb;pdb.set_trace()
+        time.sleep(20) # wait for asyncutxo fetcher
+        self.client.fullrescan(force_synced_headers=True)
+
         self.client.issueasset('foo_inc', 1000)
         exported_asset_json = json.dumps(self.client.getasset('foo_inc'))
 
@@ -259,9 +267,13 @@ class TestJSONAPIServer(unittest.TestCase):
 
         # Send the asset over
         self.client.send('foo_inc', color_address, 10)
-        regtest_control.add_confirmations(1)
+        result = regtest_control.add_confirmations(1)
+        logger.info('Result from adding one block: %s' % result)
+        self.client.fullrescan(force_synced_headers=True)
+
 
         # Check that is has arrived
+        self.secondary_client.fullrescan(force_synced_headers=True)
         balance = self.secondary_client.getbalance('foo_inc')
         logger.info( balance)
 
