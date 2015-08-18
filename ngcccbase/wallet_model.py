@@ -21,6 +21,9 @@ from utxo_fetcher import SimpleUTXOFetcher
 from coloredcoinlib import BlockchainState
 from ngcccbase.services.chroma import ChromanodeInterface
 from txhistory import TxHistory
+import logging
+logger = logging.getLogger('ngcccbase')
+
 
 
 class CoinQueryFactory(object):
@@ -48,6 +51,7 @@ class CoinQueryFactory(object):
                 raise Exception('Color set is not specified!')
         if 'spent' not in query:
             query['spent'] = False
+        logger.debug('color set is %s, query is %s' % (color_set, query))
         return CoinQuery(self.model, color_set, query)
 
 

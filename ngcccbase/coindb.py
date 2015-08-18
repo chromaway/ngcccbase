@@ -17,7 +17,8 @@ from coloredcoinlib.txspec import ComposedTxSpec
 from txcons import RawTxSpec
 from coloredcoinlib import UNCOLORED_MARKER, SimpleColorValue
 from coloredcoinlib.blockchain import script_to_raw_address
-
+import logging
+logger = logging.getLogger('ngcccbase')
 
 def flatten1(lst):
     return [elt[0] for elt in lst]
@@ -193,9 +194,12 @@ class CoinQuery(object):
         assert 'spent' in filter_options
 
     def coin_matches_filter(self, coin):
+        # import pdb;pdb.set_trace()
         if not coin.is_valid():
+            logger.debug('Coin is not valid')
             return False
         if self.filter_options['spent'] != coin.is_spent():
+            logger.debug('"Spent" status for filter and coin do not match')
             return False
         if self.filter_options.get('only_unconfirmed', False):
             return not coin.is_confirmed()
@@ -244,9 +248,12 @@ class CoinQuery(object):
         """
         addr_man = self.model.get_address_manager()
         addresses = addr_man.get_addresses_for_color_set(self.color_set)
+        logger.debug('Number of addresses found: %s' % len(addresses))
+
         utxos = []
         for address in addresses:
             utxos.extend(self.get_coins_for_address(address))
+        logger.debug('Number of utxos found: %s' % len(utxos))
         return utxos
 
 
@@ -311,6 +318,8 @@ class CoinManager(object):
         """Returns a list of UTXO objects for a given address <address>
         """
         coins = []
+        logger.debug('Number of coin records is %s' % len(self.store.get_coins_for_address(address)))
+        # import pdb;pdb.set_trace()
         for coin_rec in self.store.get_coins_for_address(address):
             coin = Coin(self, coin_rec)
             coins.append(coin)

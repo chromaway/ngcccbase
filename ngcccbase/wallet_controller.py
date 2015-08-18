@@ -30,6 +30,8 @@ from txcons import (BasicTxSpec,
                     InputsProvidedOperationalTxSpec,
                     RawTxSpec)
 from ngcccbase.address import coloraddress_to_bitcoinaddress
+import logging
+logger = logging.getLogger('ngcccbase')
 
 
 class AssetMismatchError(Exception):
@@ -409,6 +411,7 @@ class WalletController(object):
         query = {"asset": asset}
         query.update(options)
         cq = self.model.make_coin_query(query)
+        logger.debug('query is %s' % cq)
         utxo_list = cq.get_result()
         value_list = [asset.get_colorvalue(utxo) for utxo in utxo_list]
         if len(value_list) == 0:
