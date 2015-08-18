@@ -11,8 +11,5 @@ def setup_logging():
     log_file = os.path.join(dir_path, 'logs', 'ngcccbase.log')
     fh = logging.handlers.RotatingFileHandler(
               log_file, maxBytes=2000000, backupCount=1)
-    sh = logging.StreamHandler()
     fh.setFormatter(formatter)
     logger.addHandler(fh)
-    # logger.addHandler(sh)
-# 
