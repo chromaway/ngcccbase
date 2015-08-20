@@ -12,6 +12,7 @@ import pyjsonrpc
 import inspect
 import logging
 import time
+import urllib2
 from decimal import Decimal
 from pycoin.key.validate import is_address_valid
 from ngcccbase.sanitize import colordesc, InvalidInput
@@ -27,6 +28,27 @@ START_DIR = os.getcwd()
 EXECUTABLE = 'python %s/ngccc-server.py' % START_DIR
 BLOCKCHAIN_HEADERS_CACHE = os.path.dirname(os.path.realpath(__file__))
 cache_initialized = False
+
+class RegtestControl():
+
+    def __init__(self, url):
+        self.control = pyjsonrpc.HttpClient(url=url)
+
+    def wait_for_new_block_height(self, old_height):
+        while True:
+            current_height = self.control.getblockcount()
+            if current_height > old_height:
+                return current_height
+            time.sleep(5)
+
+    def add_confirmations(self, confirmations):
+        current_height = self.control.getblockcount()
+        try:
+            result = self.control.add_confirmations(confirmations)
+        except urllib2.HTTPError:
+            new_height = self.wait_for_new_block_height(current_height)
+            return {'result':new_height}
+        return result
 
 
 class TestJSONAPIServer(unittest.TestCase):
@@ -125,6 +147,7 @@ class TestJSONAPIServer(unittest.TestCase):
             self.server = server
             self.working_dir = working_dir
         time.sleep(SLEEP_TIME)
+
 
     # def test_default_config(self):
     #     """See to that server starts and pulls in a config.json file"""
@@ -242,18 +265,19 @@ class TestJSONAPIServer(unittest.TestCase):
            another party'''
         regtest_server = 'http://chromanode-regtest.webworks.se'
         private_key = '92tYMSp7wkq1UjGDQothg8dh6Mu2cQB87aBG3NXzL44qAyqSEBU'
-        regtest_control = pyjsonrpc.HttpClient(url=regtest_server + '/regtest')
+        regtest_control = RegtestControl(regtest_server + '/regtest/')
+        # import pdb;pdb.set_trace()
         result = regtest_control.add_confirmations(1)
         logger.info('Result from adding one block: %s' % result)
 
         # Server that will issue the asset:
-        self.create_server(testnet=True, regtest_server=regtest_server)
+        self.create_server(testnet=True, regtest_server=regtest_server,use_cached_blockchain=False)
 
         logger.debug('Working dir is %s' % self.working_dir)
 
         self.client.importprivkey('bitcoin', private_key)
         # import pdb;pdb.set_trace()
-        time.sleep(20) # wait for asyncutxo fetcher
+        # time.sleep(20) # wait for asyncutxo fetcher
         self.client.fullrescan(force_synced_headers=True)
 
         self.client.issueasset('foo_inc', 1000)
@@ -261,11 +285,12 @@ class TestJSONAPIServer(unittest.TestCase):
 
         # Server that will import the asset definition
         # and receive the asset transfer
-        self.create_server(secondary=True, port=8081, testnet=True, regtest_server=regtest_server)
+        self.create_server(secondary=True, port=8081, testnet=True, regtest_server=regtest_server, use_cached_blockchain=False)
         self.secondary_client.addassetjson(json.loads(exported_asset_json))
         color_address = self.secondary_client.newaddress('foo_inc')
 
         # Send the asset over
+        result = regtest_control.add_confirmations(1)
         self.client.send('foo_inc', color_address, 10)
         result = regtest_control.add_confirmations(1)
         logger.info('Result from adding one block: %s' % result)
