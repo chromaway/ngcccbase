@@ -4,7 +4,11 @@ import json
 import argparse
 from ngcccbase.api import Ngccc
 from ngcccbase import testing_config
+import logging
+from ngcccbase import logger
 
+logger.setup_logging()
+logger = logging.getLogger('ngcccbase')
 
 
 if __name__ == "__main__":

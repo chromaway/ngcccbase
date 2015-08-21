@@ -10,8 +10,11 @@ from ngcccbase.wallet_controller import WalletController
 from ngcccbase.pwallet import PersistentWallet
 from ngcccbase.utxo_fetcher import ServerUTXOFetcher
 
+import logging
 from ngcccbase import logger
+
 logger.setup_logging()
+logger = logging.getLogger('ngcccbase')
 
 
 _BASEDIR = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))

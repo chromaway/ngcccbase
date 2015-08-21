@@ -11,7 +11,8 @@ from coloredcoinlib import store
 import sqlite3
 import os
 import json
-
+from ngcccbase import logger
+logger.setup_logging()
 
 class ConfigKeyNotFound(Exception):
 

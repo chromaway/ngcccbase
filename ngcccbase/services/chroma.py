@@ -8,7 +8,9 @@ import logging
 from ngcccbase.blockchain import BaseStore
 from ngcccbase import testing_config
 from coloredcoinlib import BlockchainStateBase
+from ngcccbase import logger
 
+logger.setup_logging()
 logger = logging.getLogger('ngcccbase')
 
 class ChromanodeInterface(BlockchainStateBase, BaseStore):
