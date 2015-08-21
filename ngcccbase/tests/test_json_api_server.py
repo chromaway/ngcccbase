@@ -278,8 +278,9 @@ class TestJSONAPIServer(unittest.TestCase):
         self.client.importprivkey('bitcoin', private_key)
         # import pdb;pdb.set_trace()
         # time.sleep(20) # wait for asyncutxo fetcher
-        self.client.fullrescan(force_synced_headers=True)
-
+        logger.debug('Scan initiated')
+        self.client.scan(force_synced_headers=True)
+        logger.debug('Scan concluded')
         self.client.issueasset('foo_inc', 1000)
         exported_asset_json = json.dumps(self.client.getasset('foo_inc'))
 
@@ -291,16 +292,23 @@ class TestJSONAPIServer(unittest.TestCase):
 
         # Send the asset over
         result = regtest_control.add_confirmations(1)
+        # import rpdb;rpdb.set_trace()
+        logger.debug('Full Scan initiated')
+        self.client.fullrescan(force_synced_headers=True)
+        logger.debug('Full Scan concluded')
         self.client.send('foo_inc', color_address, 10)
         result = regtest_control.add_confirmations(1)
         logger.info('Result from adding one block: %s' % result)
-        self.client.fullrescan(force_synced_headers=True)
+        logger.debug('Scan initiated')
+        self.client.scan(force_synced_headers=True)
+        logger.debug('Scan concluded')
 
 
         # Check that is has arrived
-        self.secondary_client.fullrescan(force_synced_headers=True)
+        # self.secondary_client.fullrsescan(force_synced_headers=True)
         balance = self.secondary_client.getbalance('foo_inc')
         logger.info( balance)
+        self.assertEqual(balance['total'], '10')
 
 
 if __name__ == '__main__':
