@@ -32,7 +32,7 @@ def setup_logging():
     if develop_mode:
         fh = RestApiHandler('http://localhost:20520/endpoint')
     else:
-        fh = StreamHandler()
+        fh = logging.StreamHandler()
     fh.setFormatter(formatter)
     logger.addHandler(fh)
 
