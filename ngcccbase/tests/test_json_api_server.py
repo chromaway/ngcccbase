@@ -29,6 +29,7 @@ EXECUTABLE = 'python %s/ngccc-server.py' % START_DIR
 BLOCKCHAIN_HEADERS_CACHE = os.path.dirname(os.path.realpath(__file__))
 cache_initialized = False
 
+
 class RegtestControl():
 
     def __init__(self, url):
@@ -45,9 +46,9 @@ class RegtestControl():
         current_height = self.control.getblockcount()
         try:
             result = self.control.add_confirmations(confirmations)
-        except urllib2.HTTPError:
+        except urllib2.HTTPError:  # Timeout
             new_height = self.wait_for_new_block_height(current_height)
-            return {'result':new_height}
+            return {'result': new_height}
         return result
 
 
@@ -78,7 +79,6 @@ class TestJSONAPIServer(unittest.TestCase):
     def _initialize_blockchain_headers_cache(self):
         """Produces/updates the cached blockchain headers files for mainnet and testnet"""
         global cache_initialized
-        # import pdb;pdb.set_trace()
 
         if not cache_initialized:
             self.setUp()
@@ -116,11 +116,13 @@ class TestJSONAPIServer(unittest.TestCase):
         destination = "%s/%s.blockchain_headers" % (target_dir, prefix)
         shutil.copy(source, destination)
 
-    def create_server(self, testnet=False, wallet_path=None, port=8080, regtest_server=None, secondary=False, use_cached_blockchain=True, working_dir=None):
-        '''Flexible server creator, used by the tests'''
+    def create_server(self, testnet=False, wallet_path=None, port=8080, 
+                      regtest_server=None, secondary=False, use_cached_blockchain=True, 
+                      working_dir=None):
+        ''' Flexible server creator, used by the tests '''
         if use_cached_blockchain:
             self._initialize_blockchain_headers_cache()
-        logger.info( "Create server called from %s" % inspect.stack()[1][3])
+        logger.info("Create server called from %s" % inspect.stack()[1][3])
         working_dir = working_dir if working_dir else tempfile.mkdtemp()
         config_path = working_dir + '/config.json'
         if wallet_path is None:
@@ -147,7 +149,6 @@ class TestJSONAPIServer(unittest.TestCase):
             self.server = server
             self.working_dir = working_dir
         time.sleep(SLEEP_TIME)
-
 
     # def test_default_config(self):
     #     """See to that server starts and pulls in a config.json file"""
@@ -265,18 +266,15 @@ class TestJSONAPIServer(unittest.TestCase):
         regtest_server = 'http://chromanode-regtest.webworks.se'
         private_key = '92tYMSp7wkq1UjGDQothg8dh6Mu2cQB87aBG3NXzL44qAyqSEBU'
         regtest_control = RegtestControl(regtest_server + '/regtest/')
-        # import pdb;pdb.set_trace()
+
         result = regtest_control.add_confirmations(1)
         logger.info('Result from adding one block: %s' % result)
 
         # Server that will issue the asset:
-        self.create_server(testnet=True, regtest_server=regtest_server,use_cached_blockchain=False)
-
+        self.create_server(testnet=True, regtest_server=regtest_server, use_cached_blockchain=False)
         logger.debug('Working dir is %s' % self.working_dir)
-
         self.client.importprivkey('bitcoin', private_key)
-        # import pdb;pdb.set_trace()
-        # time.sleep(20) # wait for asyncutxo fetcher
+
         logger.debug('Scan initiated')
         self.client.scan(force_synced_headers=True)
         logger.debug('Scan concluded')
@@ -291,8 +289,8 @@ class TestJSONAPIServer(unittest.TestCase):
 
         # Send the asset over
         result = regtest_control.add_confirmations(1)
-        # import rpdb;rpdb.set_trace()
-        logger.debug('Full Scan initiated')
+
+        logger.debug('Full Scan initiates')
         self.client.fullrescan(force_synced_headers=True)
         logger.debug('Full Scan concluded')
         self.client.send('foo_inc', color_address, 10)
@@ -302,11 +300,10 @@ class TestJSONAPIServer(unittest.TestCase):
         self.client.scan(force_synced_headers=True)
         logger.debug('Scan concluded')
 
-
         # Check that is has arrived
-        # self.secondary_client.fullrsescan(force_synced_headers=True)
+        # self.secondary_client.fullrescan(force_synced_headers=True)
         balance = self.secondary_client.getbalance('foo_inc')
-        logger.info( balance)
+        logger.info(balance)
         self.assertEqual(balance['total'], '10')
 
 
