@@ -22,12 +22,13 @@ requires = [
     'requests == 2.7.0',
     'argparse == 1.2.1',
     'websocket-client == 0.30.0',
+    'multiprocessing-logging == 0.2.1',
 ]
 
 
 extras_require = {
-        'develop':  ["bottle==0.12.8", "restapi-logging-handler==0.2.2", "rpdb==0.1.5"],
-    }
+    'develop':  ["rpdb==0.1.5", ],
+}
 
 dependency_links = [
     "https://github.com/petertodd/python-bitcoinlib/archive/v0.1.1.zip" +
