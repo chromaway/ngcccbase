@@ -1,3 +1,18 @@
+# Logger module. Logs over http (if RestApiHandler is available),
+# to avoid race conditions between threads or processes.
+#
+# The NGCCC_LOG_TO_TERMINAL env variable disables
+# RestApiHandler.
+#
+# NGCCC_DEBUG_LEVEL env should be set for debugging, e.g. to 'DEBUG'
+# It defaults to 'CRITICAL', so end users aren't spammed with messages.
+# If set, it also formats log messages verbosely,
+# for further filtering and analysis.
+#
+# NGCCC_DEBUG_SERVER_PORT changes what port
+# the http logger logs to (a matching receiving server is in the
+# tests directory).
+
 import logging
 import logging.handlers
 import os
