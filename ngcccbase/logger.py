@@ -25,6 +25,8 @@ except ImportError:
 
 
 class RestApiHandler(BaseRestApiHandler):
+    def setName(self, name='RestApiHandler'):
+        self.name = name
     def _getPayload(self, record):
         """
         The data that will be sent to the RESTful API
