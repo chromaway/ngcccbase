@@ -9,13 +9,47 @@ import shutil
 import tempfile
 import json
 import pyjsonrpc
+import inspect
+import logging
+import time
+import urllib2
 from decimal import Decimal
 from pycoin.key.validate import is_address_valid
 from ngcccbase.sanitize import colordesc, InvalidInput
+from ngcccbase import logger
 
-SLEEP_TIME = 10  # Time to sleep after the json-rpc server starts
+logger.setup_logging()
+logger = logging.getLogger('ngcccbase')
+logger.info(__file__ + ' loaded\n****************************************************')
+
+
+SLEEP_TIME = 5  # Time to sleep after the json-rpc server starts
 START_DIR = os.getcwd()
 EXECUTABLE = 'python %s/ngccc-server.py' % START_DIR
+BLOCKCHAIN_HEADERS_CACHE = os.path.dirname(os.path.realpath(__file__))
+cache_initialized = False
+
+
+class RegtestControl():
+
+    def __init__(self, url):
+        self.control = pyjsonrpc.HttpClient(url=url)
+
+    def wait_for_new_block_height(self, old_height):
+        while True:
+            current_height = self.control.getblockcount()
+            if current_height > old_height:
+                return current_height
+            time.sleep(5)
+
+    def add_confirmations(self, confirmations):
+        current_height = self.control.getblockcount()
+        try:
+            result = self.control.add_confirmations(confirmations)
+        except urllib2.HTTPError:  # Timeout
+            new_height = self.wait_for_new_block_height(current_height)
+            return {'result': new_height}
+        return result
 
 
 class TestJSONAPIServer(unittest.TestCase):
@@ -24,12 +58,6 @@ class TestJSONAPIServer(unittest.TestCase):
         self.reset_status()
         self.client = pyjsonrpc.HttpClient(url="http://localhost:8080")
         self.secondary_client = pyjsonrpc.HttpClient(url="http://localhost:8081")
-
-    def reset_status(self):
-        self.server = None
-        self.working_dir = None
-        self.secondary_server = None
-        self.secondary_working_dir = None
 
     def tearDown(self):
         if self.server:
@@ -42,9 +70,60 @@ class TestJSONAPIServer(unittest.TestCase):
             shutil.rmtree(self.secondary_working_dir)
         self.reset_status()
 
-    def create_server(self, testnet=False, wallet_path=None, port=8080, regtest_server=None, secondary=False):
-        '''Flexible server creator, used by the tests'''
-        working_dir = tempfile.mkdtemp()
+    def reset_status(self):
+        self.server = None
+        self.working_dir = None
+        self.secondary_server = None
+        self.secondary_working_dir = None
+
+    def _initialize_blockchain_headers_cache(self):
+        """Produces/updates the cached blockchain headers files for mainnet and testnet"""
+        global cache_initialized
+
+        if not cache_initialized:
+            self.setUp()
+            working_dir = tempfile.mkdtemp()
+            secondary_working_dir = tempfile.mkdtemp()
+
+            mainnet_cache = "%s/mainnet.blockchain_headers" % BLOCKCHAIN_HEADERS_CACHE
+            testnet_cache = "%s/testnet.blockchain_headers" % BLOCKCHAIN_HEADERS_CACHE
+
+            mainnet_updated = "%s/mainnet.blockchain_headers" % working_dir
+            testnet_updated = "%s/testnet.blockchain_headers" % secondary_working_dir
+
+            if os.path.exists(mainnet_cache):
+                shutil.copy(mainnet_cache, mainnet_updated)
+
+            if os.path.exists(testnet_cache):
+                shutil.copy(testnet_cache, testnet_updated)
+
+            self.create_server(use_cached_blockchain=False, working_dir=working_dir)
+            self.client.scan(force_synced_headers=True)
+
+            self.create_server(testnet=True, secondary=True, port=8081, use_cached_blockchain=False, working_dir=secondary_working_dir)
+            self.secondary_client.scan(force_synced_headers=True)
+
+            shutil.copy(mainnet_updated, mainnet_cache)
+            shutil.copy(testnet_updated, testnet_cache)
+
+            self.tearDown()
+            cache_initialized = True
+
+    def copy_in_blockchain_file(self, target_dir, testnet=False):
+        '''Supplies a ready made blockchain file'''
+        prefix = 'testnet' if testnet else 'mainnet'
+        source = "%s/%s.blockchain_headers" % (BLOCKCHAIN_HEADERS_CACHE, prefix)
+        destination = "%s/%s.blockchain_headers" % (target_dir, prefix)
+        shutil.copy(source, destination)
+
+    def create_server(self, testnet=False, wallet_path=None, port=8080, 
+                      regtest_server=None, secondary=False, use_cached_blockchain=True, 
+                      working_dir=None):
+        ''' Flexible server creator, used by the tests '''
+        if use_cached_blockchain:
+            self._initialize_blockchain_headers_cache()
+        logger.info("Create server called from %s" % inspect.stack()[1][3])
+        working_dir = working_dir if working_dir else tempfile.mkdtemp()
         config_path = working_dir + '/config.json'
         if wallet_path is None:
             wallet_path = working_dir + "/coloredcoins.wallet"
@@ -58,7 +137,8 @@ class TestJSONAPIServer(unittest.TestCase):
         with open(config_path, 'w') as fi:
             json.dump(config, fi)
         os.chdir(working_dir)
-
+        if use_cached_blockchain:
+            self.copy_in_blockchain_file(target_dir=working_dir, testnet=testnet)
         server = subprocess.Popen('%s --config_path=%s'
                                   % (EXECUTABLE, config_path), preexec_fn=os.setsid, shell=True)
         os.chdir(START_DIR)
@@ -117,13 +197,14 @@ class TestJSONAPIServer(unittest.TestCase):
         self.assertTrue(bitcoin_address in addresses)
 
     def test_get_balance(self):
-        """ Tests to see if a non zero balance cam be retrieved from mainnet"""
+        """ Tests to see if a non zero balance can be retrieved from mainnet"""
         self.create_server()
         private_key = '5JTuHqTdknhZSnk5pBZaqWDaSuhz6xmJEc9fH9UXgvpZbdRNsLq'
         self.client.importprivkey('bitcoin', private_key)
         self.client.scan(force_synced_headers=True)
+        # self.client.scan()  # FIXME waiting for bug to be resolved, should then be deleted
         res = self.client.getbalance('bitcoin')
-        self.assertEqual(res['available'], '0.0002')
+        self.assertEqual(res['available'], '0.00060519')
 
     def test_no_dup_importprivkey(self):
         """Tests that duplicate imports don't change balance or address count"""
@@ -131,27 +212,32 @@ class TestJSONAPIServer(unittest.TestCase):
         self.create_server()
         self.client.importprivkey('bitcoin', private_key)
         self.client.scan(force_synced_headers=True)
+        # self.client.scan()  # FIXME waiting for bug to be resolved, should then be deleted
+
         balances = self.client.getbalance('bitcoin')
-        # import pdb;pdb.set_trace()
         self.assertEqual(balances['available'], '0.00060519')
         res = self.client.importprivkey('bitcoin', private_key)
         self.client.scan(force_synced_headers=True)
+        # self.client.scan()  # FIXME waiting for bug to be resolved, should then be deleted
+
         self.assertEqual(len(self.client.listaddresses('bitcoin')), 1)
         self.assertEqual(balances['available'], '0.00060519')
 
-    def test_issue_asset_not_throw_exception(self):
-        """Needs funds on mainnet, and they should stay stable at the amount that is tested for."""
-        private_key = "5KAtWUcg45VDNB3QftP4V5cwcavBhLj9UWpJCtxsZBBqevGjhZN"
-        address = "12WarJccsEjzzf3Aoukh8YJXwxK58qpj8W"  # listed for convenience
-        self.create_server()
-        self.client.importprivkey('bitcoin', private_key)
-        self.client.scan(force_synced_headers=True)
-        res = self.client.getbalance('bitcoin')
-        self.assertTrue(Decimal(res['available']) > Decimal('0.0002'))
-        try:
-            res = self.client.issueasset('foo_inc', 1000)
-        except:
-            self.fail('Issueasset raised exception\n' + traceback.format_exc())
+    # def test_issue_asset_not_throw_exception(self):
+    #     """Needs funds on mainnet, and they should stay stable at the amount that is tested for."""
+    #     private_key = "5KAtWUcg45VDNB3QftP4V5cwcavBhLj9UWpJCtxsZBBqevGjhZN"
+    # address = "12WarJccsEjzzf3Aoukh8YJXwxK58qpj8W"  # listed for convenience
+    #     self.create_server()
+    #     self.client.importprivkey('bitcoin', private_key)
+    #     self.client.scan(force_synced_headers=True)
+    # self.client.scan() # FIXME waiting for bug to be resolved, should then be deleted
+
+    #     res = self.client.getbalance('bitcoin')
+    #     self.assertTrue(Decimal(res['available']) > Decimal('0.0002'))
+    #     try:
+    #         res = self.client.issueasset('foo_inc', 1000)
+    #     except:
+    #         self.fail('Issueasset raised exception\n' + traceback.format_exc())
 
     def test_addassetjson(self):
         self.create_server()
@@ -179,27 +265,46 @@ class TestJSONAPIServer(unittest.TestCase):
            another party'''
         regtest_server = 'http://chromanode-regtest.webworks.se'
         private_key = '92tYMSp7wkq1UjGDQothg8dh6Mu2cQB87aBG3NXzL44qAyqSEBU'
+        regtest_control = RegtestControl(regtest_server + '/regtest/')
+
+        result = regtest_control.add_confirmations(1)
+        logger.info('Result from adding one block: %s' % result)
 
         # Server that will issue the asset:
-        self.create_server(testnet=True, regtest_server=regtest_server)
+        self.create_server(testnet=True, regtest_server=regtest_server, use_cached_blockchain=False)
+        logger.debug('Working dir is %s' % self.working_dir)
         self.client.importprivkey('bitcoin', private_key)
+
+        logger.debug('Scan initiated')
+        self.client.scan(force_synced_headers=True)
+        logger.debug('Scan concluded')
         self.client.issueasset('foo_inc', 1000)
         exported_asset_json = json.dumps(self.client.getasset('foo_inc'))
 
         # Server that will import the asset definition
         # and receive the asset transfer
-        self.create_server(secondary=True, port=8081, testnet=True, regtest_server=regtest_server)
+        self.create_server(secondary=True, port=8081, testnet=True, regtest_server=regtest_server, use_cached_blockchain=False)
         self.secondary_client.addassetjson(json.loads(exported_asset_json))
         color_address = self.secondary_client.newaddress('foo_inc')
 
         # Send the asset over
+        result = regtest_control.add_confirmations(1)
+
+        logger.debug('Full Scan initiates')
+        self.client.fullrescan(force_synced_headers=True)
+        logger.debug('Full Scan concluded')
         self.client.send('foo_inc', color_address, 10)
-        regtest_control = pyjsonrpc.HttpClient(url="regtest_server + '/regtest'")
-        regtest_control.add_confirmations(1)
+        result = regtest_control.add_confirmations(1)
+        logger.info('Result from adding one block: %s' % result)
+        logger.debug('Scan initiated')
+        self.client.scan(force_synced_headers=True)
+        logger.debug('Scan concluded')
 
         # Check that is has arrived
+        # self.secondary_client.fullrescan(force_synced_headers=True)
         balance = self.secondary_client.getbalance('foo_inc')
-        print balance
+        logger.info(balance)
+        self.assertEqual(balance['total'], '10')
 
 
 if __name__ == '__main__':
