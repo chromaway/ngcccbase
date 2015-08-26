@@ -12,6 +12,9 @@ from blockchain import VerifiedBlockchainState
 
 import bitcoin
 
+import logging
+logger = logging.getLogger('ngcccbase')
+
 TX_STATUS_UNKNOWN = 0
 TX_STATUS_UNCONFIRMED = 1
 TX_STATUS_CONFIRMED = 2
@@ -52,8 +55,11 @@ class TxDataStore(DataStore):
                      (status, txhash))
 
     def get_tx_status(self, txhash):
+        logger.debug('Testing status for txhash %s' % txhash)
         querystr = "SELECT status FROM tx_data WHERE txhash = ?"
-        return unwrap1(self.execute(querystr, (txhash, )).fetchone())
+        result = unwrap1(self.execute(querystr, (txhash, )).fetchone())
+        logger.debug('Result is %s' % result)
+        return result
 
     def get_tx_by_hash(self, txhash):
         return self.execute("SELECT * FROM tx_data WHERE txhash = ?",

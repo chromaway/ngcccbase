@@ -8,7 +8,8 @@ from pycoin.encoding import from_bytes_32, public_pair_to_bitcoin_address
 from address import AddressRecord, LooseAddressRecord
 from asset import AssetDefinition
 from coloredcoinlib import ColorSet
-
+import logging
+logger = logging.getLogger('ngcccbase')
 
 class DeterministicAddressRecord(AddressRecord):
     """Subclass of AddressRecord which is entirely deterministic.
@@ -91,6 +92,7 @@ class DWalletAddressManager(object):
         self._import_one_off_addresses_from_config()
 
     def _import_one_off_addresses_from_config(self):
+        logger.debug("Loose address is '%s', addresses from config are %s" % (self.add_loose_address, self.config.get('addresses', []))) 
         map(self.add_loose_address, self.config.get('addresses', []))
 
     def _import_specific_color_addresses(self):
@@ -118,6 +120,7 @@ class DWalletAddressManager(object):
         addr_params['testnet'] = self.testnet
         addr_params['color_set'] = ColorSet(self.colormap,
                                             addr_params['color_set'])
+        logger.debug('Address params are: %s' % addr_params)
         address = LooseAddressRecord(**addr_params)
         self.addresses.add(address)
         return address

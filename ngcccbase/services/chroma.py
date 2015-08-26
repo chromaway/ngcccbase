@@ -4,9 +4,14 @@ import json
 import urllib2
 import time
 from pycoin.tx.Tx import Tx
+import logging
 from ngcccbase.blockchain import BaseStore
+from ngcccbase import testing_config
 from coloredcoinlib import BlockchainStateBase
+from ngcccbase import logger
 
+logger.setup_logging()
+logger = logging.getLogger('ngcccbase')
 
 class ChromanodeInterface(BlockchainStateBase, BaseStore):
 
@@ -14,7 +19,10 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
 
         # Chromanode api documentation.
         # https://github.com/chromaway/chromanode/blob/master/docs/API_v1.md
-        testnet_baseurl = "http://v1.testnet.bitcoin.chromanode.net"
+        if testing_config.regtest_server:
+            testnet_baseurl = testing_config.regtest_server
+        else:
+            testnet_baseurl = "http://v1.testnet.bitcoin.chromanode.net"
         mainnet_baseurl = "http://v1.livenet.bitcoin.chromanode.net"
         default_baseurl = testnet_baseurl if testnet else mainnet_baseurl
         self.baseurl = baseurl if baseurl else default_baseurl
@@ -43,6 +51,22 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
         payload = json.loads(fp.read())
         fp.close()
         self._last_connected = time.time()
+        logger.debug( "********** url coming *********")
+        logger.debug( url)
+        if '/v1/transactions/send' in url:
+            logger.debug( "*** This is a send transaction ***")
+            logger.debug( "*************** Data coming *********")
+            logger.debug( data)
+            logger.debug( "********** Payload coming ********")
+            logger.debug( payload)
+            logger.debug( "********** end payload  ********")
+        elif '/v1/transactions/merkle' in url:
+            logger.debug( "*** This is a merkle query  ***")
+            logger.debug( "*************** Data coming *********")
+            logger.debug( data)
+            logger.debug( "********** Payload coming ********")
+            logger.debug( payload)
+            logger.debug( "********** end payload  ********")
         if payload["status"] == "fail" and exceptiononfail:
             raise Exception("Chromanode error: %s!" % payload['data']['type'])
         return payload.get("data")
@@ -79,6 +103,7 @@ class ChromanodeInterface(BlockchainStateBase, BaseStore):
 
         if result["source"] == "mempool":  # unconfirmed
             return None, True
+
         return result["block"]["hash"], True
 
     def get_block_height(self, blockid):
