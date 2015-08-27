@@ -116,8 +116,8 @@ class TestJSONAPIServer(unittest.TestCase):
         destination = "%s/%s.blockchain_headers" % (target_dir, prefix)
         shutil.copy(source, destination)
 
-    def create_server(self, testnet=False, wallet_path=None, port=8080, 
-                      regtest_server=None, secondary=False, use_cached_blockchain=True, 
+    def create_server(self, testnet=False, wallet_path=None, port=8080,
+                      regtest_server=None, secondary=False, use_cached_blockchain=True,
                       working_dir=None):
         ''' Flexible server creator, used by the tests '''
         if use_cached_blockchain:
@@ -259,6 +259,38 @@ class TestJSONAPIServer(unittest.TestCase):
         self.assertEqual(new_address, self.client.listaddresses('foo_inc')[0])
         color_part, bitcoin_part = new_address.split('@')
         self.assertTrue(is_address_valid(bitcoin_part, allowable_netcodes=['BTC', 'XTN']))
+
+    def test_not_enough_coins_msg(self):
+        '''Tests that the "Not enough coins" message contains correct units, e.g. satoshis or "of its quantity"'''
+        private_key_with_no_money = '5K9qadu4cnjeQ7BT9Gm7U9AaPQC5SZwnkxQRYvKv74S1GQarL6Y'
+        self.create_server()
+        self.client.importprivkey('bitcoin', private_key_with_no_money)
+        try:
+            self.client.issueasset('foobar_inc', 1000)
+        except pyjsonrpc.JsonRpcError, e:
+            self.assertIn('atoshi', str(e))
+            pass
+
+
+        json_data = '''{
+                        "assetid": "Bf1aXLmTv41pc2",
+                        "color_set": [
+                            "epobc:27da3337fb4a5bb8e2e5a537448e5ec9cfaa3c15628c3c333025d547bbcf9d71:0:361077"
+                        ],
+                        "monikers": [
+                            "foo_inc"
+                        ],
+                        "unit": 1
+                        }'''
+        res = self.client.addassetjson(json.loads(json_data))
+        color_address = self.client.newaddress('foo_inc')
+        try:
+            self.client.send('foo_inc', color_address, 10)
+        except pyjsonrpc.JsonRpcError, e:
+            self.assertIn('items', str(e))
+            pass
+
+
 
     def test_send(self):
         '''Tests that an asset can be issued and parts of it transferred to

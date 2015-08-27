@@ -115,8 +115,11 @@ class BaseOperationalTxSpec(OperationalTxSpec):
             required_sum = required_sum_fn(utxo_list)
             if ssum >= required_sum:
                 return selection, ssum
-        raise InsufficientFundsError('Not enough coins: %s requested, %s found!'
-                                     % (required_sum, ssum))
+        requested_unit ='items of this quantity'
+        if required_sum.is_uncolored():
+            requested_unit ='satoshis'
+        raise InsufficientFundsError('Not enough coins available: %s %s requested, %s found!'
+                                     % (required_sum, requested_unit, ssum))
 
     def _validate_select_coins_parameters(self, colorvalue, use_fee_estimator):
         fee = None
