@@ -151,12 +151,15 @@ class TxHistory(object):
     def populate_history(self):
         txdb = self.model.get_tx_db()
         for txhash in txdb.get_all_tx_hashes():
-            if (txhash not in self.entries or             # new transaction
-                    not self.entries[txhash]['txtime']):  # update unconfirmed
-                tx_data = txdb.get_tx_by_hash(txhash)['data']
-                raw_tx = RawTxSpec.from_tx_data(self.model,
-                                                tx_data.decode('hex'))
-                self.add_entry_from_tx(raw_tx)
+            try:
+                if (txhash not in self.entries or             # new transaction
+                        not self.entries[txhash]['txtime']):  # update unconfirmed
+                    tx_data = txdb.get_tx_by_hash(txhash)['data']
+                    raw_tx = RawTxSpec.from_tx_data(self.model,
+                                                    tx_data.decode('hex'))
+                    self.add_entry_from_tx(raw_tx)
+            except Exception as e:
+                print e
 
     def is_receive_entry(self, raw_tx, spent_coins, received_coins):
         return not spent_coins and received_coins
@@ -283,14 +286,16 @@ class TxHistory(object):
         spent_coins, received_coins = coindb.get_coins_for_transaction(raw_tx)
         if (not spent_coins) and (not received_coins):
             return  # no effect
+        try:
+            # receive coins
+            if self.is_receive_entry(raw_tx, spent_coins, received_coins):
+                self.create_receive_entry(raw_tx, received_coins)
 
-        # receive coins
-        if self.is_receive_entry(raw_tx, spent_coins, received_coins):
-            self.create_receive_entry(raw_tx, received_coins)
+            # send coins
+            elif self.is_send_entry(raw_tx, spent_coins, received_coins):
+                self.create_send_entry(raw_tx, spent_coins, received_coins)
 
-        # send coins
-        elif self.is_send_entry(raw_tx, spent_coins, received_coins):
-            self.create_send_entry(raw_tx, spent_coins, received_coins)
-
-        else:  # default for non obvious
-            self.create_complex_entry(raw_tx, spent_coins, received_coins)
+            else:  # default for non obvious
+                self.create_complex_entry(raw_tx, spent_coins, received_coins)      
+        except Exception as e:
+             print e
