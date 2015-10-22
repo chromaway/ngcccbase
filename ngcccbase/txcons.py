@@ -91,17 +91,20 @@ class BasicTxSpec(object):
 
 
 class BaseOperationalTxSpec(OperationalTxSpec):
+    def __init__(self):
+        self.base_fee = 11000
+        self.dust_threshold = 2730 # 5460 / 2
+
     def get_required_fee(self, tx_size):
         """Given a transaction that is of size <tx_size>,
         return the transaction fee in Satoshi that needs to be
         paid out to miners.
         """
-        base_fee = 11000.0
-        fee_value = math.ceil((tx_size * base_fee) / 1000)
+        fee_value = math.ceil((tx_size * float(self.base_fee)) / 1000)
         return SimpleColorValue(colordef=UNCOLORED_MARKER, value=fee_value)
 
     def get_dust_threshold(self):
-        return SimpleColorValue(colordef=UNCOLORED_MARKER, value=600)
+        return SimpleColorValue(colordef=UNCOLORED_MARKER, value=self.dust_threshold)
 
     def _select_enough_coins(self, colordef, utxo_list, required_sum_fn):
         ssum = SimpleColorValue(colordef=colordef, value=0)
@@ -148,6 +151,8 @@ class SimpleOperationalTxSpec(BaseOperationalTxSpec):
         self.model = model
         self.targets = []
         self.asset = asset
+        self.base_fee = model.get_base_fee()
+        self.dust_threshold = model.get_dust_threshold()
 
     def add_target(self, color_target):
         """Add a ColorTarget <color_target> to the transaction

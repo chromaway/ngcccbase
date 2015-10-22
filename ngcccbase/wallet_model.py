@@ -76,6 +76,12 @@ class WalletModel(object):
         self.tx_spec_transformer = TransactionSpecTransformer(self, config)
         self.tx_history = TxHistory(self)
 
+    def get_base_fee(self):
+        return self._config.get('base_fee', 11000)
+    
+    def get_dust_threshold(self):
+        return self._config.get('dust_threshold', 2730)        
+
     def init_wallet_address_manager(self):
         if not self.address_man_initialized:
             colormap = self.ccc.colormap
