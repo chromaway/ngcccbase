@@ -1,5 +1,8 @@
 Please note that this documentation is a work in progress. [text in square brackets] are placeholders or comments about the development of the documentation, while `<text in angle brackets>` are placeholders for the user's particular setup.
 
+Also the server may be called ```ngccc-server.py```instead of ```chromawallet-server``` depending on what packaging of the software that you are using.
+
+
 Trying out chromawallet's JSON API
 ===============
 
